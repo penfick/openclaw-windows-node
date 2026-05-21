@@ -856,7 +856,13 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                 entry.Id);
         }
 
-        Element RenderAssistantEntry(ChatTimelineItem entry, bool startsBurst, bool endsBurst, bool showAvatar)
+        // Per-turn shared reference between the assistant bubble and any
+        // tool cards rendered below it. The tool card binds its Width to
+        // bubble.ActualWidth - toolIndent so the two cards' right edges
+        // (and left indent) stay exactly parallel as the bubble grows
+        // with content. Single-element Border[] used as a mutable slot
+        // since these are local functions (no nested class allowed).
+        Element RenderAssistantEntry(ChatTimelineItem entry, bool startsBurst, bool endsBurst, bool showAvatar, Microsoft.UI.Xaml.Controls.Border[]? bubbleSlot = null)
         {
             if (string.IsNullOrEmpty(entry.Text))
                 return Empty();
@@ -886,6 +892,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                  b.CornerRadius = bubbleRadius;
                  b.Padding = bubblePadding;
                  b.MaxWidth = 720;
+                 if (bubbleSlot != null) bubbleSlot[0] = b;
              });
 
             var bubbleRow = Grid(
@@ -928,7 +935,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
         // into `▸ ⚡ <ToolName> · <summary>  [Done]`; click expands the row
         // to reveal the original args + raw output (the previous chip body).
         // A single trailing `Tool · <time>` footer sits below the card.
-        Element RenderToolBurst(System.Collections.Generic.IReadOnlyList<ChatTimelineItem> entries, bool showAvatar)
+        Element RenderToolBurst(System.Collections.Generic.IReadOnlyList<ChatTimelineItem> entries, bool showAvatar, Microsoft.UI.Xaml.Controls.Border[]? bubbleSlot = null)
         {
             // Status pill / glyph color resolved per entry (each row has its
             // own status). The body styling (block bg/border) is shared across
@@ -1201,7 +1208,30 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
             Element CardOf(Element[] rowEls) => Border(VStack(0, rowEls))
                 .Background(toolCardBgBrush)
                 .WithBorder(toolCardBorderBrush, 1)
-                .Set(b => { b.CornerRadius = bubbleRadius; b.MaxWidth = 720 - toolIndent; b.HorizontalAlignment = HorizontalAlignment.Stretch; });
+                .Set(b =>
+                {
+                    b.CornerRadius = bubbleRadius;
+                    b.MaxWidth = 720 - toolIndent;
+                    b.HorizontalAlignment = HorizontalAlignment.Left;
+
+                    // If an assistant bubble was rendered earlier in this turn,
+                    // bind the tool card's Width to the bubble's ActualWidth
+                    // minus the indent so the right edges stay parallel and
+                    // the tool card visually nests inside the bubble's reading
+                    // column — regardless of how the bubble's content sized it.
+                    var slotBubble = bubbleSlot != null ? bubbleSlot[0] : null;
+                    if (slotBubble != null)
+                    {
+                        void Sync()
+                        {
+                            var w = slotBubble.ActualWidth - toolIndent;
+                            if (w > 0) b.Width = w;
+                        }
+                        slotBubble.SizeChanged += (_, _) => Sync();
+                        b.Loaded += (_, _) => Sync();
+                        Sync();
+                    }
+                });
 
             // Wrap the card in a left-anchored Auto/Star Grid so its 704-wide
             // slot stays pinned to toolLeftMargin instead of being centered
@@ -1674,6 +1704,10 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
             Flush(Props.Entries.Count);
         }
 
+        // Per-turn slot shared between an assistant bubble and tool cards
+        // rendered below it in the same turn. Reset at each User entry.
+        Microsoft.UI.Xaml.Controls.Border[]? currentBubbleSlot = null;
+
         for (int k = 0; k < orderedIdx.Length; k++)
         {
             int i = orderedIdx[k];
@@ -1683,6 +1717,11 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
             var startsBurst = prevKind is null || !SameBurstKind(prevKind.Value, entry.Kind);
             var endsBurst = nextKind is null || !SameBurstKind(entry.Kind, nextKind.Value);
             var showAvatar = !(prevKind is { } pk && IsAgentSide(pk) && IsAgentSide(entry.Kind));
+
+            // Reset the bubble slot at each new User turn so tool cards
+            // never bind to a bubble from a previous conversation turn.
+            if (entry.Kind == ChatTimelineItemKind.User)
+                currentBubbleSlot = null;
 
             // Coalesce contiguous ToolCall entries into a single unified
             // burst card so a multi-step assistant turn reads as one tidy
@@ -1706,7 +1745,14 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                     burst.Add(Props.Entries[orderedIdx[kj]]);
                     kj++;
                 }
-                renderedEntries[k] = RenderToolBurst(burst, showAvatar).WithKey(entry.Id);
+                renderedEntries[k] = RenderToolBurst(burst, showAvatar, currentBubbleSlot).WithKey(entry.Id);
+                continue;
+            }
+
+            if (entry.Kind == ChatTimelineItemKind.Assistant)
+            {
+                currentBubbleSlot ??= new Microsoft.UI.Xaml.Controls.Border[1];
+                renderedEntries[k] = RenderAssistantEntry(entry, startsBurst, endsBurst, showAvatar, currentBubbleSlot).WithKey(entry.Id);
                 continue;
             }
 
