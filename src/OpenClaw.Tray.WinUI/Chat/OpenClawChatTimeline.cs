@@ -886,7 +886,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
             var bubbleRow = Grid(
                 [GridSize.Auto, GridSize.Star()],
                 [GridSize.Auto],
-                leftSlot.Grid(row: 0, column: 0).Margin(0, 0, bubbleSideMargin, 0),
+                leftSlot.Grid(row: 0, column: 0).Margin(0, 0, showAssistAvatar && showAvatar ? bubbleSideMargin : 0, 0),
                 card.HAlign(HorizontalAlignment.Left).Grid(row: 0, column: 1)
             ).HAlign(HorizontalAlignment.Stretch);
 
@@ -1031,8 +1031,8 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                          .VAlign(VerticalAlignment.Center)
                          .HAlign(HorizontalAlignment.Right)
                          .Grid(row: 0, column: 4)
-                    ).HAlign(HorizontalAlignment.Stretch).Padding(12, 8, 12, 8)
-                ).Set(b => b.MinHeight = 22);
+                    ).HAlign(HorizontalAlignment.Stretch).Padding(bubblePadding.Left, bubblePadding.Top, bubblePadding.Right, bubblePadding.Bottom)
+                ).Set(b => b.MinHeight = 32);
 
                 Element body = Empty();
                 if (isExpanded)
@@ -1480,7 +1480,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                 var burstRow = Grid(
                     [GridSize.Auto, GridSize.Star()],
                     [GridSize.Auto],
-                    leftSlot.Grid(row: 0, column: 0).Margin(0, 0, bubbleSideMargin, 0),
+                    leftSlot.Grid(row: 0, column: 0).Margin(0, 0, showAssistAvatar && showAvatar ? bubbleSideMargin : 0, 0),
                     listCard.HAlign(HorizontalAlignment.Left).Grid(row: 0, column: 1)
                 ).HAlign(HorizontalAlignment.Stretch);
 

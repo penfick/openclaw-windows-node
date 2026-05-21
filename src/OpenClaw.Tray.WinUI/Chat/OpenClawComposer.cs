@@ -745,7 +745,7 @@ public sealed class OpenClawComposer : Component<OpenClawComposerProps>
                 permissionBanner,
                 Border(
                     VStack(8, textbox, attachmentChip, bottomRow)
-                ).Padding(14, 12, 14, 12)
+                ).Padding(16, 12, 16, 12)
                  .Set(b =>
                  {
                      b.BorderThickness = new Thickness(0, 1, 0, 0);
@@ -770,7 +770,7 @@ public sealed class OpenClawComposer : Component<OpenClawComposerProps>
             permissionBanner2,
             Border(
                 VStack(8, dropdownsRow, textbox, voiceIndicator, attachmentChip, actionsRow)
-            ).Padding(14, 12, 14, 12)
+            ).Padding(16, 12, 16, 12)
              .Set(b =>
              {
                  // Top divider only — mirrors Kenny's ChatShell ComposerBorder.
