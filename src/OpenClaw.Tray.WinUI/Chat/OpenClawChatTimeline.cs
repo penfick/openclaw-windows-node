@@ -1201,7 +1201,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
             Element CardOf(Element[] rowEls) => Border(VStack(0, rowEls))
                 .Background(toolCardBgBrush)
                 .WithBorder(toolCardBorderBrush, 1)
-                .Set(b => { b.CornerRadius = bubbleRadius; b.MaxWidth = 720 - toolIndent; b.HorizontalAlignment = HorizontalAlignment.Stretch; });
+                .Set(b => { b.CornerRadius = bubbleRadius; b.MaxWidth = 720 - toolIndent; b.HorizontalAlignment = HorizontalAlignment.Left; });
 
             // Build the per-step rows once — used by Plain, TaskHeader, and
             // CompactSummary (when expanded).
@@ -1276,7 +1276,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                 return VStack(2,
                     CardOf(pieces.ToArray()),
                     FooterCaption(timeStr ?? string.Empty, HorizontalAlignment.Left).Margin(0, 2, 0, 0)
-                ).HAlign(HorizontalAlignment.Stretch).Margin(toolLeftMargin, 6, gutter, 6);
+                ).HAlign(HorizontalAlignment.Left).Margin(toolLeftMargin, 6, gutter, 6);
             }
 
             // TaskHeader: prepend a non-clickable header row to the card.
@@ -1308,7 +1308,7 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                 return VStack(2,
                     CardOf(combined),
                     FooterCaption(timeStr ?? string.Empty, HorizontalAlignment.Left).Margin(0, 2, 0, 0)
-                ).HAlign(HorizontalAlignment.Stretch).Margin(toolLeftMargin, 6, gutter, 6);
+                ).HAlign(HorizontalAlignment.Left).Margin(toolLeftMargin, 6, gutter, 6);
             }
 
             // TaskList: per-step rows with a status icon (✓ / spinner / ✕)
@@ -1519,11 +1519,11 @@ public class OpenClawChatTimeline : Component<OpenClawChatTimelineProps>
                 return VStack(2,
                     CardOf(rows),
                     FooterCaption(TaskFooter(), HorizontalAlignment.Left).Margin(0, 2, 0, 0)
-                ).HAlign(HorizontalAlignment.Stretch).Margin(toolLeftMargin, 6, gutter, 6);
+                ).HAlign(HorizontalAlignment.Left).Margin(toolLeftMargin, 6, gutter, 6);
             }
 
             return CardOf(rows)
-                .HAlign(HorizontalAlignment.Stretch)
+                .HAlign(HorizontalAlignment.Left)
                 .Margin(toolLeftMargin, 6, gutter, 6);
         }
 
