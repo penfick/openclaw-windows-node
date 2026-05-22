@@ -65,7 +65,7 @@
                             Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon x:Name="TestVoiceBtnIcon" Glyph="&#xE720;" FontSize="14"/>
-                            <TextBlock x:Name="TestVoiceButtonText" Text="Test Voice Input"/>
+                            <TextBlock x:Uid="VoiceSettingsPage_TestVoiceInput" x:Name="TestVoiceButtonText" Text="Test Voice Input"/>
                         </StackPanel>
                     </Button>
 
@@ -95,7 +95,7 @@
                                         Style="{StaticResource AccentButtonStyle}" Padding="12,8">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <FontIcon x:Name="InlineTestBtnIcon" Glyph="&#xE720;" FontSize="14"/>
-                                        <TextBlock x:Name="InlineTestBtnLabel" Text="Record" FontSize="13"/>
+                                        <TextBlock x:Uid="VoiceSettingsPage_Record" x:Name="InlineTestBtnLabel" Text="Record" FontSize="13"/>
                                     </StackPanel>
                                 </Button>
                                 <Button x:Name="InlineTestCloseBtn" Click="OnInlineTestCloseClick"

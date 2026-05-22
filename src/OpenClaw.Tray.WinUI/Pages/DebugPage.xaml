@@ -81,7 +81,7 @@
                          System → Storage). Padding=0 strips button chrome
                          so they read as inline links flush with the
                          message text. -->
-                    <controls:InfoBar x:Name="StatusInfoBar"
+                    <controls:InfoBar x:Uid="DebugPage_Status" x:Name="StatusInfoBar"
                                       IsOpen="True"
                                       IsClosable="False"
                                       Severity="Informational"
@@ -190,7 +190,7 @@
                          InfoBar with IsOpen=False does not consume any
                          vertical layout space, so this is a no-op when
                          idle. -->
-                    <controls:InfoBar x:Name="CopyFeedbackInfoBar"
+                    <controls:InfoBar x:Uid="DebugPage_Copied" x:Name="CopyFeedbackInfoBar"
                                       IsOpen="False"
                                       IsClosable="False"
                                       Severity="Success"
@@ -298,9 +298,9 @@
                                           MinWidth="220"
                                           AutomationProperties.AutomationId="DebugPageHubChatOverride"
                                           SelectionChanged="OnHubChatOverrideChanged">
-                                    <ComboBoxItem Content="No override" Tag="NoOverride"/>
-                                    <ComboBoxItem Content="Force Gateway Chat UI" Tag="ForceLegacy"/>
-                                    <ComboBoxItem Content="Force Companion Chat UI" Tag="ForceNative"/>
+                                    <ComboBoxItem x:Uid="DebugPage_NoOverride" Content="No override" Tag="NoOverride"/>
+                                    <ComboBoxItem x:Uid="DebugPage_ForceGatewayChatUI" Content="Force Gateway Chat UI" Tag="ForceLegacy"/>
+                                    <ComboBoxItem x:Uid="DebugPage_ForceCompanionChatUI" Content="Force Companion Chat UI" Tag="ForceNative"/>
                                 </ComboBox>
                             </toolkit:SettingsCard>
                             <toolkit:SettingsCard x:Uid="DiagnosticsPage_Card_TrayChat"
@@ -309,9 +309,9 @@
                                           MinWidth="220"
                                           AutomationProperties.AutomationId="DebugPageTrayChatOverride"
                                           SelectionChanged="OnTrayChatOverrideChanged">
-                                    <ComboBoxItem Content="No override" Tag="NoOverride"/>
-                                    <ComboBoxItem Content="Force Gateway Chat UI" Tag="ForceLegacy"/>
-                                    <ComboBoxItem Content="Force Companion Chat UI" Tag="ForceNative"/>
+                                    <ComboBoxItem x:Uid="DebugPage_NoOverride2" Content="No override" Tag="NoOverride"/>
+                                    <ComboBoxItem x:Uid="DebugPage_ForceGatewayChatUI2" Content="Force Gateway Chat UI" Tag="ForceLegacy"/>
+                                    <ComboBoxItem x:Uid="DebugPage_ForceCompanionChatUI2" Content="Force Companion Chat UI" Tag="ForceNative"/>
                                 </ComboBox>
                             </toolkit:SettingsCard>
                         </toolkit:SettingsExpander.Items>
@@ -416,7 +416,7 @@
                             <FontIcon Glyph="{x:Bind helpers:FluentIconCatalog.Refresh, Mode=OneTime}"
                                       FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                       FontSize="12"/>
-                            <TextBlock Text="Refresh"/>
+                            <TextBlock x:Uid="DebugPage_Refresh" Text="Refresh"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="DetailCopyButton"
@@ -426,7 +426,7 @@
                             <FontIcon Glyph="{x:Bind helpers:FluentIconCatalog.Copy, Mode=OneTime}"
                                       FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                       FontSize="12"/>
-                            <TextBlock Text="Copy"/>
+                            <TextBlock x:Uid="DebugPage_Copy" Text="Copy"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="DetailOpenFileButton"
@@ -437,7 +437,7 @@
                             <FontIcon Glyph="{x:Bind helpers:FluentIconCatalog.OpenInBrowser, Mode=OneTime}"
                                       FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                       FontSize="12"/>
-                            <TextBlock Text="Open file"/>
+                            <TextBlock x:Uid="DebugPage_OpenFile" Text="Open file"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>

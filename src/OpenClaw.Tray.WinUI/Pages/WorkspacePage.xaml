@@ -42,7 +42,7 @@
                         HorizontalAlignment="Center" Spacing="8" Margin="0,24,0,0">
                 <ProgressRing x:Name="LoadingRing" IsActive="False" Width="24" Height="24"
                               HorizontalAlignment="Center"/>
-                <TextBlock Text="Loading workspace files…"
+                <TextBlock x:Uid="WorkspacePage_LoadingWorkspaceFiles" Text="Loading workspace files…"
                            Style="{StaticResource CaptionTextBlockStyle}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center"/>

@@ -3507,4 +3507,919 @@
   <data name="ConnectionStatusWindow.Title" xml:space="preserve">
     <value>Connection Status</value>
   </data>
+  <data name="BindingsPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>閘道已中斷</value>
+  </data>
+  <data name="BindingsPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>請連接至閘道以載入繫結。</value>
+  </data>
+  <data name="BindingsPage_OpenConnection.Content" xml:space="preserve">
+    <value>開啟連線</value>
+  </data>
+  <data name="BindingsPage_LoadingBindings.Text" xml:space="preserve">
+    <value>正在載入繫結…</value>
+  </data>
+  <data name="ConnectionPage_ApprovalsWaitingOnYou.Text" xml:space="preserve">
+    <value>等待您的核准</value>
+  </data>
+  <data name="ConnectionPage_NotConnected.Text" xml:space="preserve">
+    <value>未連線</value>
+  </data>
+  <data name="ConnectionPage_Connect.Content" xml:space="preserve">
+    <value>連線</value>
+  </data>
+  <data name="ConnectionPage_Operator.Text" xml:space="preserve">
+    <value>操作員</value>
+  </data>
+  <data name="ConnectionPage_SendCommandsAndView.Text" xml:space="preserve">
+    <value>從這台電腦向此閘道傳送命令並檢視工作階段。</value>
+  </data>
+  <data name="ConnectionPage_Inactive.Text" xml:space="preserve">
+    <value>未啟用</value>
+  </data>
+  <data name="ConnectionPage_SeeSessions.Content" xml:space="preserve">
+    <value>檢視工作階段 ›</value>
+  </data>
+  <data name="ConnectionPage_SeeInstances.Content" xml:space="preserve">
+    <value>檢視執行個體 ›</value>
+  </data>
+  <data name="ConnectionPage_NodeMode.Text" xml:space="preserve">
+    <value>節點模式</value>
+  </data>
+  <data name="ConnectionPage_WhenOnThisPC.Text" xml:space="preserve">
+    <value>啟用後,這台電腦會註冊為節點,並透過閘道向代理提供下列功能。</value>
+  </data>
+  <data name="ConnectionPage_NodeModeDisabled.Text" xml:space="preserve">
+    <value>節點模式已停用</value>
+  </data>
+  <data name="ConnectionPage_Copy.Content" xml:space="preserve">
+    <value>複製</value>
+  </data>
+  <data name="ConnectionPage_Connect2.Content" xml:space="preserve">
+    <value>連線</value>
+  </data>
+  <data name="ConnectionPage_ManagePermissions.Content" xml:space="preserve">
+    <value>管理權限 ›</value>
+  </data>
+  <data name="ConnectionPage_HelpUsFixThis.Text" xml:space="preserve">
+    <value>協助我們修復此連線:</value>
+  </data>
+  <data name="ConnectionPage_SSHTunnelIsDown.Text" xml:space="preserve">
+    <value>SSH 通道已停止。</value>
+  </data>
+  <data name="ConnectionPage_RestartTunnel.Content" xml:space="preserve">
+    <value>重新啟動通道</value>
+  </data>
+  <data name="ConnectionPage_EditTunnelSettings.Content" xml:space="preserve">
+    <value>編輯通道設定</value>
+  </data>
+  <data name="ConnectionPage_PasteANewSetup.Text" xml:space="preserve">
+    <value>貼上來自閘道主機的新設定代碼。</value>
+  </data>
+  <data name="ConnectionPage_PasteSetupCodeHere.PlaceholderText" xml:space="preserve">
+    <value>在此貼上設定代碼…</value>
+  </data>
+  <data name="ConnectionPage_Apply.Content" xml:space="preserve">
+    <value>套用</value>
+  </data>
+  <data name="ConnectionPage_RunOnTheGateway.Text" xml:space="preserve">
+    <value>在閘道主機上執行:</value>
+  </data>
+  <data name="ConnectionPage_Copy2.Content" xml:space="preserve">
+    <value>複製</value>
+  </data>
+  <data name="ConnectionPage_Connect3.Content" xml:space="preserve">
+    <value>連線</value>
+  </data>
+  <data name="ConnectionPage_Disconnect.Content" xml:space="preserve">
+    <value>中斷連線</value>
+  </data>
+  <data name="ConnectionPage_SavedGateways.Text" xml:space="preserve">
+    <value>已儲存的閘道</value>
+  </data>
+  <data name="ConnectionPage_Gateways.Text" xml:space="preserve">
+    <value>閘道</value>
+  </data>
+  <data name="ConnectionPage_Scan.Text" xml:space="preserve">
+    <value>掃描</value>
+  </data>
+  <data name="ConnectionPage_AddGateway.Text" xml:space="preserve">
+    <value>新增閘道</value>
+  </data>
+  <data name="ConnectionPage_NoSavedGatewaysYet.Text" xml:space="preserve">
+    <value>尚無已儲存的閘道。</value>
+  </data>
+  <data name="ConnectionPage_DiscoveredOnYourNetwork.Text" xml:space="preserve">
+    <value>在您的網路上探索到</value>
+  </data>
+  <data name="ConnectionPage_AddAGateway.Text" xml:space="preserve">
+    <value>新增閘道</value>
+  </data>
+  <data name="ConnectionPage_GetStartedInstallA.Title" xml:space="preserve">
+    <value>開始使用 — 安裝本機閘道</value>
+  </data>
+  <data name="ConnectionPage_GetStartedInstallA.Message" xml:space="preserve">
+    <value>最快的入門方式:在這台電腦上設定由 WSL 託管的閘道,並將其設為使用中的連線。</value>
+  </data>
+  <data name="ConnectionPage_Install.Content" xml:space="preserve">
+    <value>安裝</value>
+  </data>
+  <data name="ConnectionPage_OrConnectToAn.Text" xml:space="preserve">
+    <value>或連線至現有閘道:</value>
+  </data>
+  <data name="ConnectionPage_Direct.Text" xml:space="preserve">
+    <value>直接</value>
+  </data>
+  <data name="ConnectionPage_URLToken.Text" xml:space="preserve">
+    <value>URL + 權杖</value>
+  </data>
+  <data name="ConnectionPage_SetupCode.Text" xml:space="preserve">
+    <value>設定代碼</value>
+  </data>
+  <data name="ConnectionPage_PasteQRPayload.Text" xml:space="preserve">
+    <value>貼上 QR 內容</value>
+  </data>
+  <data name="ConnectionPage_EachMethodSupportsAn.Text" xml:space="preserve">
+    <value>每種方法都支援選用的 SSH 通道。</value>
+  </data>
+  <data name="ConnectionPage_OrLookForOne.Text" xml:space="preserve">
+    <value>或在您的網路上尋找。</value>
+  </data>
+  <data name="ConnectionPage_Scan2.Text" xml:space="preserve">
+    <value>掃描</value>
+  </data>
+  <data name="ConnectionPage_DiscoveredOnYourNetwork2.Text" xml:space="preserve">
+    <value>在您的網路上探索到</value>
+  </data>
+  <data name="ConnectionPage_Back.Text" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="ConnectionPage_AddAGateway2.Text" xml:space="preserve">
+    <value>新增閘道</value>
+  </data>
+  <data name="ConnectionPage_Direct2.Text" xml:space="preserve">
+    <value>直接</value>
+  </data>
+  <data name="ConnectionPage_SetupCode2.Text" xml:space="preserve">
+    <value>設定代碼</value>
+  </data>
+  <data name="ConnectionPage_LocalWSL.Text" xml:space="preserve">
+    <value>本機 WSL</value>
+  </data>
+  <data name="ConnectionPage_GatewayURL.Header" xml:space="preserve">
+    <value>閘道 URL</value>
+  </data>
+  <data name="ConnectionPage_GatewayURL.PlaceholderText" xml:space="preserve">
+    <value>ws://host.local:18790</value>
+  </data>
+  <data name="ConnectionPage_SharedToken.Header" xml:space="preserve">
+    <value>共用權杖</value>
+  </data>
+  <data name="ConnectionPage_SharedToken.PlaceholderText" xml:space="preserve">
+    <value>貼上共用閘道權杖</value>
+  </data>
+  <data name="ConnectionPage_NameOptional.Header" xml:space="preserve">
+    <value>名稱(選用)</value>
+  </data>
+  <data name="ConnectionPage_NameOptional.PlaceholderText" xml:space="preserve">
+    <value>我的閘道</value>
+  </data>
+  <data name="ConnectionPage_PasteASetupCode.Text" xml:space="preserve">
+    <value>貼上來自閘道的 QR 碼或 `openclaw qr` 輸出的設定代碼。</value>
+  </data>
+  <data name="ConnectionPage_PasteSetupCodeHere2.PlaceholderText" xml:space="preserve">
+    <value>在此貼上設定代碼…</value>
+  </data>
+  <data name="ConnectionPage_Decode.Content" xml:space="preserve">
+    <value>解碼</value>
+  </data>
+  <data name="ConnectionPage_InstallANewWSL.Text" xml:space="preserve">
+    <value>在這台電腦上安裝新的 WSL 閘道,並將其設為使用中的連線。安裝精靈會視需要安裝 WSL、佈建閘道,並自動配對這台裝置。</value>
+  </data>
+  <data name="ConnectionPage_InstallLocalGateway.Content" xml:space="preserve">
+    <value>安裝本機閘道</value>
+  </data>
+  <data name="ConnectionPage_LocalWSLSetupIsn.Text" xml:space="preserve">
+    <value>這台電腦無法進行本機 WSL 設定 — 安裝精靈無法初始化。</value>
+  </data>
+  <data name="ConnectionPage_UseSSHTunnelOptional.Text" xml:space="preserve">
+    <value>使用 SSH 通道(選用)</value>
+  </data>
+  <data name="ConnectionPage_SSHUser.Header" xml:space="preserve">
+    <value>SSH 使用者</value>
+  </data>
+  <data name="ConnectionPage_SSHUser.PlaceholderText" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="ConnectionPage_SSHHost.Header" xml:space="preserve">
+    <value>SSH 主機</value>
+  </data>
+  <data name="ConnectionPage_SSHHost.PlaceholderText" xml:space="preserve">
+    <value>machine-name</value>
+  </data>
+  <data name="ConnectionPage_RemotePort.Header" xml:space="preserve">
+    <value>遠端連接埠</value>
+  </data>
+  <data name="ConnectionPage_LocalPort.Header" xml:space="preserve">
+    <value>本機連接埠</value>
+  </data>
+  <data name="ConnectionPage_SaveAmpConnect.Content" xml:space="preserve">
+    <value>儲存並連線</value>
+  </data>
+  <data name="ConnectionPage_Cancel.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="CronPage_CronJobs.Text" xml:space="preserve">
+    <value>⏱️ Cron 工作</value>
+  </data>
+  <data name="CronPage_Refresh.Text" xml:space="preserve">
+    <value>重新整理</value>
+  </data>
+  <data name="CronPage_NewJob.Text" xml:space="preserve">
+    <value>新增工作</value>
+  </data>
+  <data name="CronPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>閘道已中斷</value>
+  </data>
+  <data name="CronPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>請連接至閘道以載入 cron 工作。</value>
+  </data>
+  <data name="CronPage_OpenConnection.Content" xml:space="preserve">
+    <value>開啟連線</value>
+  </data>
+  <data name="CronPage_NewCronJob.Text" xml:space="preserve">
+    <value>新增 Cron 工作</value>
+  </data>
+  <data name="CronPage_NAME.Text" xml:space="preserve">
+    <value>名稱</value>
+  </data>
+  <data name="CronPage_MorningBrief.PlaceholderText" xml:space="preserve">
+    <value>晨間簡報</value>
+  </data>
+  <data name="CronPage_SCHEDULE.Text" xml:space="preserve">
+    <value>排程</value>
+  </data>
+  <data name="CronPage_Every.Content" xml:space="preserve">
+    <value>每</value>
+  </data>
+  <data name="CronPage_At.Content" xml:space="preserve">
+    <value>於</value>
+  </data>
+  <data name="CronPage_Cron.Content" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="CronPage_QUICKPRESETS.Text" xml:space="preserve">
+    <value>快速預設</value>
+  </data>
+  <data name="CronPage_Hourly.Content" xml:space="preserve">
+    <value>⏰ 每小時</value>
+  </data>
+  <data name="CronPage_Daily9am.Content" xml:space="preserve">
+    <value>🌅 每天上午 9 點</value>
+  </data>
+  <data name="CronPage_Daily6pm.Content" xml:space="preserve">
+    <value>🌆 每天下午 6 點</value>
+  </data>
+  <data name="CronPage_Weekdays.Content" xml:space="preserve">
+    <value>💼 平日</value>
+  </data>
+  <data name="CronPage_Weekly.Content" xml:space="preserve">
+    <value>📅 每週</value>
+  </data>
+  <data name="CronPage_EXPRESSION.Text" xml:space="preserve">
+    <value>運算式</value>
+  </data>
+  <data name="CronPage_TIMEZONE.Text" xml:space="preserve">
+    <value>時區</value>
+  </data>
+  <data name="CronPage_Optional.PlaceholderText" xml:space="preserve">
+    <value>選用</value>
+  </data>
+  <data name="CronPage_AmericaNewYork.Content" xml:space="preserve">
+    <value>America/New_York</value>
+  </data>
+  <data name="CronPage_AmericaChicago.Content" xml:space="preserve">
+    <value>America/Chicago</value>
+  </data>
+  <data name="CronPage_AmericaDenver.Content" xml:space="preserve">
+    <value>America/Denver</value>
+  </data>
+  <data name="CronPage_AmericaLosAngeles.Content" xml:space="preserve">
+    <value>America/Los_Angeles</value>
+  </data>
+  <data name="CronPage_EuropeLondon.Content" xml:space="preserve">
+    <value>Europe/London</value>
+  </data>
+  <data name="CronPage_EuropeBerlin.Content" xml:space="preserve">
+    <value>Europe/Berlin</value>
+  </data>
+  <data name="CronPage_AsiaTokyo.Content" xml:space="preserve">
+    <value>Asia/Tokyo</value>
+  </data>
+  <data name="CronPage_UTC.Content" xml:space="preserve">
+    <value>UTC</value>
+  </data>
+  <data name="CronPage_EVERY.Text" xml:space="preserve">
+    <value>每</value>
+  </data>
+  <data name="CronPage_UNIT.Text" xml:space="preserve">
+    <value>單位</value>
+  </data>
+  <data name="CronPage_Minutes.Content" xml:space="preserve">
+    <value>分鐘</value>
+  </data>
+  <data name="CronPage_Hours.Content" xml:space="preserve">
+    <value>小時</value>
+  </data>
+  <data name="CronPage_Days.Content" xml:space="preserve">
+    <value>天</value>
+  </data>
+  <data name="CronPage_RUNAT.Text" xml:space="preserve">
+    <value>執行時間</value>
+  </data>
+  <data name="CronPage_Date.PlaceholderText" xml:space="preserve">
+    <value>日期</value>
+  </data>
+  <data name="CronPage_330PM.PlaceholderText" xml:space="preserve">
+    <value>15:30</value>
+  </data>
+  <data name="CronPage_DeleteJobAfterIt.Content" xml:space="preserve">
+    <value>執行後刪除工作</value>
+  </data>
+  <data name="CronPage_PROMPTPAYLOAD.Text" xml:space="preserve">
+    <value>提示 / 內容</value>
+  </data>
+  <data name="CronPage_WhatShouldTheAgent.PlaceholderText" xml:space="preserve">
+    <value>代理應該做什麼?</value>
+  </data>
+  <data name="CronPage_DELIVERY.Text" xml:space="preserve">
+    <value>傳遞</value>
+  </data>
+  <data name="CronPage_SilentNone.Content" xml:space="preserve">
+    <value>靜默(無)</value>
+  </data>
+  <data name="CronPage_NotifyMeAnnounce.Content" xml:space="preserve">
+    <value>通知我(通告)</value>
+  </data>
+  <data name="CronPage_CHANNEL.Text" xml:space="preserve">
+    <value>通道</value>
+  </data>
+  <data name="CronPage_EGWebchat.PlaceholderText" xml:space="preserve">
+    <value>例如 webchat</value>
+  </data>
+  <data name="CronPage_AdvancedOptions.Text" xml:space="preserve">
+    <value>進階選項</value>
+  </data>
+  <data name="CronPage_SESSIONBEHAVIOR.Text" xml:space="preserve">
+    <value>工作階段行為</value>
+  </data>
+  <data name="CronPage_NewSessionEachRun.Content" xml:space="preserve">
+    <value>每次執行建立新工作階段</value>
+  </data>
+  <data name="CronPage_ResumeMainSession.Content" xml:space="preserve">
+    <value>繼續主要工作階段</value>
+  </data>
+  <data name="CronPage_WAKEMODE.Text" xml:space="preserve">
+    <value>喚醒模式</value>
+  </data>
+  <data name="CronPage_NowImmediate.Content" xml:space="preserve">
+    <value>立即(即時)</value>
+  </data>
+  <data name="CronPage_QueueWaitForIdle.Content" xml:space="preserve">
+    <value>佇列(等待閒置)</value>
+  </data>
+  <data name="CronPage_Cancel.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="CronPage_CreateJob.Content" xml:space="preserve">
+    <value>建立工作</value>
+  </data>
+  <data name="CronPage_LoadingCronJobs.Text" xml:space="preserve">
+    <value>正在載入 cron 工作…</value>
+  </data>
+  <data name="CronPage_NoCronJobsConfigured.Text" xml:space="preserve">
+    <value>未設定 cron 工作</value>
+  </data>
+  <data name="CronPage_CronJobsWillAppear.Text" xml:space="preserve">
+    <value>透過閘道設定 cron 工作後,它們會顯示在此處。</value>
+  </data>
+  <data name="DebugPage_Status.Title" xml:space="preserve">
+    <value>狀態</value>
+  </data>
+  <data name="DebugPage_Copied.Title" xml:space="preserve">
+    <value>已複製</value>
+  </data>
+  <data name="DebugPage_NoOverride.Content" xml:space="preserve">
+    <value>無覆寫</value>
+  </data>
+  <data name="DebugPage_ForceGatewayChatUI.Content" xml:space="preserve">
+    <value>強制使用閘道聊天介面</value>
+  </data>
+  <data name="DebugPage_ForceCompanionChatUI.Content" xml:space="preserve">
+    <value>強制使用伴侶聊天介面</value>
+  </data>
+  <data name="DebugPage_NoOverride2.Content" xml:space="preserve">
+    <value>無覆寫</value>
+  </data>
+  <data name="DebugPage_ForceGatewayChatUI2.Content" xml:space="preserve">
+    <value>強制使用閘道聊天介面</value>
+  </data>
+  <data name="DebugPage_ForceCompanionChatUI2.Content" xml:space="preserve">
+    <value>強制使用伴侶聊天介面</value>
+  </data>
+  <data name="DebugPage_Refresh.Text" xml:space="preserve">
+    <value>重新整理</value>
+  </data>
+  <data name="DebugPage_Copy.Text" xml:space="preserve">
+    <value>複製</value>
+  </data>
+  <data name="DebugPage_OpenFile.Text" xml:space="preserve">
+    <value>開啟檔案</value>
+  </data>
+  <data name="InstancesPage_PairingApprovalRequired.Text" xml:space="preserve">
+    <value>需要配對核准</value>
+  </data>
+  <data name="InstancesPage_ANodeHasConnected.Text" xml:space="preserve">
+    <value>節點已連線,但在您核准配對要求之前,其功能不會啟用。</value>
+  </data>
+  <data name="InstancesPage_ReviewOnConnectionPage.Content" xml:space="preserve">
+    <value>在「連線」頁面檢視</value>
+  </data>
+  <data name="PermissionsPage_BackToConnection.Text" xml:space="preserve">
+    <value>返回連線</value>
+  </data>
+  <data name="PermissionsPage_Permissions.Text" xml:space="preserve">
+    <value>權限</value>
+  </data>
+  <data name="PermissionsPage_NodeMode.Text" xml:space="preserve">
+    <value>節點模式</value>
+  </data>
+  <data name="PermissionsPage_WhenOnThisPC.Text" xml:space="preserve">
+    <value>啟用後,這台電腦會註冊為節點,並透過閘道向代理提供下列功能。</value>
+  </data>
+  <data name="PermissionsPage_Capabilities.Text" xml:space="preserve">
+    <value>功能</value>
+  </data>
+  <data name="PermissionsPage_ToggleIndividualFeaturesThat.Text" xml:space="preserve">
+    <value>切換代理可能從這台電腦要求的各項功能。</value>
+  </data>
+  <data name="PermissionsPage_Integrations.Text" xml:space="preserve">
+    <value>整合</value>
+  </data>
+  <data name="PermissionsPage_DefaultAction.Text" xml:space="preserve">
+    <value>預設動作</value>
+  </data>
+  <data name="PermissionsPage_WhatHappensWhenA.Text" xml:space="preserve">
+    <value>當命令不符合下列任何規則時會發生什麼。</value>
+  </data>
+  <data name="PermissionsPage_PatternsAreMatchedLeft.Text" xml:space="preserve">
+    <value>模式由左至右與完整命令列比對。使用 * 作為萬用字元。變更會自動儲存。</value>
+  </data>
+  <data name="PermissionsPage_Saved.Text" xml:space="preserve">
+    <value>已儲存</value>
+  </data>
+  <data name="PermissionsPage_0Rules.Text" xml:space="preserve">
+    <value>0 條規則</value>
+  </data>
+  <data name="PermissionsPage_NoRulesYetAdd.Text" xml:space="preserve">
+    <value>尚無規則。在下方新增模式以允許或拒絕特定命令。</value>
+  </data>
+  <data name="PermissionsPage_WindowsPrivacy.Text" xml:space="preserve">
+    <value>Windows 隱私</value>
+  </data>
+  <data name="PermissionsPage_CameraMicrophoneAmpScreen.Text" xml:space="preserve">
+    <value>攝影機、麥克風與螢幕存取</value>
+  </data>
+  <data name="PermissionsPage_SystemLevelPrivacyPermissions.Text" xml:space="preserve">
+    <value>系統層級的隱私權限由 Windows 管理。開啟 Windows 隱私設定以授予或撤銷 OpenClaw 的存取權。</value>
+  </data>
+  <data name="SandboxPage_NodeSandboxIsOn.Text" xml:space="preserve">
+    <value>節點沙箱已開啟</value>
+  </data>
+  <data name="SandboxPage_ProgramsTheAgentRuns.Text" xml:space="preserve">
+    <value>代理在這台電腦上執行的程式受到隔離。</value>
+  </data>
+  <data name="SandboxPage_WhatGetsContained.Text" xml:space="preserve">
+    <value>哪些內容受隔離</value>
+  </data>
+  <data name="SandboxPage_SeeWhichCommandsThis.Text" xml:space="preserve">
+    <value>檢視此頁面涵蓋的命令 — 以及需要其他控制項的命令。</value>
+  </data>
+  <data name="SandboxPage_CommandsTheAgentRuns.Text" xml:space="preserve">
+    <value>代理透過 Windows 節點執行的命令 (</value>
+  </data>
+  <data name="SandboxPage_SystemRun.Text" xml:space="preserve">
+    <value>system.run</value>
+  </data>
+  <data name="SandboxPage_AreContainedByThe.Text" xml:space="preserve">
+    <value>) 受下方設定隔離。</value>
+  </data>
+  <data name="SandboxPage_CommandsTheAgentRuns2.Text" xml:space="preserve">
+    <value>代理直接在閘道上執行的命令則不受隔離。如果閘道位於這台電腦的 WSL 上,它們可能會存取您的 Windows 檔案、剪貼簿和網路 — 請使用閘道的執行核准。</value>
+  </data>
+  <data name="SandboxPage_SandboxUnavailable.Title" xml:space="preserve">
+    <value>沙箱無法使用</value>
+  </data>
+  <data name="SandboxPage_LearnMoreAboutMXC.Content" xml:space="preserve">
+    <value>深入了解 MXC 沙箱</value>
+  </data>
+  <data name="SandboxPage_SecurityLevel.Text" xml:space="preserve">
+    <value>安全等級</value>
+  </data>
+  <data name="SandboxPage_OneClickToSet.Text" xml:space="preserve">
+    <value>一鍵設定下方所有控制項。自訂資料夾會保留您的設定。</value>
+  </data>
+  <data name="SandboxPage_LockedDown.Text" xml:space="preserve">
+    <value>🔒 鎖定</value>
+  </data>
+  <data name="SandboxPage_NoInternetNoClipboard.Text" xml:space="preserve">
+    <value>無網際網路、無剪貼簿、無標準使用者資料夾。</value>
+  </data>
+  <data name="SandboxPage_Recommended.Text" xml:space="preserve">
+    <value>🛡 建議</value>
+  </data>
+  <data name="SandboxPage_InternetOnReadOnly.Text" xml:space="preserve">
+    <value>網際網路開啟。對「文件」、「下載」、「桌面」為唯讀。剪貼簿可讀。</value>
+  </data>
+  <data name="SandboxPage_Unprotected.Text" xml:space="preserve">
+    <value>⚠ 不受保護</value>
+  </data>
+  <data name="SandboxPage_InternetOnReadWrite.Text" xml:space="preserve">
+    <value>網際網路開啟。對「文件」、「下載」、「桌面」可讀寫。剪貼簿可讀寫。</value>
+  </data>
+  <data name="SandboxPage_CustomFolderGrantsStill.Title" xml:space="preserve">
+    <value>自訂資料夾授權仍然有效</value>
+  </data>
+  <data name="SandboxPage_Files.Text" xml:space="preserve">
+    <value>📁 檔案</value>
+  </data>
+  <data name="SandboxPage_ByDefaultTheAgent.Text" xml:space="preserve">
+    <value>預設情況下,代理只有一個可讀寫的暫存工作資料夾。在下方授予使用者資料夾的存取權限。SSH 金鑰、瀏覽器設定檔以及 OpenClaw 本身的設定一律會被封鎖。</value>
+  </data>
+  <data name="SandboxPage_Documents.Text" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="SandboxPage_Blocked.Content" xml:space="preserve">
+    <value>已封鎖</value>
+  </data>
+  <data name="SandboxPage_ReadOnly.Content" xml:space="preserve">
+    <value>唯讀</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite.Content" xml:space="preserve">
+    <value>讀取與寫入</value>
+  </data>
+  <data name="SandboxPage_Downloads.Text" xml:space="preserve">
+    <value>下載</value>
+  </data>
+  <data name="SandboxPage_Blocked2.Content" xml:space="preserve">
+    <value>已封鎖</value>
+  </data>
+  <data name="SandboxPage_ReadOnly2.Content" xml:space="preserve">
+    <value>唯讀</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite2.Content" xml:space="preserve">
+    <value>讀取與寫入</value>
+  </data>
+  <data name="SandboxPage_Desktop.Text" xml:space="preserve">
+    <value>桌面</value>
+  </data>
+  <data name="SandboxPage_Blocked3.Content" xml:space="preserve">
+    <value>已封鎖</value>
+  </data>
+  <data name="SandboxPage_ReadOnly3.Content" xml:space="preserve">
+    <value>唯讀</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite3.Content" xml:space="preserve">
+    <value>讀取與寫入</value>
+  </data>
+  <data name="SandboxPage_ToolDirectoriesOnYour.Text" xml:space="preserve">
+    <value>PATH 上的工具目錄在沙箱內也以唯讀方式授予,因此 git、node、python 與 dotnet 等命令列工具可使用。一律不會授予磁碟機根目錄。</value>
+  </data>
+  <data name="SandboxPage_CustomFolders.Text" xml:space="preserve">
+    <value>自訂資料夾</value>
+  </data>
+  <data name="SandboxPage_CustomGrantsAreAdded.Text" xml:space="preserve">
+    <value>自訂授權會疊加於上述規則之上。在「文件/下載/桌面」內新增具有更寬權限的資料夾,會覆寫該路徑的行層級設定。</value>
+  </data>
+  <data name="SandboxPage_Blocked4.Content" xml:space="preserve">
+    <value>已封鎖</value>
+  </data>
+  <data name="SandboxPage_ReadOnly4.Content" xml:space="preserve">
+    <value>唯讀</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite4.Content" xml:space="preserve">
+    <value>讀取與寫入</value>
+  </data>
+  <data name="SandboxPage_NoCustomFoldersAdded.Text" xml:space="preserve">
+    <value>尚未新增自訂資料夾。</value>
+  </data>
+  <data name="SandboxPage_AddFolder.Content" xml:space="preserve">
+    <value>新增資料夾</value>
+  </data>
+  <data name="SandboxPage_Clipboard.Text" xml:space="preserve">
+    <value>📋 剪貼簿</value>
+  </data>
+  <data name="SandboxPage_ClipboardOftenContainsPasswords.Text" xml:space="preserve">
+    <value>剪貼簿通常包含密碼、權杖與私人文字。讀取權限可能會將這些洩露給代理(若已啟用,也會洩露至網際網路)。</value>
+  </data>
+  <data name="SandboxPage_NoneDefault.Content" xml:space="preserve">
+    <value>無(預設)</value>
+  </data>
+  <data name="SandboxPage_ReadAgentCanSee.Content" xml:space="preserve">
+    <value>讀取 — 代理可以看到您複製的內容</value>
+  </data>
+  <data name="SandboxPage_WriteAgentCanReplace.Content" xml:space="preserve">
+    <value>寫入 — 代理可以取代您的剪貼簿(無法讀取)</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite5.Content" xml:space="preserve">
+    <value>讀取與寫入</value>
+  </data>
+  <data name="SandboxPage_Network.Text" xml:space="preserve">
+    <value>📡 網路</value>
+  </data>
+  <data name="SandboxPage_AllowInternet.Header" xml:space="preserve">
+    <value>允許網際網路</value>
+  </data>
+  <data name="SandboxPage_IfFileOrClipboard.Text" xml:space="preserve">
+    <value>如果啟用檔案或剪貼簿讀取權限,代理可能會透過網際網路傳送這些資料。</value>
+  </data>
+  <data name="SandboxPage_LocalNetworkDevicesAnd.Text" xml:space="preserve">
+    <value>尚未包含本機網路裝置與共用。</value>
+  </data>
+  <data name="SandboxPage_Limits.Text" xml:space="preserve">
+    <value>⏱ 限制</value>
+  </data>
+  <data name="SandboxPage_CommandTimeout30Sec.Text" xml:space="preserve">
+    <value>命令逾時:30 秒</value>
+  </data>
+  <data name="SandboxPage_MaximumCapturedOutputTruncates.Text" xml:space="preserve">
+    <value>最大擷取輸出(超過此值會被截斷;不限制磁碟、記憶體或 CPU):</value>
+  </data>
+  <data name="SandboxPage_1MiB.Content" xml:space="preserve">
+    <value>1 MiB</value>
+  </data>
+  <data name="SandboxPage_4MiBDefault.Content" xml:space="preserve">
+    <value>4 MiB(預設)</value>
+  </data>
+  <data name="SandboxPage_16MiB.Content" xml:space="preserve">
+    <value>16 MiB</value>
+  </data>
+  <data name="SandboxPage_64MiB.Content" xml:space="preserve">
+    <value>64 MiB</value>
+  </data>
+  <data name="SessionsPage_BackToConnection.Text" xml:space="preserve">
+    <value>返回連線</value>
+  </data>
+  <data name="SessionsPage_Sessions.Text" xml:space="preserve">
+    <value>工作階段</value>
+  </data>
+  <data name="SessionsPage_Refresh.Text" xml:space="preserve">
+    <value>重新整理</value>
+  </data>
+  <data name="SessionsPage_All.Text" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="SessionsPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>閘道已中斷</value>
+  </data>
+  <data name="SessionsPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>請連接至閘道以載入工作階段。</value>
+  </data>
+  <data name="SessionsPage_OpenConnection.Content" xml:space="preserve">
+    <value>開啟連線</value>
+  </data>
+  <data name="SessionsPage_LoadingSessions.Text" xml:space="preserve">
+    <value>正在載入工作階段…</value>
+  </data>
+  <data name="SessionsPage_NoActiveSessions.Text" xml:space="preserve">
+    <value>沒有作用中的工作階段</value>
+  </data>
+  <data name="SessionsPage_Reset.Content" xml:space="preserve">
+    <value>重設</value>
+  </data>
+  <data name="SessionsPage_Compact.Content" xml:space="preserve">
+    <value>壓縮</value>
+  </data>
+  <data name="SessionsPage_Delete.Content" xml:space="preserve">
+    <value>刪除</value>
+  </data>
+  <data name="SettingsPage_Settings.Text" xml:space="preserve">
+    <value>設定</value>
+  </data>
+  <data name="SettingsPage_General.Text" xml:space="preserve">
+    <value>一般</value>
+  </data>
+  <data name="SettingsPage_Notifications.Text" xml:space="preserve">
+    <value>通知</value>
+  </data>
+  <data name="SettingsPage_Privacy.Text" xml:space="preserve">
+    <value>隱私</value>
+  </data>
+  <data name="SettingsPage_LocalGateway.Text" xml:space="preserve">
+    <value>本機閘道</value>
+  </data>
+  <data name="SettingsPage_MSIXInstallationDetected.Title" xml:space="preserve">
+    <value>偵測到 MSIX 安裝</value>
+  </data>
+  <data name="SettingsPage_MSIXInstallationDetected.Message" xml:space="preserve">
+    <value>透過 Windows 設定 &amp;amp;#x2192; 應用程式移除 OpenClaw 不會清除本機閘道(WSL 散發版、磁碟映像)。請先使用下方的「移除本機閘道」,然後再解除安裝 OpenClaw。</value>
+  </data>
+  <data name="SettingsPage_RemovesTheWSLDistro.Text" xml:space="preserve">
+    <value>移除 WSL 散發版 (OpenClawGateway)、其磁碟映像、自動啟動項目,並清除閘道認證。您的 MCP 權杖會保留。導覽流程將重設。</value>
+  </data>
+  <data name="SettingsPage_RemoveLocalGateway.Content" xml:space="preserve">
+    <value>移除本機閘道</value>
+  </data>
+  <data name="SettingsPage_Saved.Title" xml:space="preserve">
+    <value>已儲存</value>
+  </data>
+  <data name="SkillsPage_Skills.Text" xml:space="preserve">
+    <value>🧩 技能</value>
+  </data>
+  <data name="SkillsPage_AllAgents.Content" xml:space="preserve">
+    <value>所有代理</value>
+  </data>
+  <data name="SkillsPage_Enabled.Text" xml:space="preserve">
+    <value>已啟用</value>
+  </data>
+  <data name="SkillsPage_Disabled.Text" xml:space="preserve">
+    <value>已停用</value>
+  </data>
+  <data name="SkillsPage_LoadingSkills.Text" xml:space="preserve">
+    <value>正在載入技能…</value>
+  </data>
+  <data name="SkillsPage_NoSkillsInstalled.Text" xml:space="preserve">
+    <value>未安裝技能</value>
+  </data>
+  <data name="SkillsPage_SkillsExtendYourAgent.Text" xml:space="preserve">
+    <value>技能可擴充您代理的能力。透過 CLI 或 ClawHub 安裝技能。</value>
+  </data>
+  <data name="UsagePage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>閘道已中斷</value>
+  </data>
+  <data name="UsagePage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>請連接至閘道以載入使用量資料。</value>
+  </data>
+  <data name="UsagePage_OpenConnection.Content" xml:space="preserve">
+    <value>開啟連線</value>
+  </data>
+  <data name="UsagePage_LoadingDailyCosts.Text" xml:space="preserve">
+    <value>正在載入每日成本…</value>
+  </data>
+  <data name="UsagePage_NoDailyUsageFor.Text" xml:space="preserve">
+    <value>此期間內無每日使用量</value>
+  </data>
+  <data name="VoiceSettingsPage_TestVoiceInput.Text" xml:space="preserve">
+    <value>測試語音輸入</value>
+  </data>
+  <data name="VoiceSettingsPage_Record.Text" xml:space="preserve">
+    <value>錄製</value>
+  </data>
+  <data name="WorkspacePage_LoadingWorkspaceFiles.Text" xml:space="preserve">
+    <value>正在載入工作區檔案…</value>
+  </data>
+  <data name="ChatWindow_WebChatUnavailable.Text" xml:space="preserve">
+    <value>網頁聊天無法使用</value>
+  </data>
+  <data name="ChatWindow_Retry.Content" xml:space="preserve">
+    <value>重試</value>
+  </data>
+  <data name="ConnectionStatusWindow_ConnectionStatus.Text" xml:space="preserve">
+    <value>連線狀態</value>
+  </data>
+  <data name="ConnectionStatusWindow_STATEMACHINE.Text" xml:space="preserve">
+    <value>狀態機</value>
+  </data>
+  <data name="ConnectionStatusWindow_OPERATOR.Text" xml:space="preserve">
+    <value>操作員</value>
+  </data>
+  <data name="ConnectionStatusWindow_Off.Text" xml:space="preserve">
+    <value>關閉</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connecting.Text" xml:space="preserve">
+    <value>正在連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connected.Text" xml:space="preserve">
+    <value>已連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_Pairing.Text" xml:space="preserve">
+    <value>正在配對</value>
+  </data>
+  <data name="ConnectionStatusWindow_Error.Text" xml:space="preserve">
+    <value>錯誤</value>
+  </data>
+  <data name="ConnectionStatusWindow_NODE.Text" xml:space="preserve">
+    <value>節點</value>
+  </data>
+  <data name="ConnectionStatusWindow_Off2.Text" xml:space="preserve">
+    <value>關閉</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connecting2.Text" xml:space="preserve">
+    <value>正在連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connected2.Text" xml:space="preserve">
+    <value>已連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_Pairing2.Text" xml:space="preserve">
+    <value>正在配對</value>
+  </data>
+  <data name="ConnectionStatusWindow_Error2.Text" xml:space="preserve">
+    <value>錯誤</value>
+  </data>
+  <data name="ConnectionStatusWindow_GATEWAYS.Text" xml:space="preserve">
+    <value>閘道</value>
+  </data>
+  <data name="ConnectionStatusWindow_CREDENTIALS.Text" xml:space="preserve">
+    <value>認證</value>
+  </data>
+  <data name="ConnectionStatusWindow_SETUPCODE.Text" xml:space="preserve">
+    <value>設定代碼</value>
+  </data>
+  <data name="ConnectionStatusWindow_PasteASetupCode.Text" xml:space="preserve">
+    <value>貼上設定代碼以建立端對端連線。</value>
+  </data>
+  <data name="ConnectionStatusWindow_PasteSetupCode.PlaceholderText" xml:space="preserve">
+    <value>貼上設定代碼…</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connect.Content" xml:space="preserve">
+    <value>連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_Disconnect.Content" xml:space="preserve">
+    <value>中斷連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_DIRECTCONNECT.Text" xml:space="preserve">
+    <value>直接連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_ConnectWithAGateway.Text" xml:space="preserve">
+    <value>使用閘道 URL 和共用權杖(管理員範圍)連線。</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.PlaceholderText" xml:space="preserve">
+    <value>ws://localhost:18790</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.Text" xml:space="preserve">
+    <value>ws://localhost:18790</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.Header" xml:space="preserve">
+    <value>閘道 URL</value>
+  </data>
+  <data name="ConnectionStatusWindow_SharedGatewayToken.PlaceholderText" xml:space="preserve">
+    <value>共用閘道權杖</value>
+  </data>
+  <data name="ConnectionStatusWindow_SharedGatewayToken.Header" xml:space="preserve">
+    <value>權杖</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connect2.Content" xml:space="preserve">
+    <value>連線</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHTunnel.Header" xml:space="preserve">
+    <value>SSH 通道</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHUser.Header" xml:space="preserve">
+    <value>SSH 使用者</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHUser.PlaceholderText" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHHost.Header" xml:space="preserve">
+    <value>SSH 主機</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHHost.PlaceholderText" xml:space="preserve">
+    <value>192.168.x.x</value>
+  </data>
+  <data name="ConnectionStatusWindow_RemotePort.Header" xml:space="preserve">
+    <value>遠端連接埠</value>
+  </data>
+  <data name="ConnectionStatusWindow_LocalPort.Header" xml:space="preserve">
+    <value>本機連接埠</value>
+  </data>
+  <data name="ConnectionStatusWindow_EVENTTIMELINE.Text" xml:space="preserve">
+    <value>事件時間軸</value>
+  </data>
+  <data name="ConnectionStatusWindow_Copy.Content" xml:space="preserve">
+    <value>複製</value>
+  </data>
+  <data name="ConnectionStatusWindow_Clear.Content" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_DiagnosticsBundle.Title" xml:space="preserve">
+    <value>診斷套件</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Title" xml:space="preserve">
+    <value>分享前請檢閱</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Message" xml:space="preserve">
+    <value>套件產生器會排除敏感權杖、命令引數、內容與錄製。</value>
+  </data>
+  <data name="HubWindow_Disconnected.Text" xml:space="preserve">
+    <value>已中斷連線</value>
+  </data>
+  <data name="HubWindow_Op.Text" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="HubWindow_Node.Text" xml:space="preserve">
+    <value>節點</value>
+  </data>
+  <data name="HubWindow_Advanced.Content" xml:space="preserve">
+    <value>進階</value>
+  </data>
 </root>

@@ -13,13 +13,13 @@
         <!-- Header -->
         <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="🧩 Skills" Style="{StaticResource TitleTextBlockStyle}"/>
+                <TextBlock x:Uid="SkillsPage_Skills" Text="🧩 Skills" Style="{StaticResource TitleTextBlockStyle}"/>
                 <TextBlock x:Name="CountText" Text="" VerticalAlignment="Center"
                            Style="{StaticResource CaptionTextBlockStyle}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
             </StackPanel>
             <ComboBox x:Uid="AgentFilterCombo" x:Name="AgentFilterCombo" Header="Agent" MinWidth="200">
-                <ComboBoxItem Content="All Agents" Tag="" IsSelected="True"/>
+                <ComboBoxItem x:Uid="SkillsPage_AllAgents" Content="All Agents" Tag="" IsSelected="True"/>
             </ComboBox>
         </StackPanel>
 
@@ -37,7 +37,7 @@
                     BorderThickness="0" CornerRadius="4">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <FontIcon x:Name="EnabledChevron" Glyph="&#xE70E;" FontSize="10" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="EnabledHeaderText" Text="Enabled" FontWeight="SemiBold" FontSize="13"
+                    <TextBlock x:Uid="SkillsPage_Enabled" x:Name="EnabledHeaderText" Text="Enabled" FontWeight="SemiBold" FontSize="13"
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
@@ -54,7 +54,7 @@
                             BorderThickness="0" CornerRadius="4" Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon x:Name="DisabledChevron" Glyph="&#xE70E;" FontSize="10" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="DisabledHeaderText" Text="Disabled" FontWeight="SemiBold" FontSize="13"
+                            <TextBlock x:Uid="SkillsPage_Disabled" x:Name="DisabledHeaderText" Text="Disabled" FontWeight="SemiBold" FontSize="13"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
@@ -68,7 +68,7 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="Collapsed">
             <ProgressRing IsActive="True" Width="22" Height="22"/>
-            <TextBlock Text="Loading skills..."
+            <TextBlock x:Uid="SkillsPage_LoadingSkills" Text="Loading skills..."
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        VerticalAlignment="Center"/>
         </StackPanel>
@@ -77,10 +77,10 @@
         <StackPanel x:Name="EmptyState" Grid.Row="1" Visibility="Collapsed"
                     VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
             <TextBlock Text="🧩" FontSize="48" HorizontalAlignment="Center"/>
-            <TextBlock Text="No skills installed"
+            <TextBlock x:Uid="SkillsPage_NoSkillsInstalled" Text="No skills installed"
                        Style="{StaticResource SubtitleTextBlockStyle}"
                        HorizontalAlignment="Center"/>
-            <TextBlock Text="Skills extend your agent's capabilities. Install skills via the CLI or ClawHub."
+            <TextBlock x:Uid="SkillsPage_SkillsExtendYourAgent" Text="Skills extend your agent's capabilities. Install skills via the CLI or ClawHub."
                        Style="{StaticResource CaptionTextBlockStyle}"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="320"/>

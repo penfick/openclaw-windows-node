@@ -40,13 +40,13 @@
                      Title="Single-agent mode"
                      Message="All messages route to the default agent. Add bindings for multi-agent routing."/>
 
-            <InfoBar x:Name="ConnectionInfoBar"
+            <InfoBar x:Uid="BindingsPage_GatewayDisconnected" x:Name="ConnectionInfoBar"
                      IsOpen="False" IsClosable="False"
                      Severity="Warning"
                      Title="Gateway disconnected"
                      Message="Connect to a gateway to load bindings.">
                 <InfoBar.ActionButton>
-                    <Button Content="Open Connection" Click="OnOpenConnectionClick"/>
+                    <Button x:Uid="BindingsPage_OpenConnection" Content="Open Connection" Click="OnOpenConnectionClick"/>
                 </InfoBar.ActionButton>
             </InfoBar>
 
@@ -54,7 +54,7 @@
                         HorizontalAlignment="Center" Padding="0,24,0,16"
                         Visibility="Collapsed">
                 <ProgressRing IsActive="True" Width="20" Height="20"/>
-                <TextBlock Text="Loading bindings..."
+                <TextBlock x:Uid="BindingsPage_LoadingBindings" Text="Loading bindings..."
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            VerticalAlignment="Center"/>
             </StackPanel>

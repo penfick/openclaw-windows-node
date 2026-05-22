@@ -3507,4 +3507,919 @@ Sur votre hôte passerelle (Mac/Linux), exécutez :
   <data name="ConnectionStatusWindow.Title" xml:space="preserve">
     <value>Connection Status</value>
   </data>
+  <data name="BindingsPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>Passerelle déconnectée</value>
+  </data>
+  <data name="BindingsPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>Connectez-vous à une passerelle pour charger les liaisons.</value>
+  </data>
+  <data name="BindingsPage_OpenConnection.Content" xml:space="preserve">
+    <value>Ouvrir la connexion</value>
+  </data>
+  <data name="BindingsPage_LoadingBindings.Text" xml:space="preserve">
+    <value>Chargement des liaisons…</value>
+  </data>
+  <data name="ConnectionPage_ApprovalsWaitingOnYou.Text" xml:space="preserve">
+    <value>Approbations en attente</value>
+  </data>
+  <data name="ConnectionPage_NotConnected.Text" xml:space="preserve">
+    <value>Non connecté</value>
+  </data>
+  <data name="ConnectionPage_Connect.Content" xml:space="preserve">
+    <value>Connecter</value>
+  </data>
+  <data name="ConnectionPage_Operator.Text" xml:space="preserve">
+    <value>Opérateur</value>
+  </data>
+  <data name="ConnectionPage_SendCommandsAndView.Text" xml:space="preserve">
+    <value>Envoyez des commandes et consultez les sessions de cette passerelle depuis ce PC.</value>
+  </data>
+  <data name="ConnectionPage_Inactive.Text" xml:space="preserve">
+    <value>Inactif</value>
+  </data>
+  <data name="ConnectionPage_SeeSessions.Content" xml:space="preserve">
+    <value>Voir les sessions ›</value>
+  </data>
+  <data name="ConnectionPage_SeeInstances.Content" xml:space="preserve">
+    <value>Voir les instances ›</value>
+  </data>
+  <data name="ConnectionPage_NodeMode.Text" xml:space="preserve">
+    <value>Mode nœud</value>
+  </data>
+  <data name="ConnectionPage_WhenOnThisPC.Text" xml:space="preserve">
+    <value>Lorsqu'il est activé, ce PC s'enregistre comme nœud et offre les capacités ci-dessous aux agents via la passerelle.</value>
+  </data>
+  <data name="ConnectionPage_NodeModeDisabled.Text" xml:space="preserve">
+    <value>Mode nœud désactivé</value>
+  </data>
+  <data name="ConnectionPage_Copy.Content" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="ConnectionPage_Connect2.Content" xml:space="preserve">
+    <value>Connecter</value>
+  </data>
+  <data name="ConnectionPage_ManagePermissions.Content" xml:space="preserve">
+    <value>Gérer les autorisations ›</value>
+  </data>
+  <data name="ConnectionPage_HelpUsFixThis.Text" xml:space="preserve">
+    <value>Aidez-nous à réparer cette connexion :</value>
+  </data>
+  <data name="ConnectionPage_SSHTunnelIsDown.Text" xml:space="preserve">
+    <value>Le tunnel SSH est arrêté.</value>
+  </data>
+  <data name="ConnectionPage_RestartTunnel.Content" xml:space="preserve">
+    <value>Redémarrer le tunnel</value>
+  </data>
+  <data name="ConnectionPage_EditTunnelSettings.Content" xml:space="preserve">
+    <value>Modifier les paramètres du tunnel</value>
+  </data>
+  <data name="ConnectionPage_PasteANewSetup.Text" xml:space="preserve">
+    <value>Collez un nouveau code de configuration de l'hôte de la passerelle.</value>
+  </data>
+  <data name="ConnectionPage_PasteSetupCodeHere.PlaceholderText" xml:space="preserve">
+    <value>Collez le code de configuration ici…</value>
+  </data>
+  <data name="ConnectionPage_Apply.Content" xml:space="preserve">
+    <value>Appliquer</value>
+  </data>
+  <data name="ConnectionPage_RunOnTheGateway.Text" xml:space="preserve">
+    <value>Exécuter sur l'hôte de la passerelle :</value>
+  </data>
+  <data name="ConnectionPage_Copy2.Content" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="ConnectionPage_Connect3.Content" xml:space="preserve">
+    <value>Connecter</value>
+  </data>
+  <data name="ConnectionPage_Disconnect.Content" xml:space="preserve">
+    <value>Déconnecter</value>
+  </data>
+  <data name="ConnectionPage_SavedGateways.Text" xml:space="preserve">
+    <value>Passerelles enregistrées</value>
+  </data>
+  <data name="ConnectionPage_Gateways.Text" xml:space="preserve">
+    <value>Passerelles</value>
+  </data>
+  <data name="ConnectionPage_Scan.Text" xml:space="preserve">
+    <value>Analyser</value>
+  </data>
+  <data name="ConnectionPage_AddGateway.Text" xml:space="preserve">
+    <value>Ajouter une passerelle</value>
+  </data>
+  <data name="ConnectionPage_NoSavedGatewaysYet.Text" xml:space="preserve">
+    <value>Aucune passerelle enregistrée pour l'instant.</value>
+  </data>
+  <data name="ConnectionPage_DiscoveredOnYourNetwork.Text" xml:space="preserve">
+    <value>Découvert sur votre réseau</value>
+  </data>
+  <data name="ConnectionPage_AddAGateway.Text" xml:space="preserve">
+    <value>Ajouter une passerelle</value>
+  </data>
+  <data name="ConnectionPage_GetStartedInstallA.Title" xml:space="preserve">
+    <value>Pour commencer — installer une passerelle locale</value>
+  </data>
+  <data name="ConnectionPage_GetStartedInstallA.Message" xml:space="preserve">
+    <value>La méthode la plus rapide : configure une passerelle hébergée sur WSL sur ce PC et en fait la connexion active.</value>
+  </data>
+  <data name="ConnectionPage_Install.Content" xml:space="preserve">
+    <value>Installer</value>
+  </data>
+  <data name="ConnectionPage_OrConnectToAn.Text" xml:space="preserve">
+    <value>Ou connectez-vous à une existante :</value>
+  </data>
+  <data name="ConnectionPage_Direct.Text" xml:space="preserve">
+    <value>Connexion directe</value>
+  </data>
+  <data name="ConnectionPage_URLToken.Text" xml:space="preserve">
+    <value>URL + jeton</value>
+  </data>
+  <data name="ConnectionPage_SetupCode.Text" xml:space="preserve">
+    <value>Code de configuration</value>
+  </data>
+  <data name="ConnectionPage_PasteQRPayload.Text" xml:space="preserve">
+    <value>Coller la charge utile QR</value>
+  </data>
+  <data name="ConnectionPage_EachMethodSupportsAn.Text" xml:space="preserve">
+    <value>Chaque méthode prend en charge un tunnel SSH facultatif.</value>
+  </data>
+  <data name="ConnectionPage_OrLookForOne.Text" xml:space="preserve">
+    <value>Ou cherchez-en une sur votre réseau.</value>
+  </data>
+  <data name="ConnectionPage_Scan2.Text" xml:space="preserve">
+    <value>Analyser</value>
+  </data>
+  <data name="ConnectionPage_DiscoveredOnYourNetwork2.Text" xml:space="preserve">
+    <value>Découvert sur votre réseau</value>
+  </data>
+  <data name="ConnectionPage_Back.Text" xml:space="preserve">
+    <value>Retour</value>
+  </data>
+  <data name="ConnectionPage_AddAGateway2.Text" xml:space="preserve">
+    <value>Ajouter une passerelle</value>
+  </data>
+  <data name="ConnectionPage_Direct2.Text" xml:space="preserve">
+    <value>Connexion directe</value>
+  </data>
+  <data name="ConnectionPage_SetupCode2.Text" xml:space="preserve">
+    <value>Code de configuration</value>
+  </data>
+  <data name="ConnectionPage_LocalWSL.Text" xml:space="preserve">
+    <value>WSL local</value>
+  </data>
+  <data name="ConnectionPage_GatewayURL.Header" xml:space="preserve">
+    <value>URL de la passerelle</value>
+  </data>
+  <data name="ConnectionPage_GatewayURL.PlaceholderText" xml:space="preserve">
+    <value>ws://host.local:18790</value>
+  </data>
+  <data name="ConnectionPage_SharedToken.Header" xml:space="preserve">
+    <value>Jeton partagé</value>
+  </data>
+  <data name="ConnectionPage_SharedToken.PlaceholderText" xml:space="preserve">
+    <value>Coller le jeton partagé de la passerelle</value>
+  </data>
+  <data name="ConnectionPage_NameOptional.Header" xml:space="preserve">
+    <value>Nom (facultatif)</value>
+  </data>
+  <data name="ConnectionPage_NameOptional.PlaceholderText" xml:space="preserve">
+    <value>Ma passerelle</value>
+  </data>
+  <data name="ConnectionPage_PasteASetupCode.Text" xml:space="preserve">
+    <value>Collez un code de configuration depuis le QR de la passerelle ou la sortie d'`openclaw qr`.</value>
+  </data>
+  <data name="ConnectionPage_PasteSetupCodeHere2.PlaceholderText" xml:space="preserve">
+    <value>Collez le code de configuration ici…</value>
+  </data>
+  <data name="ConnectionPage_Decode.Content" xml:space="preserve">
+    <value>Décoder</value>
+  </data>
+  <data name="ConnectionPage_InstallANewWSL.Text" xml:space="preserve">
+    <value>Installez une nouvelle passerelle WSL sur ce PC et faites-en la connexion active. L'assistant d'installation installera WSL si nécessaire, configurera la passerelle et appairera cet appareil automatiquement.</value>
+  </data>
+  <data name="ConnectionPage_InstallLocalGateway.Content" xml:space="preserve">
+    <value>Installer la passerelle locale</value>
+  </data>
+  <data name="ConnectionPage_LocalWSLSetupIsn.Text" xml:space="preserve">
+    <value>La configuration WSL locale n'est pas disponible sur cette machine — l'assistant d'installation n'a pas pu être initialisé.</value>
+  </data>
+  <data name="ConnectionPage_UseSSHTunnelOptional.Text" xml:space="preserve">
+    <value>Utiliser un tunnel SSH (facultatif)</value>
+  </data>
+  <data name="ConnectionPage_SSHUser.Header" xml:space="preserve">
+    <value>Utilisateur SSH</value>
+  </data>
+  <data name="ConnectionPage_SSHUser.PlaceholderText" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="ConnectionPage_SSHHost.Header" xml:space="preserve">
+    <value>Hôte SSH</value>
+  </data>
+  <data name="ConnectionPage_SSHHost.PlaceholderText" xml:space="preserve">
+    <value>machine-name</value>
+  </data>
+  <data name="ConnectionPage_RemotePort.Header" xml:space="preserve">
+    <value>Port distant</value>
+  </data>
+  <data name="ConnectionPage_LocalPort.Header" xml:space="preserve">
+    <value>Port local</value>
+  </data>
+  <data name="ConnectionPage_SaveAmpConnect.Content" xml:space="preserve">
+    <value>Enregistrer &amp;amp; connecter</value>
+  </data>
+  <data name="ConnectionPage_Cancel.Content" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="CronPage_CronJobs.Text" xml:space="preserve">
+    <value>⏱️ Tâches Cron</value>
+  </data>
+  <data name="CronPage_Refresh.Text" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="CronPage_NewJob.Text" xml:space="preserve">
+    <value>Nouvelle tâche</value>
+  </data>
+  <data name="CronPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>Passerelle déconnectée</value>
+  </data>
+  <data name="CronPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>Connectez-vous à une passerelle pour charger les tâches cron.</value>
+  </data>
+  <data name="CronPage_OpenConnection.Content" xml:space="preserve">
+    <value>Ouvrir la connexion</value>
+  </data>
+  <data name="CronPage_NewCronJob.Text" xml:space="preserve">
+    <value>Nouvelle tâche Cron</value>
+  </data>
+  <data name="CronPage_NAME.Text" xml:space="preserve">
+    <value>NOM</value>
+  </data>
+  <data name="CronPage_MorningBrief.PlaceholderText" xml:space="preserve">
+    <value>Briefing du matin</value>
+  </data>
+  <data name="CronPage_SCHEDULE.Text" xml:space="preserve">
+    <value>PLANIFICATION</value>
+  </data>
+  <data name="CronPage_Every.Content" xml:space="preserve">
+    <value>Toutes les</value>
+  </data>
+  <data name="CronPage_At.Content" xml:space="preserve">
+    <value>À</value>
+  </data>
+  <data name="CronPage_Cron.Content" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="CronPage_QUICKPRESETS.Text" xml:space="preserve">
+    <value>PRÉRÉGLAGES RAPIDES</value>
+  </data>
+  <data name="CronPage_Hourly.Content" xml:space="preserve">
+    <value>⏰ Toutes les heures</value>
+  </data>
+  <data name="CronPage_Daily9am.Content" xml:space="preserve">
+    <value>🌅 Tous les jours à 9 h</value>
+  </data>
+  <data name="CronPage_Daily6pm.Content" xml:space="preserve">
+    <value>🌆 Tous les jours à 18 h</value>
+  </data>
+  <data name="CronPage_Weekdays.Content" xml:space="preserve">
+    <value>💼 Jours ouvrables</value>
+  </data>
+  <data name="CronPage_Weekly.Content" xml:space="preserve">
+    <value>📅 Hebdomadaire</value>
+  </data>
+  <data name="CronPage_EXPRESSION.Text" xml:space="preserve">
+    <value>EXPR. CRON</value>
+  </data>
+  <data name="CronPage_TIMEZONE.Text" xml:space="preserve">
+    <value>FUSEAU HORAIRE</value>
+  </data>
+  <data name="CronPage_Optional.PlaceholderText" xml:space="preserve">
+    <value>Facultatif</value>
+  </data>
+  <data name="CronPage_AmericaNewYork.Content" xml:space="preserve">
+    <value>America/New_York</value>
+  </data>
+  <data name="CronPage_AmericaChicago.Content" xml:space="preserve">
+    <value>America/Chicago</value>
+  </data>
+  <data name="CronPage_AmericaDenver.Content" xml:space="preserve">
+    <value>America/Denver</value>
+  </data>
+  <data name="CronPage_AmericaLosAngeles.Content" xml:space="preserve">
+    <value>America/Los_Angeles</value>
+  </data>
+  <data name="CronPage_EuropeLondon.Content" xml:space="preserve">
+    <value>Europe/London</value>
+  </data>
+  <data name="CronPage_EuropeBerlin.Content" xml:space="preserve">
+    <value>Europe/Berlin</value>
+  </data>
+  <data name="CronPage_AsiaTokyo.Content" xml:space="preserve">
+    <value>Asia/Tokyo</value>
+  </data>
+  <data name="CronPage_UTC.Content" xml:space="preserve">
+    <value>UTC</value>
+  </data>
+  <data name="CronPage_EVERY.Text" xml:space="preserve">
+    <value>TOUTES LES</value>
+  </data>
+  <data name="CronPage_UNIT.Text" xml:space="preserve">
+    <value>UNITÉ</value>
+  </data>
+  <data name="CronPage_Minutes.Content" xml:space="preserve">
+    <value>Min</value>
+  </data>
+  <data name="CronPage_Hours.Content" xml:space="preserve">
+    <value>Heures</value>
+  </data>
+  <data name="CronPage_Days.Content" xml:space="preserve">
+    <value>Jours</value>
+  </data>
+  <data name="CronPage_RUNAT.Text" xml:space="preserve">
+    <value>EXÉCUTER À</value>
+  </data>
+  <data name="CronPage_Date.PlaceholderText" xml:space="preserve">
+    <value>Choisir une date</value>
+  </data>
+  <data name="CronPage_330PM.PlaceholderText" xml:space="preserve">
+    <value>15:30</value>
+  </data>
+  <data name="CronPage_DeleteJobAfterIt.Content" xml:space="preserve">
+    <value>Supprimer la tâche après son exécution</value>
+  </data>
+  <data name="CronPage_PROMPTPAYLOAD.Text" xml:space="preserve">
+    <value>INVITE / CHARGE UTILE</value>
+  </data>
+  <data name="CronPage_WhatShouldTheAgent.PlaceholderText" xml:space="preserve">
+    <value>Que doit faire l'agent ?</value>
+  </data>
+  <data name="CronPage_DELIVERY.Text" xml:space="preserve">
+    <value>LIVRAISON</value>
+  </data>
+  <data name="CronPage_SilentNone.Content" xml:space="preserve">
+    <value>Silencieux (aucun)</value>
+  </data>
+  <data name="CronPage_NotifyMeAnnounce.Content" xml:space="preserve">
+    <value>M'avertir (annoncer)</value>
+  </data>
+  <data name="CronPage_CHANNEL.Text" xml:space="preserve">
+    <value>CANAL</value>
+  </data>
+  <data name="CronPage_EGWebchat.PlaceholderText" xml:space="preserve">
+    <value>ex. webchat</value>
+  </data>
+  <data name="CronPage_AdvancedOptions.Text" xml:space="preserve">
+    <value>Options avancées</value>
+  </data>
+  <data name="CronPage_SESSIONBEHAVIOR.Text" xml:space="preserve">
+    <value>COMPORTEMENT DE SESSION</value>
+  </data>
+  <data name="CronPage_NewSessionEachRun.Content" xml:space="preserve">
+    <value>Nouvelle session à chaque exécution</value>
+  </data>
+  <data name="CronPage_ResumeMainSession.Content" xml:space="preserve">
+    <value>Reprendre la session principale</value>
+  </data>
+  <data name="CronPage_WAKEMODE.Text" xml:space="preserve">
+    <value>MODE DE RÉVEIL</value>
+  </data>
+  <data name="CronPage_NowImmediate.Content" xml:space="preserve">
+    <value>Maintenant (immédiat)</value>
+  </data>
+  <data name="CronPage_QueueWaitForIdle.Content" xml:space="preserve">
+    <value>File d'attente (attendre l'inactivité)</value>
+  </data>
+  <data name="CronPage_Cancel.Content" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="CronPage_CreateJob.Content" xml:space="preserve">
+    <value>Créer la tâche</value>
+  </data>
+  <data name="CronPage_LoadingCronJobs.Text" xml:space="preserve">
+    <value>Chargement des tâches cron…</value>
+  </data>
+  <data name="CronPage_NoCronJobsConfigured.Text" xml:space="preserve">
+    <value>Aucune tâche cron configurée</value>
+  </data>
+  <data name="CronPage_CronJobsWillAppear.Text" xml:space="preserve">
+    <value>Les tâches cron apparaîtront ici lorsqu'elles seront configurées via la passerelle.</value>
+  </data>
+  <data name="DebugPage_Status.Title" xml:space="preserve">
+    <value>État</value>
+  </data>
+  <data name="DebugPage_Copied.Title" xml:space="preserve">
+    <value>Copié</value>
+  </data>
+  <data name="DebugPage_NoOverride.Content" xml:space="preserve">
+    <value>Aucun remplacement</value>
+  </data>
+  <data name="DebugPage_ForceGatewayChatUI.Content" xml:space="preserve">
+    <value>Forcer l'interface de chat de la passerelle</value>
+  </data>
+  <data name="DebugPage_ForceCompanionChatUI.Content" xml:space="preserve">
+    <value>Forcer l'interface de chat du compagnon</value>
+  </data>
+  <data name="DebugPage_NoOverride2.Content" xml:space="preserve">
+    <value>Aucun remplacement</value>
+  </data>
+  <data name="DebugPage_ForceGatewayChatUI2.Content" xml:space="preserve">
+    <value>Forcer l'interface de chat de la passerelle</value>
+  </data>
+  <data name="DebugPage_ForceCompanionChatUI2.Content" xml:space="preserve">
+    <value>Forcer l'interface de chat du compagnon</value>
+  </data>
+  <data name="DebugPage_Refresh.Text" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="DebugPage_Copy.Text" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="DebugPage_OpenFile.Text" xml:space="preserve">
+    <value>Ouvrir le fichier</value>
+  </data>
+  <data name="InstancesPage_PairingApprovalRequired.Text" xml:space="preserve">
+    <value>Approbation d'appairage requise</value>
+  </data>
+  <data name="InstancesPage_ANodeHasConnected.Text" xml:space="preserve">
+    <value>Un nœud s'est connecté mais ses capacités ne s'activeront pas tant que vous n'aurez pas approuvé la demande d'appairage.</value>
+  </data>
+  <data name="InstancesPage_ReviewOnConnectionPage.Content" xml:space="preserve">
+    <value>Examiner sur la page Connexion</value>
+  </data>
+  <data name="PermissionsPage_BackToConnection.Text" xml:space="preserve">
+    <value>Retour à la connexion</value>
+  </data>
+  <data name="PermissionsPage_Permissions.Text" xml:space="preserve">
+    <value>Autorisations</value>
+  </data>
+  <data name="PermissionsPage_NodeMode.Text" xml:space="preserve">
+    <value>Mode nœud</value>
+  </data>
+  <data name="PermissionsPage_WhenOnThisPC.Text" xml:space="preserve">
+    <value>Lorsqu'il est activé, ce PC s'enregistre comme nœud et offre les capacités ci-dessous aux agents via la passerelle.</value>
+  </data>
+  <data name="PermissionsPage_Capabilities.Text" xml:space="preserve">
+    <value>Capacités</value>
+  </data>
+  <data name="PermissionsPage_ToggleIndividualFeaturesThat.Text" xml:space="preserve">
+    <value>Activez ou désactivez les fonctionnalités individuelles que les agents peuvent demander à ce PC.</value>
+  </data>
+  <data name="PermissionsPage_Integrations.Text" xml:space="preserve">
+    <value>Intégrations</value>
+  </data>
+  <data name="PermissionsPage_DefaultAction.Text" xml:space="preserve">
+    <value>Action par défaut</value>
+  </data>
+  <data name="PermissionsPage_WhatHappensWhenA.Text" xml:space="preserve">
+    <value>Ce qui se passe lorsqu'une commande ne correspond à aucune règle ci-dessous.</value>
+  </data>
+  <data name="PermissionsPage_PatternsAreMatchedLeft.Text" xml:space="preserve">
+    <value>Les motifs sont comparés de gauche à droite à la ligne de commande complète. Utilisez * comme caractère générique. Les modifications sont enregistrées automatiquement.</value>
+  </data>
+  <data name="PermissionsPage_Saved.Text" xml:space="preserve">
+    <value>Enregistré</value>
+  </data>
+  <data name="PermissionsPage_0Rules.Text" xml:space="preserve">
+    <value>0 règle</value>
+  </data>
+  <data name="PermissionsPage_NoRulesYetAdd.Text" xml:space="preserve">
+    <value>Aucune règle pour l'instant. Ajoutez un motif ci-dessous pour autoriser ou refuser des commandes spécifiques.</value>
+  </data>
+  <data name="PermissionsPage_WindowsPrivacy.Text" xml:space="preserve">
+    <value>Confidentialité Windows</value>
+  </data>
+  <data name="PermissionsPage_CameraMicrophoneAmpScreen.Text" xml:space="preserve">
+    <value>Accès caméra, microphone &amp;amp; écran</value>
+  </data>
+  <data name="PermissionsPage_SystemLevelPrivacyPermissions.Text" xml:space="preserve">
+    <value>Les autorisations de confidentialité au niveau système sont gérées par Windows. Ouvrez les Paramètres de confidentialité Windows pour accorder ou révoquer l'accès à OpenClaw.</value>
+  </data>
+  <data name="SandboxPage_NodeSandboxIsOn.Text" xml:space="preserve">
+    <value>Le bac à sable du nœud est activé</value>
+  </data>
+  <data name="SandboxPage_ProgramsTheAgentRuns.Text" xml:space="preserve">
+    <value>Les programmes que l'agent exécute sur ce PC sont confinés.</value>
+  </data>
+  <data name="SandboxPage_WhatGetsContained.Text" xml:space="preserve">
+    <value>Ce qui est confiné</value>
+  </data>
+  <data name="SandboxPage_SeeWhichCommandsThis.Text" xml:space="preserve">
+    <value>Découvrez quelles commandes cette page couvre — et lesquelles nécessitent d'autres contrôles.</value>
+  </data>
+  <data name="SandboxPage_CommandsTheAgentRuns.Text" xml:space="preserve">
+    <value>Les commandes que l'agent exécute via le nœud Windows (</value>
+  </data>
+  <data name="SandboxPage_SystemRun.Text" xml:space="preserve">
+    <value>system.run</value>
+  </data>
+  <data name="SandboxPage_AreContainedByThe.Text" xml:space="preserve">
+    <value>) sont confinées par les paramètres ci-dessous.</value>
+  </data>
+  <data name="SandboxPage_CommandsTheAgentRuns2.Text" xml:space="preserve">
+    <value>Les commandes que l'agent exécute directement sur la passerelle ne le sont pas. Si la passerelle est sur WSL sur ce PC, elles peuvent accéder à vos fichiers Windows, votre presse-papiers et votre réseau — utilisez les approbations d'exécution de la passerelle.</value>
+  </data>
+  <data name="SandboxPage_SandboxUnavailable.Title" xml:space="preserve">
+    <value>Bac à sable indisponible</value>
+  </data>
+  <data name="SandboxPage_LearnMoreAboutMXC.Content" xml:space="preserve">
+    <value>En savoir plus sur le bac à sable MXC</value>
+  </data>
+  <data name="SandboxPage_SecurityLevel.Text" xml:space="preserve">
+    <value>Niveau de sécurité</value>
+  </data>
+  <data name="SandboxPage_OneClickToSet.Text" xml:space="preserve">
+    <value>Un clic pour définir tous les contrôles ci-dessous. Les dossiers personnalisés restent tels que vous les avez définis.</value>
+  </data>
+  <data name="SandboxPage_LockedDown.Text" xml:space="preserve">
+    <value>🔒 Verrouillé</value>
+  </data>
+  <data name="SandboxPage_NoInternetNoClipboard.Text" xml:space="preserve">
+    <value>Pas d'Internet, pas de presse-papiers, pas de dossiers utilisateur standard.</value>
+  </data>
+  <data name="SandboxPage_Recommended.Text" xml:space="preserve">
+    <value>🛡 Recommandé</value>
+  </data>
+  <data name="SandboxPage_InternetOnReadOnly.Text" xml:space="preserve">
+    <value>Internet activé. Lecture seule sur Documents, Téléchargements, Bureau. Lecture du presse-papiers.</value>
+  </data>
+  <data name="SandboxPage_Unprotected.Text" xml:space="preserve">
+    <value>⚠ Non protégé</value>
+  </data>
+  <data name="SandboxPage_InternetOnReadWrite.Text" xml:space="preserve">
+    <value>Internet activé. Lecture + écriture sur Documents, Téléchargements, Bureau. Lecture + écriture du presse-papiers.</value>
+  </data>
+  <data name="SandboxPage_CustomFolderGrantsStill.Title" xml:space="preserve">
+    <value>Les attributions de dossier personnalisé sont toujours actives</value>
+  </data>
+  <data name="SandboxPage_Files.Text" xml:space="preserve">
+    <value>📁 Fichiers</value>
+  </data>
+  <data name="SandboxPage_ByDefaultTheAgent.Text" xml:space="preserve">
+    <value>Par défaut, l'agent ne dispose que d'un dossier de travail temporaire qu'il peut lire et écrire. Accordez l'accès aux dossiers utilisateur ci-dessous. Les clés SSH, les profils de navigateur et les paramètres d'OpenClaw lui-même sont toujours bloqués.</value>
+  </data>
+  <data name="SandboxPage_Documents.Text" xml:space="preserve">
+    <value>Mes documents</value>
+  </data>
+  <data name="SandboxPage_Blocked.Content" xml:space="preserve">
+    <value>Bloqué</value>
+  </data>
+  <data name="SandboxPage_ReadOnly.Content" xml:space="preserve">
+    <value>Lecture seule</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite.Content" xml:space="preserve">
+    <value>Lecture &amp;amp; écriture</value>
+  </data>
+  <data name="SandboxPage_Downloads.Text" xml:space="preserve">
+    <value>Téléchargements</value>
+  </data>
+  <data name="SandboxPage_Blocked2.Content" xml:space="preserve">
+    <value>Bloqué</value>
+  </data>
+  <data name="SandboxPage_ReadOnly2.Content" xml:space="preserve">
+    <value>Lecture seule</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite2.Content" xml:space="preserve">
+    <value>Lecture &amp;amp; écriture</value>
+  </data>
+  <data name="SandboxPage_Desktop.Text" xml:space="preserve">
+    <value>Bureau</value>
+  </data>
+  <data name="SandboxPage_Blocked3.Content" xml:space="preserve">
+    <value>Bloqué</value>
+  </data>
+  <data name="SandboxPage_ReadOnly3.Content" xml:space="preserve">
+    <value>Lecture seule</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite3.Content" xml:space="preserve">
+    <value>Lecture &amp;amp; écriture</value>
+  </data>
+  <data name="SandboxPage_ToolDirectoriesOnYour.Text" xml:space="preserve">
+    <value>Les répertoires d'outils de votre PATH bénéficient également d'un accès en lecture seule dans le bac à sable, afin que les outils en ligne de commande comme git, node, python et dotnet soient utilisables. Les racines de lecteur ne sont jamais accordées.</value>
+  </data>
+  <data name="SandboxPage_CustomFolders.Text" xml:space="preserve">
+    <value>Dossiers personnalisés</value>
+  </data>
+  <data name="SandboxPage_CustomGrantsAreAdded.Text" xml:space="preserve">
+    <value>Les autorisations personnalisées sont ajoutées en plus des règles ci-dessus. L'ajout d'un dossier dans Documents/Téléchargements/Bureau avec un accès plus large remplacera le paramètre au niveau de la ligne pour ce chemin.</value>
+  </data>
+  <data name="SandboxPage_Blocked4.Content" xml:space="preserve">
+    <value>Bloqué</value>
+  </data>
+  <data name="SandboxPage_ReadOnly4.Content" xml:space="preserve">
+    <value>Lecture seule</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite4.Content" xml:space="preserve">
+    <value>Lecture &amp;amp; écriture</value>
+  </data>
+  <data name="SandboxPage_NoCustomFoldersAdded.Text" xml:space="preserve">
+    <value>Aucun dossier personnalisé ajouté.</value>
+  </data>
+  <data name="SandboxPage_AddFolder.Content" xml:space="preserve">
+    <value>Ajouter un dossier</value>
+  </data>
+  <data name="SandboxPage_Clipboard.Text" xml:space="preserve">
+    <value>📋 Presse-papiers</value>
+  </data>
+  <data name="SandboxPage_ClipboardOftenContainsPasswords.Text" xml:space="preserve">
+    <value>Le presse-papiers contient souvent des mots de passe, des jetons et du texte privé. L'accès en lecture peut divulguer ces données à l'agent (et sur Internet, s'il est activé).</value>
+  </data>
+  <data name="SandboxPage_NoneDefault.Content" xml:space="preserve">
+    <value>Aucun (par défaut)</value>
+  </data>
+  <data name="SandboxPage_ReadAgentCanSee.Content" xml:space="preserve">
+    <value>Lecture — l'agent peut voir ce que vous avez copié</value>
+  </data>
+  <data name="SandboxPage_WriteAgentCanReplace.Content" xml:space="preserve">
+    <value>Écriture — l'agent peut remplacer votre presse-papiers (sans pouvoir le lire)</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite5.Content" xml:space="preserve">
+    <value>Lecture &amp;amp; écriture</value>
+  </data>
+  <data name="SandboxPage_Network.Text" xml:space="preserve">
+    <value>📡 Réseau</value>
+  </data>
+  <data name="SandboxPage_AllowInternet.Header" xml:space="preserve">
+    <value>Autoriser Internet</value>
+  </data>
+  <data name="SandboxPage_IfFileOrClipboard.Text" xml:space="preserve">
+    <value>Si l'accès en lecture aux fichiers ou au presse-papiers est activé, l'agent peut envoyer ces données sur Internet.</value>
+  </data>
+  <data name="SandboxPage_LocalNetworkDevicesAnd.Text" xml:space="preserve">
+    <value>Les périphériques et partages réseau locaux ne sont pas encore inclus.</value>
+  </data>
+  <data name="SandboxPage_Limits.Text" xml:space="preserve">
+    <value>⏱ Limites</value>
+  </data>
+  <data name="SandboxPage_CommandTimeout30Sec.Text" xml:space="preserve">
+    <value>Délai d'expiration de commande : 30 s</value>
+  </data>
+  <data name="SandboxPage_MaximumCapturedOutputTruncates.Text" xml:space="preserve">
+    <value>Sortie capturée maximale (tronquée au-delà ; ne limite pas le disque, la mémoire ou le processeur) :</value>
+  </data>
+  <data name="SandboxPage_1MiB.Content" xml:space="preserve">
+    <value>1 MiB</value>
+  </data>
+  <data name="SandboxPage_4MiBDefault.Content" xml:space="preserve">
+    <value>4 Mio (par défaut)</value>
+  </data>
+  <data name="SandboxPage_16MiB.Content" xml:space="preserve">
+    <value>16 MiB</value>
+  </data>
+  <data name="SandboxPage_64MiB.Content" xml:space="preserve">
+    <value>64 MiB</value>
+  </data>
+  <data name="SessionsPage_BackToConnection.Text" xml:space="preserve">
+    <value>Retour à la connexion</value>
+  </data>
+  <data name="SessionsPage_Sessions.Text" xml:space="preserve">
+    <value>Mes sessions</value>
+  </data>
+  <data name="SessionsPage_Refresh.Text" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="SessionsPage_All.Text" xml:space="preserve">
+    <value>Tous</value>
+  </data>
+  <data name="SessionsPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>Passerelle déconnectée</value>
+  </data>
+  <data name="SessionsPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>Connectez-vous à une passerelle pour charger les sessions.</value>
+  </data>
+  <data name="SessionsPage_OpenConnection.Content" xml:space="preserve">
+    <value>Ouvrir la connexion</value>
+  </data>
+  <data name="SessionsPage_LoadingSessions.Text" xml:space="preserve">
+    <value>Chargement des sessions…</value>
+  </data>
+  <data name="SessionsPage_NoActiveSessions.Text" xml:space="preserve">
+    <value>Aucune session active</value>
+  </data>
+  <data name="SessionsPage_Reset.Content" xml:space="preserve">
+    <value>Réinitialiser</value>
+  </data>
+  <data name="SessionsPage_Compact.Content" xml:space="preserve">
+    <value>Compacter</value>
+  </data>
+  <data name="SessionsPage_Delete.Content" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="SettingsPage_Settings.Text" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="SettingsPage_General.Text" xml:space="preserve">
+    <value>Général</value>
+  </data>
+  <data name="SettingsPage_Notifications.Text" xml:space="preserve">
+    <value>Mes notifications</value>
+  </data>
+  <data name="SettingsPage_Privacy.Text" xml:space="preserve">
+    <value>Confidentialité</value>
+  </data>
+  <data name="SettingsPage_LocalGateway.Text" xml:space="preserve">
+    <value>Passerelle locale</value>
+  </data>
+  <data name="SettingsPage_MSIXInstallationDetected.Title" xml:space="preserve">
+    <value>Installation MSIX détectée</value>
+  </data>
+  <data name="SettingsPage_MSIXInstallationDetected.Message" xml:space="preserve">
+    <value>La suppression d'OpenClaw via Paramètres Windows &amp;amp;#x2192; Applications ne nettoiera PAS la passerelle locale (distribution WSL, image disque). Utilisez d'abord Supprimer la passerelle locale ci-dessous, puis désinstallez OpenClaw.</value>
+  </data>
+  <data name="SettingsPage_RemovesTheWSLDistro.Text" xml:space="preserve">
+    <value>Supprime la distribution WSL (OpenClawGateway), son image disque, l'entrée de démarrage automatique et efface les identifiants de la passerelle. Votre jeton MCP est conservé. L'intégration sera réinitialisée.</value>
+  </data>
+  <data name="SettingsPage_RemoveLocalGateway.Content" xml:space="preserve">
+    <value>Supprimer la passerelle locale</value>
+  </data>
+  <data name="SettingsPage_Saved.Title" xml:space="preserve">
+    <value>Enregistré</value>
+  </data>
+  <data name="SkillsPage_Skills.Text" xml:space="preserve">
+    <value>🧩 Compétences</value>
+  </data>
+  <data name="SkillsPage_AllAgents.Content" xml:space="preserve">
+    <value>Tous les agents</value>
+  </data>
+  <data name="SkillsPage_Enabled.Text" xml:space="preserve">
+    <value>Activé</value>
+  </data>
+  <data name="SkillsPage_Disabled.Text" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="SkillsPage_LoadingSkills.Text" xml:space="preserve">
+    <value>Chargement des compétences…</value>
+  </data>
+  <data name="SkillsPage_NoSkillsInstalled.Text" xml:space="preserve">
+    <value>Aucune compétence installée</value>
+  </data>
+  <data name="SkillsPage_SkillsExtendYourAgent.Text" xml:space="preserve">
+    <value>Les compétences étendent les capacités de votre agent. Installez des compétences via la CLI ou ClawHub.</value>
+  </data>
+  <data name="UsagePage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>Passerelle déconnectée</value>
+  </data>
+  <data name="UsagePage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>Connectez-vous à une passerelle pour charger les données d'utilisation.</value>
+  </data>
+  <data name="UsagePage_OpenConnection.Content" xml:space="preserve">
+    <value>Ouvrir la connexion</value>
+  </data>
+  <data name="UsagePage_LoadingDailyCosts.Text" xml:space="preserve">
+    <value>Chargement des coûts quotidiens…</value>
+  </data>
+  <data name="UsagePage_NoDailyUsageFor.Text" xml:space="preserve">
+    <value>Aucune utilisation quotidienne pour cette période</value>
+  </data>
+  <data name="VoiceSettingsPage_TestVoiceInput.Text" xml:space="preserve">
+    <value>Tester l'entrée vocale</value>
+  </data>
+  <data name="VoiceSettingsPage_Record.Text" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="WorkspacePage_LoadingWorkspaceFiles.Text" xml:space="preserve">
+    <value>Chargement des fichiers de l'espace de travail…</value>
+  </data>
+  <data name="ChatWindow_WebChatUnavailable.Text" xml:space="preserve">
+    <value>Chat Web indisponible</value>
+  </data>
+  <data name="ChatWindow_Retry.Content" xml:space="preserve">
+    <value>Réessayer</value>
+  </data>
+  <data name="ConnectionStatusWindow_ConnectionStatus.Text" xml:space="preserve">
+    <value>État de la connexion</value>
+  </data>
+  <data name="ConnectionStatusWindow_STATEMACHINE.Text" xml:space="preserve">
+    <value>MACHINE À ÉTATS</value>
+  </data>
+  <data name="ConnectionStatusWindow_OPERATOR.Text" xml:space="preserve">
+    <value>OPÉRATEUR</value>
+  </data>
+  <data name="ConnectionStatusWindow_Off.Text" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connecting.Text" xml:space="preserve">
+    <value>Connexion en cours</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connected.Text" xml:space="preserve">
+    <value>Connecté</value>
+  </data>
+  <data name="ConnectionStatusWindow_Pairing.Text" xml:space="preserve">
+    <value>Appairage</value>
+  </data>
+  <data name="ConnectionStatusWindow_Error.Text" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="ConnectionStatusWindow_NODE.Text" xml:space="preserve">
+    <value>NŒUD</value>
+  </data>
+  <data name="ConnectionStatusWindow_Off2.Text" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connecting2.Text" xml:space="preserve">
+    <value>Connexion en cours</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connected2.Text" xml:space="preserve">
+    <value>Connecté</value>
+  </data>
+  <data name="ConnectionStatusWindow_Pairing2.Text" xml:space="preserve">
+    <value>Appairage</value>
+  </data>
+  <data name="ConnectionStatusWindow_Error2.Text" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="ConnectionStatusWindow_GATEWAYS.Text" xml:space="preserve">
+    <value>PASSERELLES</value>
+  </data>
+  <data name="ConnectionStatusWindow_CREDENTIALS.Text" xml:space="preserve">
+    <value>IDENTIFIANTS</value>
+  </data>
+  <data name="ConnectionStatusWindow_SETUPCODE.Text" xml:space="preserve">
+    <value>CODE DE CONFIGURATION</value>
+  </data>
+  <data name="ConnectionStatusWindow_PasteASetupCode.Text" xml:space="preserve">
+    <value>Collez un code de configuration pour établir une connexion de bout en bout.</value>
+  </data>
+  <data name="ConnectionStatusWindow_PasteSetupCode.PlaceholderText" xml:space="preserve">
+    <value>Collez le code de configuration…</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connect.Content" xml:space="preserve">
+    <value>Connecter</value>
+  </data>
+  <data name="ConnectionStatusWindow_Disconnect.Content" xml:space="preserve">
+    <value>Déconnecter</value>
+  </data>
+  <data name="ConnectionStatusWindow_DIRECTCONNECT.Text" xml:space="preserve">
+    <value>CONNEXION DIRECTE</value>
+  </data>
+  <data name="ConnectionStatusWindow_ConnectWithAGateway.Text" xml:space="preserve">
+    <value>Connectez-vous avec une URL de passerelle et un jeton partagé (étendue admin).</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.PlaceholderText" xml:space="preserve">
+    <value>ws://localhost:18790</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.Text" xml:space="preserve">
+    <value>ws://localhost:18790</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.Header" xml:space="preserve">
+    <value>URL de la passerelle</value>
+  </data>
+  <data name="ConnectionStatusWindow_SharedGatewayToken.PlaceholderText" xml:space="preserve">
+    <value>Jeton partagé de la passerelle</value>
+  </data>
+  <data name="ConnectionStatusWindow_SharedGatewayToken.Header" xml:space="preserve">
+    <value>Jeton</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connect2.Content" xml:space="preserve">
+    <value>Connecter</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHTunnel.Header" xml:space="preserve">
+    <value>Tunnel SSH</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHUser.Header" xml:space="preserve">
+    <value>Utilisateur SSH</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHUser.PlaceholderText" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHHost.Header" xml:space="preserve">
+    <value>Hôte SSH</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHHost.PlaceholderText" xml:space="preserve">
+    <value>192.168.x.x</value>
+  </data>
+  <data name="ConnectionStatusWindow_RemotePort.Header" xml:space="preserve">
+    <value>Port distant</value>
+  </data>
+  <data name="ConnectionStatusWindow_LocalPort.Header" xml:space="preserve">
+    <value>Port local</value>
+  </data>
+  <data name="ConnectionStatusWindow_EVENTTIMELINE.Text" xml:space="preserve">
+    <value>CHRONOLOGIE DES ÉVÉNEMENTS</value>
+  </data>
+  <data name="ConnectionStatusWindow_Copy.Content" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="ConnectionStatusWindow_Clear.Content" xml:space="preserve">
+    <value>Effacer</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_DiagnosticsBundle.Title" xml:space="preserve">
+    <value>Lot de diagnostics</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Title" xml:space="preserve">
+    <value>Examiner avant de partager</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Message" xml:space="preserve">
+    <value>Les jetons sensibles, les arguments de commande, les charges utiles et les enregistrements sont exclus par le générateur de lot.</value>
+  </data>
+  <data name="HubWindow_Disconnected.Text" xml:space="preserve">
+    <value>Déconnecté</value>
+  </data>
+  <data name="HubWindow_Op.Text" xml:space="preserve">
+    <value>Op.</value>
+  </data>
+  <data name="HubWindow_Node.Text" xml:space="preserve">
+    <value>Nœud</value>
+  </data>
+  <data name="HubWindow_Advanced.Content" xml:space="preserve">
+    <value>Avancé</value>
+  </data>
 </root>

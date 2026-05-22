@@ -3507,4 +3507,919 @@
   <data name="ConnectionStatusWindow.Title" xml:space="preserve">
     <value>Connection Status</value>
   </data>
+  <data name="BindingsPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>网关已断开</value>
+  </data>
+  <data name="BindingsPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>请连接到网关以加载绑定。</value>
+  </data>
+  <data name="BindingsPage_OpenConnection.Content" xml:space="preserve">
+    <value>打开连接</value>
+  </data>
+  <data name="BindingsPage_LoadingBindings.Text" xml:space="preserve">
+    <value>正在加载绑定…</value>
+  </data>
+  <data name="ConnectionPage_ApprovalsWaitingOnYou.Text" xml:space="preserve">
+    <value>等待您的审批</value>
+  </data>
+  <data name="ConnectionPage_NotConnected.Text" xml:space="preserve">
+    <value>未连接</value>
+  </data>
+  <data name="ConnectionPage_Connect.Content" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="ConnectionPage_Operator.Text" xml:space="preserve">
+    <value>操作员</value>
+  </data>
+  <data name="ConnectionPage_SendCommandsAndView.Text" xml:space="preserve">
+    <value>从此电脑向此网关发送命令并查看会话。</value>
+  </data>
+  <data name="ConnectionPage_Inactive.Text" xml:space="preserve">
+    <value>未激活</value>
+  </data>
+  <data name="ConnectionPage_SeeSessions.Content" xml:space="preserve">
+    <value>查看会话 ›</value>
+  </data>
+  <data name="ConnectionPage_SeeInstances.Content" xml:space="preserve">
+    <value>查看实例 ›</value>
+  </data>
+  <data name="ConnectionPage_NodeMode.Text" xml:space="preserve">
+    <value>节点模式</value>
+  </data>
+  <data name="ConnectionPage_WhenOnThisPC.Text" xml:space="preserve">
+    <value>启用后,此电脑将注册为节点,并通过网关向代理提供下列功能。</value>
+  </data>
+  <data name="ConnectionPage_NodeModeDisabled.Text" xml:space="preserve">
+    <value>节点模式已禁用</value>
+  </data>
+  <data name="ConnectionPage_Copy.Content" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="ConnectionPage_Connect2.Content" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="ConnectionPage_ManagePermissions.Content" xml:space="preserve">
+    <value>管理权限 ›</value>
+  </data>
+  <data name="ConnectionPage_HelpUsFixThis.Text" xml:space="preserve">
+    <value>帮助我们修复此连接:</value>
+  </data>
+  <data name="ConnectionPage_SSHTunnelIsDown.Text" xml:space="preserve">
+    <value>SSH 隧道已停止。</value>
+  </data>
+  <data name="ConnectionPage_RestartTunnel.Content" xml:space="preserve">
+    <value>重启隧道</value>
+  </data>
+  <data name="ConnectionPage_EditTunnelSettings.Content" xml:space="preserve">
+    <value>编辑隧道设置</value>
+  </data>
+  <data name="ConnectionPage_PasteANewSetup.Text" xml:space="preserve">
+    <value>粘贴来自网关主机的新设置代码。</value>
+  </data>
+  <data name="ConnectionPage_PasteSetupCodeHere.PlaceholderText" xml:space="preserve">
+    <value>在此粘贴设置代码…</value>
+  </data>
+  <data name="ConnectionPage_Apply.Content" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="ConnectionPage_RunOnTheGateway.Text" xml:space="preserve">
+    <value>在网关主机上运行:</value>
+  </data>
+  <data name="ConnectionPage_Copy2.Content" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="ConnectionPage_Connect3.Content" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="ConnectionPage_Disconnect.Content" xml:space="preserve">
+    <value>断开连接</value>
+  </data>
+  <data name="ConnectionPage_SavedGateways.Text" xml:space="preserve">
+    <value>已保存的网关</value>
+  </data>
+  <data name="ConnectionPage_Gateways.Text" xml:space="preserve">
+    <value>网关</value>
+  </data>
+  <data name="ConnectionPage_Scan.Text" xml:space="preserve">
+    <value>扫描</value>
+  </data>
+  <data name="ConnectionPage_AddGateway.Text" xml:space="preserve">
+    <value>添加网关</value>
+  </data>
+  <data name="ConnectionPage_NoSavedGatewaysYet.Text" xml:space="preserve">
+    <value>尚无已保存的网关。</value>
+  </data>
+  <data name="ConnectionPage_DiscoveredOnYourNetwork.Text" xml:space="preserve">
+    <value>在您的网络上发现</value>
+  </data>
+  <data name="ConnectionPage_AddAGateway.Text" xml:space="preserve">
+    <value>添加网关</value>
+  </data>
+  <data name="ConnectionPage_GetStartedInstallA.Title" xml:space="preserve">
+    <value>开始使用 — 安装本地网关</value>
+  </data>
+  <data name="ConnectionPage_GetStartedInstallA.Message" xml:space="preserve">
+    <value>最快的入门方式:在此电脑上设置 WSL 托管的网关,并将其设为活动连接。</value>
+  </data>
+  <data name="ConnectionPage_Install.Content" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="ConnectionPage_OrConnectToAn.Text" xml:space="preserve">
+    <value>或连接到现有网关:</value>
+  </data>
+  <data name="ConnectionPage_Direct.Text" xml:space="preserve">
+    <value>直接</value>
+  </data>
+  <data name="ConnectionPage_URLToken.Text" xml:space="preserve">
+    <value>URL + 令牌</value>
+  </data>
+  <data name="ConnectionPage_SetupCode.Text" xml:space="preserve">
+    <value>设置代码</value>
+  </data>
+  <data name="ConnectionPage_PasteQRPayload.Text" xml:space="preserve">
+    <value>粘贴 QR 负载</value>
+  </data>
+  <data name="ConnectionPage_EachMethodSupportsAn.Text" xml:space="preserve">
+    <value>每种方法都支持可选的 SSH 隧道。</value>
+  </data>
+  <data name="ConnectionPage_OrLookForOne.Text" xml:space="preserve">
+    <value>或在您的网络上查找。</value>
+  </data>
+  <data name="ConnectionPage_Scan2.Text" xml:space="preserve">
+    <value>扫描</value>
+  </data>
+  <data name="ConnectionPage_DiscoveredOnYourNetwork2.Text" xml:space="preserve">
+    <value>在您的网络上发现</value>
+  </data>
+  <data name="ConnectionPage_Back.Text" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="ConnectionPage_AddAGateway2.Text" xml:space="preserve">
+    <value>添加网关</value>
+  </data>
+  <data name="ConnectionPage_Direct2.Text" xml:space="preserve">
+    <value>直接</value>
+  </data>
+  <data name="ConnectionPage_SetupCode2.Text" xml:space="preserve">
+    <value>设置代码</value>
+  </data>
+  <data name="ConnectionPage_LocalWSL.Text" xml:space="preserve">
+    <value>本地 WSL</value>
+  </data>
+  <data name="ConnectionPage_GatewayURL.Header" xml:space="preserve">
+    <value>网关 URL</value>
+  </data>
+  <data name="ConnectionPage_GatewayURL.PlaceholderText" xml:space="preserve">
+    <value>ws://host.local:18790</value>
+  </data>
+  <data name="ConnectionPage_SharedToken.Header" xml:space="preserve">
+    <value>共享令牌</value>
+  </data>
+  <data name="ConnectionPage_SharedToken.PlaceholderText" xml:space="preserve">
+    <value>粘贴共享网关令牌</value>
+  </data>
+  <data name="ConnectionPage_NameOptional.Header" xml:space="preserve">
+    <value>名称(可选)</value>
+  </data>
+  <data name="ConnectionPage_NameOptional.PlaceholderText" xml:space="preserve">
+    <value>我的网关</value>
+  </data>
+  <data name="ConnectionPage_PasteASetupCode.Text" xml:space="preserve">
+    <value>粘贴来自网关的 QR 码或 `openclaw qr` 输出的设置代码。</value>
+  </data>
+  <data name="ConnectionPage_PasteSetupCodeHere2.PlaceholderText" xml:space="preserve">
+    <value>在此粘贴设置代码…</value>
+  </data>
+  <data name="ConnectionPage_Decode.Content" xml:space="preserve">
+    <value>解码</value>
+  </data>
+  <data name="ConnectionPage_InstallANewWSL.Text" xml:space="preserve">
+    <value>在此电脑上安装新的 WSL 网关,并将其设为活动连接。设置向导将在需要时安装 WSL、配置网关,并自动配对此设备。</value>
+  </data>
+  <data name="ConnectionPage_InstallLocalGateway.Content" xml:space="preserve">
+    <value>安装本地网关</value>
+  </data>
+  <data name="ConnectionPage_LocalWSLSetupIsn.Text" xml:space="preserve">
+    <value>此电脑无法进行本地 WSL 设置 — 安装向导无法初始化。</value>
+  </data>
+  <data name="ConnectionPage_UseSSHTunnelOptional.Text" xml:space="preserve">
+    <value>使用 SSH 隧道(可选)</value>
+  </data>
+  <data name="ConnectionPage_SSHUser.Header" xml:space="preserve">
+    <value>SSH 用户</value>
+  </data>
+  <data name="ConnectionPage_SSHUser.PlaceholderText" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="ConnectionPage_SSHHost.Header" xml:space="preserve">
+    <value>SSH 主机</value>
+  </data>
+  <data name="ConnectionPage_SSHHost.PlaceholderText" xml:space="preserve">
+    <value>machine-name</value>
+  </data>
+  <data name="ConnectionPage_RemotePort.Header" xml:space="preserve">
+    <value>远程端口</value>
+  </data>
+  <data name="ConnectionPage_LocalPort.Header" xml:space="preserve">
+    <value>本地端口</value>
+  </data>
+  <data name="ConnectionPage_SaveAmpConnect.Content" xml:space="preserve">
+    <value>保存并连接</value>
+  </data>
+  <data name="ConnectionPage_Cancel.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="CronPage_CronJobs.Text" xml:space="preserve">
+    <value>⏱️ Cron 任务</value>
+  </data>
+  <data name="CronPage_Refresh.Text" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="CronPage_NewJob.Text" xml:space="preserve">
+    <value>新建任务</value>
+  </data>
+  <data name="CronPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>网关已断开</value>
+  </data>
+  <data name="CronPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>请连接到网关以加载 cron 任务。</value>
+  </data>
+  <data name="CronPage_OpenConnection.Content" xml:space="preserve">
+    <value>打开连接</value>
+  </data>
+  <data name="CronPage_NewCronJob.Text" xml:space="preserve">
+    <value>新建 Cron 任务</value>
+  </data>
+  <data name="CronPage_NAME.Text" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="CronPage_MorningBrief.PlaceholderText" xml:space="preserve">
+    <value>晨间简报</value>
+  </data>
+  <data name="CronPage_SCHEDULE.Text" xml:space="preserve">
+    <value>计划</value>
+  </data>
+  <data name="CronPage_Every.Content" xml:space="preserve">
+    <value>每</value>
+  </data>
+  <data name="CronPage_At.Content" xml:space="preserve">
+    <value>于</value>
+  </data>
+  <data name="CronPage_Cron.Content" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="CronPage_QUICKPRESETS.Text" xml:space="preserve">
+    <value>快速预设</value>
+  </data>
+  <data name="CronPage_Hourly.Content" xml:space="preserve">
+    <value>⏰ 每小时</value>
+  </data>
+  <data name="CronPage_Daily9am.Content" xml:space="preserve">
+    <value>🌅 每天上午 9 点</value>
+  </data>
+  <data name="CronPage_Daily6pm.Content" xml:space="preserve">
+    <value>🌆 每天下午 6 点</value>
+  </data>
+  <data name="CronPage_Weekdays.Content" xml:space="preserve">
+    <value>💼 工作日</value>
+  </data>
+  <data name="CronPage_Weekly.Content" xml:space="preserve">
+    <value>📅 每周</value>
+  </data>
+  <data name="CronPage_EXPRESSION.Text" xml:space="preserve">
+    <value>表达式</value>
+  </data>
+  <data name="CronPage_TIMEZONE.Text" xml:space="preserve">
+    <value>时区</value>
+  </data>
+  <data name="CronPage_Optional.PlaceholderText" xml:space="preserve">
+    <value>可选</value>
+  </data>
+  <data name="CronPage_AmericaNewYork.Content" xml:space="preserve">
+    <value>America/New_York</value>
+  </data>
+  <data name="CronPage_AmericaChicago.Content" xml:space="preserve">
+    <value>America/Chicago</value>
+  </data>
+  <data name="CronPage_AmericaDenver.Content" xml:space="preserve">
+    <value>America/Denver</value>
+  </data>
+  <data name="CronPage_AmericaLosAngeles.Content" xml:space="preserve">
+    <value>America/Los_Angeles</value>
+  </data>
+  <data name="CronPage_EuropeLondon.Content" xml:space="preserve">
+    <value>Europe/London</value>
+  </data>
+  <data name="CronPage_EuropeBerlin.Content" xml:space="preserve">
+    <value>Europe/Berlin</value>
+  </data>
+  <data name="CronPage_AsiaTokyo.Content" xml:space="preserve">
+    <value>Asia/Tokyo</value>
+  </data>
+  <data name="CronPage_UTC.Content" xml:space="preserve">
+    <value>UTC</value>
+  </data>
+  <data name="CronPage_EVERY.Text" xml:space="preserve">
+    <value>每</value>
+  </data>
+  <data name="CronPage_UNIT.Text" xml:space="preserve">
+    <value>单位</value>
+  </data>
+  <data name="CronPage_Minutes.Content" xml:space="preserve">
+    <value>分钟</value>
+  </data>
+  <data name="CronPage_Hours.Content" xml:space="preserve">
+    <value>小时</value>
+  </data>
+  <data name="CronPage_Days.Content" xml:space="preserve">
+    <value>天</value>
+  </data>
+  <data name="CronPage_RUNAT.Text" xml:space="preserve">
+    <value>运行时间</value>
+  </data>
+  <data name="CronPage_Date.PlaceholderText" xml:space="preserve">
+    <value>日期</value>
+  </data>
+  <data name="CronPage_330PM.PlaceholderText" xml:space="preserve">
+    <value>15:30</value>
+  </data>
+  <data name="CronPage_DeleteJobAfterIt.Content" xml:space="preserve">
+    <value>运行后删除任务</value>
+  </data>
+  <data name="CronPage_PROMPTPAYLOAD.Text" xml:space="preserve">
+    <value>提示 / 负载</value>
+  </data>
+  <data name="CronPage_WhatShouldTheAgent.PlaceholderText" xml:space="preserve">
+    <value>代理应该做什么?</value>
+  </data>
+  <data name="CronPage_DELIVERY.Text" xml:space="preserve">
+    <value>投递</value>
+  </data>
+  <data name="CronPage_SilentNone.Content" xml:space="preserve">
+    <value>静默(无)</value>
+  </data>
+  <data name="CronPage_NotifyMeAnnounce.Content" xml:space="preserve">
+    <value>通知我(通告)</value>
+  </data>
+  <data name="CronPage_CHANNEL.Text" xml:space="preserve">
+    <value>通道</value>
+  </data>
+  <data name="CronPage_EGWebchat.PlaceholderText" xml:space="preserve">
+    <value>例如 webchat</value>
+  </data>
+  <data name="CronPage_AdvancedOptions.Text" xml:space="preserve">
+    <value>高级选项</value>
+  </data>
+  <data name="CronPage_SESSIONBEHAVIOR.Text" xml:space="preserve">
+    <value>会话行为</value>
+  </data>
+  <data name="CronPage_NewSessionEachRun.Content" xml:space="preserve">
+    <value>每次运行新建会话</value>
+  </data>
+  <data name="CronPage_ResumeMainSession.Content" xml:space="preserve">
+    <value>恢复主会话</value>
+  </data>
+  <data name="CronPage_WAKEMODE.Text" xml:space="preserve">
+    <value>唤醒模式</value>
+  </data>
+  <data name="CronPage_NowImmediate.Content" xml:space="preserve">
+    <value>立即(即时)</value>
+  </data>
+  <data name="CronPage_QueueWaitForIdle.Content" xml:space="preserve">
+    <value>排队(等待空闲)</value>
+  </data>
+  <data name="CronPage_Cancel.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="CronPage_CreateJob.Content" xml:space="preserve">
+    <value>创建任务</value>
+  </data>
+  <data name="CronPage_LoadingCronJobs.Text" xml:space="preserve">
+    <value>正在加载 cron 任务…</value>
+  </data>
+  <data name="CronPage_NoCronJobsConfigured.Text" xml:space="preserve">
+    <value>未配置 cron 任务</value>
+  </data>
+  <data name="CronPage_CronJobsWillAppear.Text" xml:space="preserve">
+    <value>通过网关配置 cron 任务后,它们将显示在此处。</value>
+  </data>
+  <data name="DebugPage_Status.Title" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="DebugPage_Copied.Title" xml:space="preserve">
+    <value>已复制</value>
+  </data>
+  <data name="DebugPage_NoOverride.Content" xml:space="preserve">
+    <value>无覆盖</value>
+  </data>
+  <data name="DebugPage_ForceGatewayChatUI.Content" xml:space="preserve">
+    <value>强制使用网关聊天界面</value>
+  </data>
+  <data name="DebugPage_ForceCompanionChatUI.Content" xml:space="preserve">
+    <value>强制使用伴侣聊天界面</value>
+  </data>
+  <data name="DebugPage_NoOverride2.Content" xml:space="preserve">
+    <value>无覆盖</value>
+  </data>
+  <data name="DebugPage_ForceGatewayChatUI2.Content" xml:space="preserve">
+    <value>强制使用网关聊天界面</value>
+  </data>
+  <data name="DebugPage_ForceCompanionChatUI2.Content" xml:space="preserve">
+    <value>强制使用伴侣聊天界面</value>
+  </data>
+  <data name="DebugPage_Refresh.Text" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="DebugPage_Copy.Text" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="DebugPage_OpenFile.Text" xml:space="preserve">
+    <value>打开文件</value>
+  </data>
+  <data name="InstancesPage_PairingApprovalRequired.Text" xml:space="preserve">
+    <value>需要配对审批</value>
+  </data>
+  <data name="InstancesPage_ANodeHasConnected.Text" xml:space="preserve">
+    <value>节点已连接,但在您批准配对请求之前,其功能不会激活。</value>
+  </data>
+  <data name="InstancesPage_ReviewOnConnectionPage.Content" xml:space="preserve">
+    <value>在“连接”页面查看</value>
+  </data>
+  <data name="PermissionsPage_BackToConnection.Text" xml:space="preserve">
+    <value>返回连接</value>
+  </data>
+  <data name="PermissionsPage_Permissions.Text" xml:space="preserve">
+    <value>权限</value>
+  </data>
+  <data name="PermissionsPage_NodeMode.Text" xml:space="preserve">
+    <value>节点模式</value>
+  </data>
+  <data name="PermissionsPage_WhenOnThisPC.Text" xml:space="preserve">
+    <value>启用后,此电脑将注册为节点,并通过网关向代理提供下列功能。</value>
+  </data>
+  <data name="PermissionsPage_Capabilities.Text" xml:space="preserve">
+    <value>功能</value>
+  </data>
+  <data name="PermissionsPage_ToggleIndividualFeaturesThat.Text" xml:space="preserve">
+    <value>切换代理可能从此电脑请求的各项功能。</value>
+  </data>
+  <data name="PermissionsPage_Integrations.Text" xml:space="preserve">
+    <value>集成</value>
+  </data>
+  <data name="PermissionsPage_DefaultAction.Text" xml:space="preserve">
+    <value>默认操作</value>
+  </data>
+  <data name="PermissionsPage_WhatHappensWhenA.Text" xml:space="preserve">
+    <value>当命令与下列任何规则都不匹配时发生什么。</value>
+  </data>
+  <data name="PermissionsPage_PatternsAreMatchedLeft.Text" xml:space="preserve">
+    <value>模式按从左到右的顺序与完整命令行匹配。使用 * 作为通配符。更改将自动保存。</value>
+  </data>
+  <data name="PermissionsPage_Saved.Text" xml:space="preserve">
+    <value>已保存</value>
+  </data>
+  <data name="PermissionsPage_0Rules.Text" xml:space="preserve">
+    <value>0 条规则</value>
+  </data>
+  <data name="PermissionsPage_NoRulesYetAdd.Text" xml:space="preserve">
+    <value>尚无规则。在下方添加模式以允许或拒绝特定命令。</value>
+  </data>
+  <data name="PermissionsPage_WindowsPrivacy.Text" xml:space="preserve">
+    <value>Windows 隐私</value>
+  </data>
+  <data name="PermissionsPage_CameraMicrophoneAmpScreen.Text" xml:space="preserve">
+    <value>摄像头、麦克风和屏幕访问</value>
+  </data>
+  <data name="PermissionsPage_SystemLevelPrivacyPermissions.Text" xml:space="preserve">
+    <value>系统级隐私权限由 Windows 管理。打开 Windows 隐私设置以授予或撤销 OpenClaw 访问权限。</value>
+  </data>
+  <data name="SandboxPage_NodeSandboxIsOn.Text" xml:space="preserve">
+    <value>节点沙盒已开启</value>
+  </data>
+  <data name="SandboxPage_ProgramsTheAgentRuns.Text" xml:space="preserve">
+    <value>代理在此电脑上运行的程序受到隔离。</value>
+  </data>
+  <data name="SandboxPage_WhatGetsContained.Text" xml:space="preserve">
+    <value>哪些内容受隔离</value>
+  </data>
+  <data name="SandboxPage_SeeWhichCommandsThis.Text" xml:space="preserve">
+    <value>查看此页面涵盖的命令 — 以及需要其他控件的命令。</value>
+  </data>
+  <data name="SandboxPage_CommandsTheAgentRuns.Text" xml:space="preserve">
+    <value>代理通过 Windows 节点运行的命令 (</value>
+  </data>
+  <data name="SandboxPage_SystemRun.Text" xml:space="preserve">
+    <value>system.run</value>
+  </data>
+  <data name="SandboxPage_AreContainedByThe.Text" xml:space="preserve">
+    <value>) 受下面的设置隔离。</value>
+  </data>
+  <data name="SandboxPage_CommandsTheAgentRuns2.Text" xml:space="preserve">
+    <value>代理直接在网关上运行的命令不受隔离。如果网关位于此电脑的 WSL 上,它们可能会访问您的 Windows 文件、剪贴板和网络 — 请使用网关的执行审批。</value>
+  </data>
+  <data name="SandboxPage_SandboxUnavailable.Title" xml:space="preserve">
+    <value>沙盒不可用</value>
+  </data>
+  <data name="SandboxPage_LearnMoreAboutMXC.Content" xml:space="preserve">
+    <value>详细了解 MXC 沙盒</value>
+  </data>
+  <data name="SandboxPage_SecurityLevel.Text" xml:space="preserve">
+    <value>安全级别</value>
+  </data>
+  <data name="SandboxPage_OneClickToSet.Text" xml:space="preserve">
+    <value>一键设置下面的每个控件。自定义文件夹保持您的设置。</value>
+  </data>
+  <data name="SandboxPage_LockedDown.Text" xml:space="preserve">
+    <value>🔒 锁定</value>
+  </data>
+  <data name="SandboxPage_NoInternetNoClipboard.Text" xml:space="preserve">
+    <value>无互联网、无剪贴板、无标准用户文件夹。</value>
+  </data>
+  <data name="SandboxPage_Recommended.Text" xml:space="preserve">
+    <value>🛡 推荐</value>
+  </data>
+  <data name="SandboxPage_InternetOnReadOnly.Text" xml:space="preserve">
+    <value>互联网开启。对“文档”、“下载”、“桌面”为只读。剪贴板可读。</value>
+  </data>
+  <data name="SandboxPage_Unprotected.Text" xml:space="preserve">
+    <value>⚠ 不受保护</value>
+  </data>
+  <data name="SandboxPage_InternetOnReadWrite.Text" xml:space="preserve">
+    <value>互联网开启。对“文档”、“下载”、“桌面”可读写。剪贴板可读写。</value>
+  </data>
+  <data name="SandboxPage_CustomFolderGrantsStill.Title" xml:space="preserve">
+    <value>自定义文件夹授权仍然有效</value>
+  </data>
+  <data name="SandboxPage_Files.Text" xml:space="preserve">
+    <value>📁 文件</value>
+  </data>
+  <data name="SandboxPage_ByDefaultTheAgent.Text" xml:space="preserve">
+    <value>默认情况下,代理只有一个可读写的临时工作区文件夹。在下方授予对用户文件夹的访问权限。SSH 密钥、浏览器配置文件和 OpenClaw 自身的设置始终被阻止。</value>
+  </data>
+  <data name="SandboxPage_Documents.Text" xml:space="preserve">
+    <value>文档</value>
+  </data>
+  <data name="SandboxPage_Blocked.Content" xml:space="preserve">
+    <value>已阻止</value>
+  </data>
+  <data name="SandboxPage_ReadOnly.Content" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite.Content" xml:space="preserve">
+    <value>读取与写入</value>
+  </data>
+  <data name="SandboxPage_Downloads.Text" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="SandboxPage_Blocked2.Content" xml:space="preserve">
+    <value>已阻止</value>
+  </data>
+  <data name="SandboxPage_ReadOnly2.Content" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite2.Content" xml:space="preserve">
+    <value>读取与写入</value>
+  </data>
+  <data name="SandboxPage_Desktop.Text" xml:space="preserve">
+    <value>桌面</value>
+  </data>
+  <data name="SandboxPage_Blocked3.Content" xml:space="preserve">
+    <value>已阻止</value>
+  </data>
+  <data name="SandboxPage_ReadOnly3.Content" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite3.Content" xml:space="preserve">
+    <value>读取与写入</value>
+  </data>
+  <data name="SandboxPage_ToolDirectoriesOnYour.Text" xml:space="preserve">
+    <value>PATH 上的工具目录在沙盒内也以只读方式授予,因此 git、node、python 和 dotnet 等命令行工具可用。从不授予驱动器根目录。</value>
+  </data>
+  <data name="SandboxPage_CustomFolders.Text" xml:space="preserve">
+    <value>自定义文件夹</value>
+  </data>
+  <data name="SandboxPage_CustomGrantsAreAdded.Text" xml:space="preserve">
+    <value>自定义授权将在上述规则之上添加。在“文档/下载/桌面”内添加具有更宽访问权限的文件夹,将覆盖该路径的行级设置。</value>
+  </data>
+  <data name="SandboxPage_Blocked4.Content" xml:space="preserve">
+    <value>已阻止</value>
+  </data>
+  <data name="SandboxPage_ReadOnly4.Content" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite4.Content" xml:space="preserve">
+    <value>读取与写入</value>
+  </data>
+  <data name="SandboxPage_NoCustomFoldersAdded.Text" xml:space="preserve">
+    <value>尚未添加自定义文件夹。</value>
+  </data>
+  <data name="SandboxPage_AddFolder.Content" xml:space="preserve">
+    <value>添加文件夹</value>
+  </data>
+  <data name="SandboxPage_Clipboard.Text" xml:space="preserve">
+    <value>📋 剪贴板</value>
+  </data>
+  <data name="SandboxPage_ClipboardOftenContainsPasswords.Text" xml:space="preserve">
+    <value>剪贴板通常包含密码、令牌和私人文本。读取权限可能将这些泄露给代理(若启用,也会泄露到互联网)。</value>
+  </data>
+  <data name="SandboxPage_NoneDefault.Content" xml:space="preserve">
+    <value>无(默认)</value>
+  </data>
+  <data name="SandboxPage_ReadAgentCanSee.Content" xml:space="preserve">
+    <value>读取 — 代理可以看到您复制的内容</value>
+  </data>
+  <data name="SandboxPage_WriteAgentCanReplace.Content" xml:space="preserve">
+    <value>写入 — 代理可以替换您的剪贴板(无法读取)</value>
+  </data>
+  <data name="SandboxPage_ReadAmpWrite5.Content" xml:space="preserve">
+    <value>读取与写入</value>
+  </data>
+  <data name="SandboxPage_Network.Text" xml:space="preserve">
+    <value>📡 网络</value>
+  </data>
+  <data name="SandboxPage_AllowInternet.Header" xml:space="preserve">
+    <value>允许互联网</value>
+  </data>
+  <data name="SandboxPage_IfFileOrClipboard.Text" xml:space="preserve">
+    <value>如果启用文件或剪贴板读取权限,代理可能会通过互联网发送这些数据。</value>
+  </data>
+  <data name="SandboxPage_LocalNetworkDevicesAnd.Text" xml:space="preserve">
+    <value>本地网络设备和共享尚未包含在内。</value>
+  </data>
+  <data name="SandboxPage_Limits.Text" xml:space="preserve">
+    <value>⏱ 限制</value>
+  </data>
+  <data name="SandboxPage_CommandTimeout30Sec.Text" xml:space="preserve">
+    <value>命令超时:30 秒</value>
+  </data>
+  <data name="SandboxPage_MaximumCapturedOutputTruncates.Text" xml:space="preserve">
+    <value>最大捕获输出(超过此值将被截断;不限制磁盘、内存或 CPU):</value>
+  </data>
+  <data name="SandboxPage_1MiB.Content" xml:space="preserve">
+    <value>1 MiB</value>
+  </data>
+  <data name="SandboxPage_4MiBDefault.Content" xml:space="preserve">
+    <value>4 MiB(默认)</value>
+  </data>
+  <data name="SandboxPage_16MiB.Content" xml:space="preserve">
+    <value>16 MiB</value>
+  </data>
+  <data name="SandboxPage_64MiB.Content" xml:space="preserve">
+    <value>64 MiB</value>
+  </data>
+  <data name="SessionsPage_BackToConnection.Text" xml:space="preserve">
+    <value>返回连接</value>
+  </data>
+  <data name="SessionsPage_Sessions.Text" xml:space="preserve">
+    <value>会话</value>
+  </data>
+  <data name="SessionsPage_Refresh.Text" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="SessionsPage_All.Text" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="SessionsPage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>网关已断开</value>
+  </data>
+  <data name="SessionsPage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>请连接到网关以加载会话。</value>
+  </data>
+  <data name="SessionsPage_OpenConnection.Content" xml:space="preserve">
+    <value>打开连接</value>
+  </data>
+  <data name="SessionsPage_LoadingSessions.Text" xml:space="preserve">
+    <value>正在加载会话…</value>
+  </data>
+  <data name="SessionsPage_NoActiveSessions.Text" xml:space="preserve">
+    <value>无活动会话</value>
+  </data>
+  <data name="SessionsPage_Reset.Content" xml:space="preserve">
+    <value>重置</value>
+  </data>
+  <data name="SessionsPage_Compact.Content" xml:space="preserve">
+    <value>压缩</value>
+  </data>
+  <data name="SessionsPage_Delete.Content" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="SettingsPage_Settings.Text" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="SettingsPage_General.Text" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="SettingsPage_Notifications.Text" xml:space="preserve">
+    <value>通知</value>
+  </data>
+  <data name="SettingsPage_Privacy.Text" xml:space="preserve">
+    <value>隐私</value>
+  </data>
+  <data name="SettingsPage_LocalGateway.Text" xml:space="preserve">
+    <value>本地网关</value>
+  </data>
+  <data name="SettingsPage_MSIXInstallationDetected.Title" xml:space="preserve">
+    <value>检测到 MSIX 安装</value>
+  </data>
+  <data name="SettingsPage_MSIXInstallationDetected.Message" xml:space="preserve">
+    <value>通过 Windows 设置 &amp;amp;#x2192; 应用删除 OpenClaw 不会清理本地网关(WSL 发行版、磁盘映像)。请先使用下面的“删除本地网关”,然后再卸载 OpenClaw。</value>
+  </data>
+  <data name="SettingsPage_RemovesTheWSLDistro.Text" xml:space="preserve">
+    <value>删除 WSL 发行版 (OpenClawGateway)、其磁盘映像、自动启动项,并清除网关凭据。您的 MCP 令牌将被保留。引导将重置。</value>
+  </data>
+  <data name="SettingsPage_RemoveLocalGateway.Content" xml:space="preserve">
+    <value>删除本地网关</value>
+  </data>
+  <data name="SettingsPage_Saved.Title" xml:space="preserve">
+    <value>已保存</value>
+  </data>
+  <data name="SkillsPage_Skills.Text" xml:space="preserve">
+    <value>🧩 技能</value>
+  </data>
+  <data name="SkillsPage_AllAgents.Content" xml:space="preserve">
+    <value>所有代理</value>
+  </data>
+  <data name="SkillsPage_Enabled.Text" xml:space="preserve">
+    <value>已启用</value>
+  </data>
+  <data name="SkillsPage_Disabled.Text" xml:space="preserve">
+    <value>已禁用</value>
+  </data>
+  <data name="SkillsPage_LoadingSkills.Text" xml:space="preserve">
+    <value>正在加载技能…</value>
+  </data>
+  <data name="SkillsPage_NoSkillsInstalled.Text" xml:space="preserve">
+    <value>未安装技能</value>
+  </data>
+  <data name="SkillsPage_SkillsExtendYourAgent.Text" xml:space="preserve">
+    <value>技能扩展代理的能力。通过 CLI 或 ClawHub 安装技能。</value>
+  </data>
+  <data name="UsagePage_GatewayDisconnected.Title" xml:space="preserve">
+    <value>网关已断开</value>
+  </data>
+  <data name="UsagePage_GatewayDisconnected.Message" xml:space="preserve">
+    <value>请连接到网关以加载用量数据。</value>
+  </data>
+  <data name="UsagePage_OpenConnection.Content" xml:space="preserve">
+    <value>打开连接</value>
+  </data>
+  <data name="UsagePage_LoadingDailyCosts.Text" xml:space="preserve">
+    <value>正在加载每日费用…</value>
+  </data>
+  <data name="UsagePage_NoDailyUsageFor.Text" xml:space="preserve">
+    <value>此期间内无每日用量</value>
+  </data>
+  <data name="VoiceSettingsPage_TestVoiceInput.Text" xml:space="preserve">
+    <value>测试语音输入</value>
+  </data>
+  <data name="VoiceSettingsPage_Record.Text" xml:space="preserve">
+    <value>录制</value>
+  </data>
+  <data name="WorkspacePage_LoadingWorkspaceFiles.Text" xml:space="preserve">
+    <value>正在加载工作区文件…</value>
+  </data>
+  <data name="ChatWindow_WebChatUnavailable.Text" xml:space="preserve">
+    <value>网页聊天不可用</value>
+  </data>
+  <data name="ChatWindow_Retry.Content" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="ConnectionStatusWindow_ConnectionStatus.Text" xml:space="preserve">
+    <value>连接状态</value>
+  </data>
+  <data name="ConnectionStatusWindow_STATEMACHINE.Text" xml:space="preserve">
+    <value>状态机</value>
+  </data>
+  <data name="ConnectionStatusWindow_OPERATOR.Text" xml:space="preserve">
+    <value>操作员</value>
+  </data>
+  <data name="ConnectionStatusWindow_Off.Text" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connecting.Text" xml:space="preserve">
+    <value>正在连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connected.Text" xml:space="preserve">
+    <value>已连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_Pairing.Text" xml:space="preserve">
+    <value>正在配对</value>
+  </data>
+  <data name="ConnectionStatusWindow_Error.Text" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="ConnectionStatusWindow_NODE.Text" xml:space="preserve">
+    <value>节点</value>
+  </data>
+  <data name="ConnectionStatusWindow_Off2.Text" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connecting2.Text" xml:space="preserve">
+    <value>正在连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connected2.Text" xml:space="preserve">
+    <value>已连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_Pairing2.Text" xml:space="preserve">
+    <value>正在配对</value>
+  </data>
+  <data name="ConnectionStatusWindow_Error2.Text" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="ConnectionStatusWindow_GATEWAYS.Text" xml:space="preserve">
+    <value>网关</value>
+  </data>
+  <data name="ConnectionStatusWindow_CREDENTIALS.Text" xml:space="preserve">
+    <value>凭据</value>
+  </data>
+  <data name="ConnectionStatusWindow_SETUPCODE.Text" xml:space="preserve">
+    <value>设置代码</value>
+  </data>
+  <data name="ConnectionStatusWindow_PasteASetupCode.Text" xml:space="preserve">
+    <value>粘贴设置代码以建立端到端连接。</value>
+  </data>
+  <data name="ConnectionStatusWindow_PasteSetupCode.PlaceholderText" xml:space="preserve">
+    <value>粘贴设置代码…</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connect.Content" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_Disconnect.Content" xml:space="preserve">
+    <value>断开连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_DIRECTCONNECT.Text" xml:space="preserve">
+    <value>直接连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_ConnectWithAGateway.Text" xml:space="preserve">
+    <value>使用网关 URL 和共享令牌(管理员范围)连接。</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.PlaceholderText" xml:space="preserve">
+    <value>ws://localhost:18790</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.Text" xml:space="preserve">
+    <value>ws://localhost:18790</value>
+  </data>
+  <data name="ConnectionStatusWindow_WsLocalhost18790.Header" xml:space="preserve">
+    <value>网关 URL</value>
+  </data>
+  <data name="ConnectionStatusWindow_SharedGatewayToken.PlaceholderText" xml:space="preserve">
+    <value>共享网关令牌</value>
+  </data>
+  <data name="ConnectionStatusWindow_SharedGatewayToken.Header" xml:space="preserve">
+    <value>令牌</value>
+  </data>
+  <data name="ConnectionStatusWindow_Connect2.Content" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHTunnel.Header" xml:space="preserve">
+    <value>SSH 隧道</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHUser.Header" xml:space="preserve">
+    <value>SSH 用户</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHUser.PlaceholderText" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHHost.Header" xml:space="preserve">
+    <value>SSH 主机</value>
+  </data>
+  <data name="ConnectionStatusWindow_SSHHost.PlaceholderText" xml:space="preserve">
+    <value>192.168.x.x</value>
+  </data>
+  <data name="ConnectionStatusWindow_RemotePort.Header" xml:space="preserve">
+    <value>远程端口</value>
+  </data>
+  <data name="ConnectionStatusWindow_LocalPort.Header" xml:space="preserve">
+    <value>本地端口</value>
+  </data>
+  <data name="ConnectionStatusWindow_EVENTTIMELINE.Text" xml:space="preserve">
+    <value>事件时间线</value>
+  </data>
+  <data name="ConnectionStatusWindow_Copy.Content" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="ConnectionStatusWindow_Clear.Content" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_DiagnosticsBundle.Title" xml:space="preserve">
+    <value>诊断包</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Title" xml:space="preserve">
+    <value>分享前请审阅</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Message" xml:space="preserve">
+    <value>捆绑包生成器会排除敏感令牌、命令参数、负载和录制内容。</value>
+  </data>
+  <data name="HubWindow_Disconnected.Text" xml:space="preserve">
+    <value>已断开连接</value>
+  </data>
+  <data name="HubWindow_Op.Text" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="HubWindow_Node.Text" xml:space="preserve">
+    <value>节点</value>
+  </data>
+  <data name="HubWindow_Advanced.Content" xml:space="preserve">
+    <value>高级</value>
+  </data>
 </root>

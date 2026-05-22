@@ -24,7 +24,7 @@
                          AutomationProperties.AutomationId="BackToConnectionLink">
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <FontIcon Glyph="&#xE72B;" FontSize="12"/>
-                <TextBlock Text="Back to Connection"/>
+                <TextBlock x:Uid="SessionsPage_BackToConnection" Text="Back to Connection"/>
             </StackPanel>
         </HyperlinkButton>
 
@@ -34,11 +34,11 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="Sessions" Style="{StaticResource TitleTextBlockStyle}"/>
+            <TextBlock x:Uid="SessionsPage_Sessions" Text="Sessions" Style="{StaticResource TitleTextBlockStyle}"/>
             <Button x:Name="RefreshButton" Grid.Column="1" Click="OnRefresh">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <FontIcon Glyph="&#xE72C;" FontSize="14"/>
-                    <TextBlock Text="Refresh"/>
+                    <TextBlock x:Uid="SessionsPage_Refresh" Text="Refresh"/>
                 </StackPanel>
             </Button>
         </Grid>
@@ -46,15 +46,15 @@
         <!-- Channel filter SelectorBar -->
         <SelectorBar x:Name="ChannelSelector" Grid.Row="2"
                       SelectionChanged="ChannelSelector_SelectionChanged">
-            <SelectorBarItem x:Name="AllTab" Text="All" IsSelected="True"/>
+            <SelectorBarItem x:Uid="SessionsPage_All" x:Name="AllTab" Text="All" IsSelected="True"/>
         </SelectorBar>
 
-        <InfoBar x:Name="ConnectionInfoBar" Grid.Row="3"
+        <InfoBar x:Uid="SessionsPage_GatewayDisconnected" x:Name="ConnectionInfoBar" Grid.Row="3"
                  IsOpen="False" IsClosable="False" Severity="Warning"
                  Title="Gateway disconnected"
                  Message="Connect to a gateway to load sessions.">
             <InfoBar.ActionButton>
-                <Button Content="Open Connection" Click="OnOpenConnectionClick"/>
+                <Button x:Uid="SessionsPage_OpenConnection" Content="Open Connection" Click="OnOpenConnectionClick"/>
             </InfoBar.ActionButton>
         </InfoBar>
 
@@ -62,7 +62,7 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="Collapsed">
             <ProgressRing IsActive="True" Width="22" Height="22"/>
-            <TextBlock Text="Loading sessions..."
+            <TextBlock x:Uid="SessionsPage_LoadingSessions" Text="Loading sessions..."
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        VerticalAlignment="Center"/>
         </StackPanel>
@@ -72,7 +72,7 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="Collapsed">
             <TextBlock Text="💬" FontSize="48" HorizontalAlignment="Center"/>
-            <TextBlock Text="No active sessions"
+            <TextBlock x:Uid="SessionsPage_NoActiveSessions" Text="No active sessions"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        HorizontalAlignment="Center"/>
         </StackPanel>
@@ -134,13 +134,13 @@
 
                             <!-- Row 4: Action buttons -->
                             <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="16,4,0,0">
-                                 <Button Content="Reset" Tag="{Binding Key}" Click="OnResetSession"
+                                 <Button x:Uid="SessionsPage_Reset" Content="Reset" Tag="{Binding Key}" Click="OnResetSession"
                                          IsEnabled="{Binding CanEdit}"
                                          Style="{StaticResource DefaultButtonStyle}" Padding="8,4"/>
-                                 <Button Content="Compact" Tag="{Binding Key}" Click="OnCompactSession"
+                                 <Button x:Uid="SessionsPage_Compact" Content="Compact" Tag="{Binding Key}" Click="OnCompactSession"
                                          IsEnabled="{Binding CanEdit}"
                                          Style="{StaticResource DefaultButtonStyle}" Padding="8,4"/>
-                                 <Button Content="Delete" Tag="{Binding Key}" Click="OnDeleteSession"
+                                 <Button x:Uid="SessionsPage_Delete" Content="Delete" Tag="{Binding Key}" Click="OnDeleteSession"
                                          IsEnabled="{Binding CanEdit}"
                                          Foreground="IndianRed" Padding="8,4"/>
                             </StackPanel>
