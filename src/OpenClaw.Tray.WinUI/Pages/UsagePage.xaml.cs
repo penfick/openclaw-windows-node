@@ -43,7 +43,7 @@ public sealed partial class UsagePage : Page
             // Only apply cached cost data when its period matches the current
             // selection — otherwise the daily list briefly shows e.g. 30-day
             // data while the selector reads "7 Days".
-            if (_appState?.UsageCost != null && _appState.UsageCost.Days == _currentPeriodDays)
+            if (_appState?.UsageCost != null && Math.Abs(_appState.UsageCost.Days - _currentPeriodDays) <= 1)
             {
                 UpdateUsageCost(_appState.UsageCost);
                 _dailyCostLoading.BeginRefresh();
@@ -100,7 +100,10 @@ public sealed partial class UsagePage : Page
 
     public void UpdateUsageCost(GatewayCostUsageInfo cost)
     {
-        if (cost.Days != _currentPeriodDays)
+        // The gateway computes 'days' as Math.ceil(range / DAY_MS) + 1,
+        // which is off by one from the requested period (e.g. 8 for a 7-day
+        // request). Allow ±1 tolerance so the response is not silently dropped.
+        if (Math.Abs(cost.Days - _currentPeriodDays) > 1)
             return;
 
         if (cost.UpdatedAt < _lastAppliedUsageCostUpdatedAtUtc)
