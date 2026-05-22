@@ -91,6 +91,24 @@ public class ChatTimelineReducerTests
     }
 
     [Fact]
+    public void DuplicateFinalAssistant_DoesNotReactivatePreviousAssistant()
+    {
+        var state = ChatTimelineReducer.Apply(
+            ChatTimelineState.Initial(),
+            new ChatMessageEvent("previous"));
+        state = ChatTimelineReducer.Apply(state, new ChatTurnEndEvent());
+        state = ChatTimelineReducer.Apply(state, new ChatMessageEvent("previous"));
+        state = ChatTimelineReducer.Apply(state, new ChatUserMessageEvent("next request"));
+
+        var updated = ChatTimelineReducer.Apply(state, new ChatMessageDeltaEvent("next response"));
+
+        Assert.Equal(3, updated.Entries.Count);
+        Assert.Equal("previous", updated.Entries[0].Text);
+        Assert.Equal(ChatTimelineItemKind.User, updated.Entries[1].Kind);
+        Assert.Equal("next response", updated.Entries[2].Text);
+    }
+
+    [Fact]
     public void SubsequentAssistant_DifferentText_AfterTurnEnd_CreatesNewEntry()
     {
         // Guard against over-aggressive dedupe: a genuinely new assistant

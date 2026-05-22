@@ -226,8 +226,7 @@ public static class ChatTimelineReducer
                         {
                             Text = text,
                             IsStreaming = streaming
-                        }),
-                        ActiveAssistantId = candidate.Id
+                        })
                     };
                 }
                 // Stop scanning once we hit a User entry — that's a turn
