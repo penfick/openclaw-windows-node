@@ -2559,6 +2559,9 @@ On your gateway host (Mac/Linux), run:
   <data name="VoiceSettingsPage_PiperPreviewButton.Content" xml:space="preserve">
     <value>Preview</value>
   </data>
+  <data name="VoiceSettingsPage_PiperPreviewButtonContent" xml:space="preserve">
+    <value>Preview</value>
+  </data>
   <data name="VoiceSettingsPage_PiperInfoText.Text" xml:space="preserve">
     <value>Voices download from the sherpa-onnx project's GitHub releases (~25 MB low quality, up to ~150 MB high quality). They run fully on this PC; no audio leaves your device.</value>
   </data>
@@ -2599,7 +2602,7 @@ On your gateway host (Mac/Linux), run:
     <value>Download canceled</value>
   </data>
   <data name="VoiceSettingsPage_StatusError" xml:space="preserve">
-    <value>❌ Operation failed (see Debug log)</value>
+    <value>Operation failed (see Debug log)</value>
   </data>
   <data name="VoiceSettingsPage_PiperButtonDownloaded" xml:space="preserve">
     <value>Downloaded</value>

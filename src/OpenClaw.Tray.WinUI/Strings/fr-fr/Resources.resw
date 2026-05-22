@@ -2511,6 +2511,9 @@ Sur votre hôte passerelle (Mac/Linux), exécutez :
   <data name="VoiceSettingsPage_PiperPreviewButton.Content" xml:space="preserve">
     <value>Aperçu</value>
   </data>
+  <data name="VoiceSettingsPage_PiperPreviewButtonContent" xml:space="preserve">
+    <value>Aperçu</value>
+  </data>
   <data name="VoiceSettingsPage_PiperInfoText.Text" xml:space="preserve">
     <value>Les voix sont téléchargées depuis les versions GitHub du projet sherpa-onnx (~25 Mo basse qualité, jusqu'à ~150 Mo haute qualité). Elles s'exécutent entièrement sur ce PC ; aucun son ne quitte votre appareil.</value>
   </data>
@@ -2551,7 +2554,7 @@ Sur votre hôte passerelle (Mac/Linux), exécutez :
     <value>Téléchargement annulé</value>
   </data>
   <data name="VoiceSettingsPage_StatusError" xml:space="preserve">
-    <value>❌ Échec de l'opération (voir le journal Debug)</value>
+    <value>Échec de l'opération (voir le journal Debug)</value>
   </data>
   <data name="VoiceSettingsPage_PiperButtonDownloaded" xml:space="preserve">
     <value>Téléchargé</value>

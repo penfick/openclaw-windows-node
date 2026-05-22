@@ -183,8 +183,13 @@
                             </Button>
                             <Button x:Uid="VoiceSettingsPage_PiperDeleteButton" x:Name="PiperDeleteButton" Click="OnPiperDeleteClick"
                                     Content="Delete" Width="80" Visibility="Collapsed"/>
-                            <Button x:Uid="VoiceSettingsPage_PiperPreviewButton" x:Name="PiperPreviewButton" Click="OnPiperPreviewClick"
-                                    Content="Preview" Width="100" Visibility="Collapsed"/>
+                        <Button x:Name="PiperPreviewButton" Click="OnPiperPreviewClick"
+                                Width="100" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon x:Name="PiperPreviewIcon" Glyph="&#xE768;" FontSize="14"/>
+                                <TextBlock x:Name="PiperPreviewLabel" Text="Preview"/>
+                            </StackPanel>
+                        </Button>
                         </StackPanel>
                         <ProgressBar x:Name="PiperDownloadProgress" Visibility="Collapsed"
                                      IsIndeterminate="False" Maximum="100" Height="6" Width="400" HorizontalAlignment="Left"/>
@@ -201,8 +206,13 @@
                     <StackPanel x:Name="WindowsVoicePanel" Spacing="8" Visibility="Collapsed">
                         <ComboBox x:Uid="VoiceSettingsPage_WindowsVoiceCombo" x:Name="WindowsVoiceCombo" Header="Voice"
                                   SelectionChanged="OnWindowsVoiceChanged" Width="300"/>
-                        <Button x:Uid="VoiceSettingsPage_PreviewVoiceButton" x:Name="PreviewVoiceButton" Click="OnPreviewVoiceClick"
-                                Content="Preview Voice" Width="140"/>
+                        <Button x:Name="PreviewVoiceButton" Click="OnPreviewVoiceClick"
+                                Width="140">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon x:Name="PreviewVoiceIcon" Glyph="&#xE768;" FontSize="14"/>
+                                <TextBlock x:Name="PreviewVoiceLabel" Text="Preview Voice"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <!-- ElevenLabs settings -->

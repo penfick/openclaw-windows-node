@@ -2511,6 +2511,9 @@
   <data name="VoiceSettingsPage_PiperPreviewButton.Content" xml:space="preserve">
     <value>預覽</value>
   </data>
+  <data name="VoiceSettingsPage_PiperPreviewButtonContent" xml:space="preserve">
+    <value>預覽</value>
+  </data>
   <data name="VoiceSettingsPage_PiperInfoText.Text" xml:space="preserve">
     <value>語音從 sherpa-onnx 專案的 GitHub 發行版下載(低品質約 25 MB,高品質最高約 150 MB)。它們完全在本機執行;無音訊離開您的裝置。</value>
   </data>
@@ -2551,7 +2554,7 @@
     <value>下載已取消</value>
   </data>
   <data name="VoiceSettingsPage_StatusError" xml:space="preserve">
-    <value>❌ 操作失敗(參見 Debug 日誌)</value>
+    <value>操作失敗(參見 Debug 日誌)</value>
   </data>
   <data name="VoiceSettingsPage_PiperButtonDownloaded" xml:space="preserve">
     <value>已下載</value>

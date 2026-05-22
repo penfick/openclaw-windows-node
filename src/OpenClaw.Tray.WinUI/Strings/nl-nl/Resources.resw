@@ -2512,6 +2512,9 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="VoiceSettingsPage_PiperPreviewButton.Content" xml:space="preserve">
     <value>Voorbeeld</value>
   </data>
+  <data name="VoiceSettingsPage_PiperPreviewButtonContent" xml:space="preserve">
+    <value>Voorbeeld</value>
+  </data>
   <data name="VoiceSettingsPage_PiperInfoText.Text" xml:space="preserve">
     <value>Stemmen worden gedownload van de GitHub-releases van het sherpa-onnx-project (~25 MB lage kwaliteit, tot ~150 MB hoge kwaliteit). Ze draaien volledig op deze pc; er verlaat geen audio uw apparaat.</value>
   </data>
@@ -2552,7 +2555,7 @@ Voer op uw gateway-host (Mac/Linux) uit:
     <value>Download geannuleerd</value>
   </data>
   <data name="VoiceSettingsPage_StatusError" xml:space="preserve">
-    <value>❌ Bewerking mislukt (zie Debug-log)</value>
+    <value>Bewerking mislukt (zie Debug-log)</value>
   </data>
   <data name="VoiceSettingsPage_PiperButtonDownloaded" xml:space="preserve">
     <value>Gedownload</value>
