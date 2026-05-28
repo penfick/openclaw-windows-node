@@ -96,4 +96,48 @@ public sealed class InstallerIssAssertionTests
         Assert.Contains(@"copy publish-setup\* publish\SetupEngine\ -Recurse", ci);
     }
 
+    [Fact]
+    public void MxcSdk_IsRestoredCopiedValidatedAndIncludedInInstallerPayload()
+    {
+        var repositoryRoot = GetRepositoryRoot();
+        var packageJson = File.ReadAllText(Path.Combine(repositoryRoot, "package.json"));
+        var trayProject = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "OpenClaw.Tray.WinUI", "OpenClaw.Tray.WinUI.csproj"));
+        var iss = File.ReadAllText(Path.Combine(repositoryRoot, "installer.iss"));
+
+        Assert.Contains(@"""@microsoft/mxc-sdk""", packageJson);
+        Assert.Contains("RestoreMxcNodeBridge", trayProject);
+        Assert.Contains("npm ci --no-audit --no-fund", trayProject);
+        Assert.Contains("CopyWxcExecToOutput", trayProject);
+        Assert.Contains("CopyWxcExecToPublish", trayProject);
+        Assert.Contains("ValidateWxcExecShipped", trayProject);
+        Assert.Contains("ValidateWxcExecPublished", trayProject);
+        Assert.Contains(@"tools\mxc\$(MxcArch)\wxc-exec.exe", trayProject);
+
+        // The Inno payload recurses through the prepared publish directory, so
+        // publish-time tools\mxc\<arch>\wxc-exec.exe is shipped with the app.
+        Assert.Contains(@"Source: ""{#publish}\*""; DestDir: ""{app}""; Flags: ignoreversion recursesubdirs", iss);
+    }
+
+    [Fact]
+    public void MxcRuntime_ProbesShippedWxcExecAndSystemRunUsesIt()
+    {
+        var repositoryRoot = GetRepositoryRoot();
+        var availability = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "OpenClaw.Shared", "Mxc", "MxcAvailability.cs"));
+        var nodeService = File.ReadAllText(Path.Combine(
+            repositoryRoot, "src", "OpenClaw.Tray.WinUI", "Services", "NodeService.cs"));
+
+        Assert.Contains(@"Path.Combine(root, ""tools"", ""mxc"", arch, ""wxc-exec.exe"")", availability);
+        Assert.Contains("WxcExecOverrideEnvVar", availability);
+        Assert.Contains("node_modules", availability);
+        Assert.Contains("@microsoft", availability);
+        Assert.Contains("mxc-sdk", availability);
+
+        Assert.Contains("private ICommandRunner BuildSystemRunRunner()", nodeService);
+        Assert.Contains("MxcAvailability.Probe(_logger)", nodeService);
+        Assert.Contains("new DirectAppContainerExecutor(availability, _logger)", nodeService);
+        Assert.Contains("return new MxcCommandRunner(", nodeService);
+    }
+
 }
