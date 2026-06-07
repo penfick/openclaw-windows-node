@@ -102,7 +102,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _settings.SshTunnelHost,
             _settings.SshTunnelRemotePort,
             _settings.SshTunnelLocalPort,
-            includeBrowserProxyForward);
+            includeBrowserProxyForward,
+            _settings.SshTunnelSshPort);
     }
 
     /// <summary>
@@ -1400,7 +1401,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                         _settings.SshTunnelLocalPort,
                         _settings.NodeBrowserProxyEnabled &&
                             SshTunnelCommandLine.CanForwardBrowserProxyPort(
-                                _settings.SshTunnelRemotePort, _settings.SshTunnelLocalPort))
+                                _settings.SshTunnelRemotePort, _settings.SshTunnelLocalPort),
+                        _settings.SshTunnelSshPort)
                     : null,
             };
             _gatewayRegistry.AddOrUpdate(record);
@@ -1587,6 +1589,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _settings.UseSshTunnel,
             _settings.SshTunnelUser,
             _settings.SshTunnelHost,
+            _settings.SshTunnelSshPort,
             _settings.SshTunnelRemotePort,
             _settings.SshTunnelLocalPort,
             SettingsManager.SettingsDirectoryPath,
@@ -3596,7 +3599,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                     _settings.SshTunnelHost,
                     _settings.SshTunnelRemotePort,
                     _settings.SshTunnelLocalPort,
-                    includeBrowserProxy);
+                    includeBrowserProxy,
+                    _settings.SshTunnelSshPort);
                 DiagnosticsJsonlService.Write("tunnel.ensure_started", new
                 {
                     status = _sshTunnelService.Status.ToString(),
@@ -3653,7 +3657,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                     _settings.SshTunnelHost,
                     _settings.SshTunnelRemotePort,
                     _settings.SshTunnelLocalPort,
-                    restartBrowserProxy);
+                    restartBrowserProxy,
+                    _settings.SshTunnelSshPort);
                 Logger.Info("SSH tunnel restarted successfully");
                 DiagnosticsJsonlService.Write("tunnel.restart_succeeded", new
                 {
