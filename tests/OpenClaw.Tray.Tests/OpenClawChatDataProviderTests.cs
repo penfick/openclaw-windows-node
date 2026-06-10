@@ -50,6 +50,15 @@ public class OpenClawChatDataProviderTests
             return AbortBehavior?.Invoke(runId) ?? Task.CompletedTask;
         }
 
+        public List<(string Id, string Decision)> ResolvedApprovals { get; } = new();
+        public Func<string, string, Task>? ResolveApprovalBehavior { get; set; }
+
+        public Task ResolveExecApprovalAsync(string approvalId, string decision)
+        {
+            ResolvedApprovals.Add((approvalId, decision));
+            return ResolveApprovalBehavior?.Invoke(approvalId, decision) ?? Task.CompletedTask;
+        }
+
         public event EventHandler<ConnectionStatus>? StatusChanged;
         public event EventHandler<SessionInfo[]>? SessionsUpdated;
         public event EventHandler<ChatMessageInfo>? ChatMessageReceived;
@@ -641,6 +650,50 @@ public class OpenClawChatDataProviderTests
         var entry = Assert.Single(timeline.Entries);
         Assert.Equal(ChatTimelineItemKind.Reasoning, entry.Kind);
         Assert.Equal("thinking… step 2.", entry.Text);
+    }
+
+    [Fact]
+    public async Task AgentEvent_ReasoningItemEnd_StartsFreshReasoningBubble()
+    {
+        // Regression: when the model reasons → tool → reasons again within
+        // a single turn, the second reasoning pass must render as its own
+        // bubble. The gateway brackets each pass with
+        // stream:"item", kind:"reasoning", phase:"start|end" — without
+        // honoring the end marker the second pass concatenates into the
+        // first bubble instead of replacing it.
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        bridge.RaiseAgent(MakeAgentEvent("lifecycle", """{"phase":"start"}""", runId: "run-1"));
+        bridge.RaiseAgent(MakeAgentEvent("reasoning", """{"delta":"first pass"}"""));
+        bridge.RaiseAgent(MakeAgentEvent("item", """{"kind":"reasoning","phase":"end","itemId":"r1"}"""));
+        bridge.RaiseAgent(MakeAgentEvent("reasoning", """{"delta":"second pass"}"""));
+
+        var timeline = snapshots[^1].Timelines["main"];
+        var reasoningEntries = timeline.Entries.Where(e => e.Kind == ChatTimelineItemKind.Reasoning).ToList();
+        Assert.Equal(2, reasoningEntries.Count);
+        Assert.Equal("first pass", reasoningEntries[0].Text);
+        Assert.Equal("second pass", reasoningEntries[1].Text);
+    }
+
+    [Fact]
+    public async Task AgentEvent_ReasoningItemStart_IsIgnored()
+    {
+        // Only phase=end closes the bubble; phase=start is informational
+        // and must not produce a stray timeline entry.
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        bridge.RaiseAgent(MakeAgentEvent("lifecycle", """{"phase":"start"}""", runId: "run-1"));
+        bridge.RaiseAgent(MakeAgentEvent("item", """{"kind":"reasoning","phase":"start","itemId":"r1"}"""));
+        bridge.RaiseAgent(MakeAgentEvent("reasoning", """{"delta":"only pass"}"""));
+
+        var timeline = snapshots[^1].Timelines["main"];
+        var entry = Assert.Single(timeline.Entries);
+        Assert.Equal(ChatTimelineItemKind.Reasoning, entry.Kind);
+        Assert.Equal("only pass", entry.Text);
     }
 
     [Fact]
@@ -2398,6 +2451,239 @@ public class OpenClawChatDataProviderTests
         });
         var snap = await provider.LoadAsync();
         Assert.Equal("agent:main:main", snap.DefaultThreadId);
+    }
+
+    // ─── RespondToPermissionAsync routes through the RPC bridge ────────────
+    // These tests pin the slash-command → RPC behavioral pivot. The old code
+    // sent ``/approve <id> <decision>`` as chat input, which deadlocked
+    // because the agent was blocked on the approval. The new code calls
+    // bridge.ResolveExecApprovalAsync. If a refactor reintroduces a slash
+    // command path here, these tests fail.
+    // ──────────────────────────────────────────────────────────────────────
+
+    private static AgentEventInfo MakeApprovalRequestedEvent(string approvalId, string sessionKey = "main")
+        => MakeApprovalRequestedEventWithIds(approvalId, approvalId, sessionKey);
+
+    private static AgentEventInfo MakeApprovalRequestedEventWithIds(
+        string approvalId,
+        string? approvalSlug,
+        string sessionKey = "main",
+        string title = "Exec approval")
+    {
+        var json = $$"""
+            {
+              "phase": "requested",
+              "approvalId": "{{approvalId}}",
+              "approvalSlug": "{{approvalSlug ?? ""}}",
+              "host": "gateway",
+              "command": "openclaw nodes invoke --node \"Windows Node\" --command system.run",
+              "title": "{{title}}",
+              "message": "Approve this exec?",
+              "agentId": "main"
+            }
+            """;
+        return MakeAgentEvent("approval", json, sessionKey: sessionKey);
+    }
+
+    [Fact]
+    public async Task RespondToPermissionAsync_AllowRoutesAllowOnceThroughRpcAndClearsBanner()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-allow-1"));
+        // Banner must be visible before the response.
+        Assert.NotNull(snapshots[^1].Timelines["main"].PendingPermission);
+
+        await provider.RespondToPermissionAsync("main", "appr-allow-1", allow: true);
+
+        // RPC was called with allow-once (NOT a slash command).
+        Assert.Single(bridge.ResolvedApprovals);
+        Assert.Equal("appr-allow-1", bridge.ResolvedApprovals[0].Id);
+        Assert.Equal("allow-once", bridge.ResolvedApprovals[0].Decision);
+
+        // No chat message was sent (would mean a slash-command regression).
+        Assert.Empty(bridge.SentMessages);
+
+        // Banner cleared on success.
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task RespondToPermissionAsync_DenyRoutesDenyThroughRpcAndClearsBanner()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-deny-1"));
+        Assert.NotNull(snapshots[^1].Timelines["main"].PendingPermission);
+
+        await provider.RespondToPermissionAsync("main", "appr-deny-1", allow: false);
+
+        Assert.Single(bridge.ResolvedApprovals);
+        Assert.Equal("appr-deny-1", bridge.ResolvedApprovals[0].Id);
+        Assert.Equal("deny", bridge.ResolvedApprovals[0].Decision);
+        Assert.Empty(bridge.SentMessages);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task RespondToPermissionAsync_RpcThrows_BannerPreservedForRetry()
+    {
+        // Critical contract: if ResolveExecApprovalAsync throws (e.g. gateway
+        // disconnected, see OpenClawGatewayClient.ResolveExecApprovalAsync's
+        // explicit IsConnected guard), the banner MUST remain so the user can
+        // retry. Clearing it would silently swallow the failure and leave
+        // the agent waiting on an approval the user has no way to re-issue.
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-fail-1"));
+        var before = snapshots[^1].Timelines["main"].PendingPermission;
+        Assert.NotNull(before);
+
+        bridge.ResolveApprovalBehavior = (_, _) =>
+            Task.FromException(new InvalidOperationException("gateway not connected"));
+
+        await provider.RespondToPermissionAsync("main", "appr-fail-1", allow: true);
+
+        Assert.Single(bridge.ResolvedApprovals);
+        // Banner preserved on failure — the matching pending request is still there.
+        var after = snapshots[^1].Timelines["main"].PendingPermission;
+        Assert.NotNull(after);
+        Assert.Equal("appr-fail-1", after!.RequestId);
+    }
+
+    [Fact]
+    public async Task ResolvedEcho_WithAllowDecision_MarksEntryAllowedNotExpired()
+    {
+        // Regression for the "approvals always render Expired" race: the
+        // gateway broadcasts exec.approval.resolved on the same WebSocket the
+        // RPC response travels on, and the echo typically wins the race. The
+        // terminal-phase handler must honor the gateway's actual decision
+        // (phase="resolved" → Allowed) rather than the legacy default Expired,
+        // otherwise ResolvePermission's no-overwrite guard then blocks the
+        // user-click stamp from ever landing.
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-echo-allow"));
+        bridge.RaiseAgent(MakeApprovalResolvedEvent("appr-echo-allow", phase: "resolved"));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Allowed, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task ResolvedEcho_WithDenyDecision_MarksEntryDeniedNotExpired()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-echo-deny"));
+        bridge.RaiseAgent(MakeApprovalResolvedEvent("appr-echo-deny", phase: "denied"));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Denied, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task ResolvedEcho_WithNonDecidedTerminalPhase_StaysExpired()
+    {
+        // Phases that aren't allow/deny (aborted, canceled, expired, timeout,
+        // error) collapse to Expired — the "decided elsewhere or never
+        // decided" badge. Spot-check one of them.
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-echo-expired"));
+        bridge.RaiseAgent(MakeApprovalResolvedEvent("appr-echo-expired", phase: "expired"));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Expired, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task ApprovalRequested_DedupesUuidFirstSlugTwin_AndSlugOnlyResolvedClearsBanner()
+    {
+        // Regression for the second "one Expired, one Allowed" root cause:
+        // the top-level translator can emit a UUID-only requested event before
+        // the agent-stream slug+UUID twin. Suppressing that twin must still
+        // record slug<->UUID linkage so a later slug-only terminal echo clears
+        // the original UUID-keyed banner.
+        const string uuid = "8653b04d-fa8f-4188-9f22-c1c4f08fe6b8";
+        const string slug = "8653b04d";
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEventWithIds(uuid, approvalSlug: ""));
+        bridge.RaiseAgent(MakeApprovalRequestedEventWithIds(uuid, approvalSlug: slug, title: "Command approval requested"));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(uuid, entry.PermissionRequestId);
+        Assert.Equal(uuid, snapshots[^1].Timelines["main"].PendingPermission?.RequestId);
+
+        bridge.RaiseAgent(MakeApprovalResolvedEvent(approvalId: "", phase: "resolved", approvalSlug: slug));
+
+        entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Allowed, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task ApprovalRequested_DedupesSlugFirstUuidTwin_AndUuidOnlyResolvedClearsBanner()
+    {
+        // Covers the reverse ordering: if the slug+UUID stream wins first,
+        // the UUID-only top-level twin must not render a duplicate, and a
+        // UUID-only terminal echo must still resolve the slug-keyed banner.
+        const string uuid = "b4fd7109-4b8f-4706-8d47-ec7963e65d8d";
+        const string slug = "b4fd7109";
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEventWithIds(uuid, approvalSlug: slug, title: "Command approval requested"));
+        bridge.RaiseAgent(MakeApprovalRequestedEventWithIds(uuid, approvalSlug: ""));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(slug, entry.PermissionRequestId);
+        Assert.Equal(slug, snapshots[^1].Timelines["main"].PendingPermission?.RequestId);
+
+        bridge.RaiseAgent(MakeApprovalResolvedEvent(approvalId: uuid, phase: "resolved", approvalSlug: ""));
+
+        entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Allowed, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    private static AgentEventInfo MakeApprovalResolvedEvent(
+        string approvalId,
+        string phase,
+        string sessionKey = "main",
+        string? approvalSlug = null)
+    {
+        // Mirrors the flat envelope that OpenClawGatewayClient.HandleExecApprovalEvent
+        // synthesizes from a top-level exec.approval.resolved broadcast.
+        var json = $$"""
+            {
+              "phase": "{{phase}}",
+              "approvalId": "{{approvalId}}",
+              "approvalSlug": "{{approvalSlug ?? approvalId}}",
+              "host": "gateway",
+              "command": "openclaw nodes invoke --node \"Windows Node\" --command system.run",
+              "agentId": "main"
+            }
+            """;
+        return MakeAgentEvent("approval", json, sessionKey: sessionKey);
     }
 
     [Fact]

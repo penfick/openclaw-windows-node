@@ -855,40 +855,22 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         if (string.IsNullOrEmpty(threadId) || string.IsNullOrEmpty(requestId))
             return;
 
-        // The gateway accepts the same slash-command format the dashboard
-        // emits ("Reply with: `/approve <slug> allow-once`"). We use that
-        // here instead of a bespoke RPC so we don't have to track gateway
-        // protocol versions. The slash command is normal chat input — the
-        // gateway echoes back the resolved approval as an ``exec.approval.resolved``
-        // agent event, which clears the banner via OnAgentEventReceived.
-        // We also clear optimistically so the banner doesn't linger if the
-        // gateway is slow.
-        var slashCommand = allow
-            ? $"/approve {requestId} allow-once"
-            : $"/deny {requestId}";
+        // Use the operator-approvals gateway RPC (``exec.approval.resolve``)
+        // rather than the ``/approve <id> <decision>`` chat slash command.
+        //
+        // Why: slash commands are processed as ordinary chat input on the
+        // agent's main turn — but when an exec approval is pending, the agent
+        // is BLOCKED waiting on that approval. The slash command therefore
+        // sits in the input queue until the run times out, by which point the
+        // approval has already expired and the approve/deny is a no-op. The
+        // RPC bypasses the chat queue and resolves the approval immediately.
+        var decision = allow ? "allow-once" : "deny";
 
-        Logger.Info($"[Approval] user response requestId={requestId} decision={(allow ? "allow-once" : "deny")} thread='{threadId}'");
-
-        // Pre-register the slash command in _localSentTexts so the live
-        // SSE echo path (OnChatMessageReceived) can recognize this as
-        // OUR send and suppress the echo. Slash commands issued by other
-        // clients on the same thread will NOT find a match and will be
-        // rendered as a dim audit-trail status entry instead of dropped
-        // silently.
-        lock (_gate)
-        {
-            if (!_localSentTexts.TryGetValue(threadId, out var sq))
-            {
-                sq = new Queue<LocalSentText>();
-                _localSentTexts[threadId] = sq;
-            }
-            sq.Enqueue(new LocalSentText(slashCommand, DateTimeOffset.UtcNow));
-            while (sq.Count > 20) sq.Dequeue();
-        }
+        Logger.Info($"[Approval] user response requestId={requestId} decision={decision} thread='{threadId}'");
 
         try
         {
-            await _bridge.SendChatMessageAsync(slashCommand, threadId, sessionId: null);
+            await _bridge.ResolveExecApprovalAsync(requestId, decision);
         }
         catch (Exception ex)
         {
@@ -896,17 +878,6 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             // retry. Clearing it on failure would silently swallow the
             // problem and leave the agent waiting on an approval that the
             // user has no way to re-issue.
-            //
-            // Also pull the pre-registered slash entry back out of the
-            // echo-suppression queue on send failure.
-            // If we leave it there, the head-only matcher in
-            // ``TryConsumeLocalEchoLocked`` will block legitimate echoes
-            // for subsequent user prose (duplicate bubbles), and a
-            // successful retry from another client will get its echo
-            // silently consumed as if we'd sent it ourselves — defeating
-            // the round-3 audit-trail rendering. Mirrors the recovery
-            // in ``SendUserMessageAsync``.
-            lock (_gate) { RemovePendingLocalEchoLocked(threadId, slashCommand); }
             Logger.Warn($"[Approval] response send failed requestId={requestId}: {ex.Message} (banner preserved for retry)");
             return;
         }
@@ -1330,10 +1301,18 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         // assistant text (the gateway's EmbeddedBlockChunker emits completed
         // blocks, not token deltas — see spec §"Block Streaming"). Map both
         // to ChatMessageEvent so the reducer REPLACES the active assistant
-        // entry's text. Final additionally ends the turn.
+        // entry's text. We tag delta frames with IsStreaming:true so the
+        // reducer's reconcile-into-previous logic only collapses follow-up
+        // finals into a still-streaming preview — a finalised assistant
+        // from a completed earlier turn must not be silently overwritten
+        // by a brand-new turn's reply (e.g. user → reply → tool → reply).
+        // Final additionally ends the turn.
         ApplyEventAndPublish(
             threadId,
-            new ChatMessageEvent(RepairContentBlockSeams(TruncateForChatEntry(message.Text)), ReconcilePrevious: true),
+            new ChatMessageEvent(
+                RepairContentBlockSeams(TruncateForChatEntry(message.Text)),
+                ReconcilePrevious: true,
+                IsStreaming: !message.IsFinal),
             meta);
 
         if (message.IsFinal)
@@ -1445,7 +1424,17 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                     }
                     else if (ApprovalIdMatches(pendingId!, evtSlug, evtApprovalId))
                     {
-                        ClearPendingPermissionAndPublish(threadId, expectedRequestId: pendingId);
+                        // Honor the gateway's actual decision instead of always
+                        // stamping Expired. The resolved echo races the local
+                        // RPC response on the same WebSocket — if Expired wins
+                        // here, ResolvePermission's no-overwrite guard then
+                        // blocks the user's Allow/Denied stamp from landing.
+                        // Phase already passed IsTerminalApprovalPhase; map
+                        // resolved → Allowed, denied → Denied, and treat the
+                        // remaining non-decided terminal phases (aborted,
+                        // canceled, expired, timeout, error) as Expired.
+                        var resolvedDecision = MapTerminalPhaseToDecision(phase);
+                        ClearPendingPermissionAndPublish(threadId, expectedRequestId: pendingId, decision: resolvedDecision);
                     }
                     else
                     {
@@ -1741,6 +1730,21 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             || string.Equals(phase, "error", System.StringComparison.OrdinalIgnoreCase);
     }
 
+    // Map a terminal approval phase (already validated by IsTerminalApprovalPhase)
+    // to the timeline decision badge. ``resolved`` carries an allow-* decision
+    // upstream (see OpenClawGatewayClient.HandleExecApprovalEvent), so it maps to
+    // Allowed. ``denied`` maps to Denied. Every other terminal phase (aborted,
+    // canceled/cancelled, expired, timeout, error) collapses to Expired — the
+    // "decided elsewhere or never decided" badge.
+    private static ChatPermissionDecision MapTerminalPhaseToDecision(string phase)
+    {
+        if (string.Equals(phase, "resolved", System.StringComparison.OrdinalIgnoreCase))
+            return ChatPermissionDecision.Allowed;
+        if (string.Equals(phase, "denied", System.StringComparison.OrdinalIgnoreCase))
+            return ChatPermissionDecision.Denied;
+        return ChatPermissionDecision.Expired;
+    }
+
     // Approval dedupe: gateway can resend ``requested`` on reconnect/replay.
     // Bounded LRU to keep this from growing unbounded across a long session.
     //
@@ -1755,7 +1759,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     private readonly System.Collections.Generic.LinkedList<string> _approvalSeenOrder = new();
     private readonly System.Collections.Generic.HashSet<string> _approvalSeen
         = new(System.StringComparer.Ordinal);
-    private const int ApprovalSeenCap = 64;
+    // Capacity is counted by id, not by logical approval. Paired slug/UUID
+    // approvals consume two entries, so 128 preserves the prior ~64-approval
+    // dedupe window.
+    private const int ApprovalSeenCap = 128;
 
     // Approval id-asymmetry tracking.
     // The gateway sometimes emits ``approvalSlug`` only on ``requested``
@@ -1763,24 +1770,97 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     // We prefer slug on both sides for matching (see ``MapApprovalEvent``)
     // but record the alternate identifier here so a terminal event that
     // carries only the "other" id can still resolve back to the live
-    // pending banner. Bounded by ApprovalSeenCap via the same trim loop.
+    // pending banner. Stored bidirectionally and bounded by ApprovalSeenCap
+    // via the same trim loop.
     private readonly Dictionary<string, string> _approvalAltIds = new(System.StringComparer.Ordinal);
 
-    private bool MarkApprovalSeen(string approvalId)
+    // Dedupe accepts both id forms (slug and full approvalId) so the same
+    // approval doesn't render twice when two upstream paths surface it with
+    // different ids — e.g. the top-level ``exec.approval.requested``
+    // translator emits with the UUID while the agent-stream variant emits
+    // with the shorter slug. If either form has been seen (or is already
+    // linked to a seen form), suppress; when both forms are known, record the
+    // link before suppressing so terminal events in either form can resolve.
+    private bool MarkApprovalSeen(string requestId, string? altId = null)
     {
-        if (string.IsNullOrEmpty(approvalId)) return true; // can't dedupe — render
+        if (string.IsNullOrEmpty(requestId)) return true; // can't dedupe — render
         lock (_approvalSeenLock)
         {
-            if (!_approvalSeen.Add(approvalId)) return false;
-            _approvalSeenOrder.AddLast(approvalId);
+            RecordApprovalAltIdLocked(requestId, altId);
+
+            if (ApprovalIdSeenLocked(requestId)) return false;
+            if (IsDistinctApprovalId(requestId, altId) && ApprovalIdSeenLocked(altId!))
+            {
+                return false;
+            }
+
+            if (_approvalSeen.Add(requestId))
+            {
+                _approvalSeenOrder.AddLast(requestId);
+            }
+
+            if (IsDistinctApprovalId(requestId, altId) && _approvalSeen.Add(altId!))
+            {
+                _approvalSeenOrder.AddLast(altId!);
+            }
+
             while (_approvalSeenOrder.Count > ApprovalSeenCap)
             {
                 var oldest = _approvalSeenOrder.First!.Value;
                 _approvalSeenOrder.RemoveFirst();
-                _approvalSeen.Remove(oldest);
-                _approvalAltIds.Remove(oldest);
+                EvictApprovalSeenIdLocked(oldest);
             }
             return true;
+        }
+    }
+
+    private static bool IsDistinctApprovalId(string requestId, string? altId)
+        => !string.IsNullOrEmpty(altId)
+            && !string.Equals(altId, requestId, System.StringComparison.Ordinal);
+
+    private bool ApprovalIdSeenLocked(string approvalId)
+    {
+        if (_approvalSeen.Contains(approvalId)) return true;
+        return _approvalAltIds.TryGetValue(approvalId, out var altId)
+            && _approvalSeen.Contains(altId);
+    }
+
+    private void RecordApprovalAltIdLocked(string requestId, string? altId)
+    {
+        if (!IsDistinctApprovalId(requestId, altId)) return;
+
+        _approvalAltIds[requestId] = altId!;
+        _approvalAltIds[altId!] = requestId;
+    }
+
+    private void EvictApprovalSeenIdLocked(string approvalId)
+    {
+        _approvalSeen.Remove(approvalId);
+        if (!_approvalAltIds.TryGetValue(approvalId, out var altId))
+            return;
+
+        _approvalAltIds.Remove(approvalId);
+        if (_approvalAltIds.TryGetValue(altId, out var reverse)
+            && string.Equals(reverse, approvalId, System.StringComparison.Ordinal))
+        {
+            _approvalAltIds.Remove(altId);
+        }
+
+        if (_approvalSeen.Remove(altId))
+        {
+            RemoveApprovalSeenOrderValueLocked(altId);
+        }
+    }
+
+    private void RemoveApprovalSeenOrderValueLocked(string approvalId)
+    {
+        for (var node = _approvalSeenOrder.First; node is not null; node = node.Next)
+        {
+            if (!string.Equals(node.Value, approvalId, System.StringComparison.Ordinal))
+                continue;
+
+            _approvalSeenOrder.Remove(node);
+            return;
         }
     }
 
@@ -1850,25 +1930,22 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         var requestId = !string.IsNullOrEmpty(slug) ? slug : approvalId;
         if (string.IsNullOrEmpty(requestId)) return null;
 
-        if (!MarkApprovalSeen(requestId))
+        // The alternate id (the one we didn't pick as requestId). Pass it
+        // to MarkApprovalSeen so a duplicate emission from the sibling
+        // upstream path (slug-form vs UUID-form for the same approval) is
+        // suppressed instead of creating a second timeline entry, which
+        // would mark the first as Expired via ApplyPermissionRequest.
+        var altId = !string.IsNullOrEmpty(slug) ? approvalId : slug;
+
+        if (!MarkApprovalSeen(requestId, altId))
         {
-            Logger.Info($"[Approval] suppressed duplicate requestId={requestId}");
+            Logger.Info($"[Approval] suppressed duplicate requestId={requestId} altId={altId}");
             return null;
         }
 
-        // Record the alternate id (the one we didn't pick as requestId) so
-        // a later terminal event that carries ONLY the alternate can still
-        // resolve back to this pending banner. See ``ApprovalIdMatches``.
-        // Recorded AFTER MarkApprovalSeen so a duplicate-replay can't
-        // overwrite the mapping after the dedup short-circuit.
-        var altId = !string.IsNullOrEmpty(slug) ? approvalId : slug;
-        if (!string.IsNullOrEmpty(altId) && !string.Equals(altId, requestId, System.StringComparison.Ordinal))
-        {
-            lock (_approvalSeenLock)
-            {
-                _approvalAltIds[requestId] = altId;
-            }
-        }
+        // MarkApprovalSeen also records the alternate id, including on the
+        // duplicate-suppression path, so terminal events in either id form
+        // can resolve back to this pending banner.
 
         // PermissionKind is the short tool/category label the composer shows;
         // ToolName is the contextual subtitle (host); Detail is the body
@@ -1915,7 +1992,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         {
             var delta = deltaProp.GetString();
             if (!string.IsNullOrEmpty(delta))
+            {
+                try { Logger.Trace($"[ReasoningStream] kind=delta len={delta.Length}"); } catch { }
                 return new ChatReasoningDeltaEvent(delta);
+            }
         }
 
         var contentText = evt.Data.TryGetProperty("content", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.String
@@ -1924,7 +2004,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 ? t.GetString()
                 : null);
         if (!string.IsNullOrEmpty(contentText))
+        {
+            try { Logger.Trace($"[ReasoningStream] kind=full len={contentText!.Length}"); } catch { }
             return new ChatReasoningEvent(contentText!);
+        }
 
         return null;
     }
@@ -1992,10 +2075,26 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         if (evt.Data.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
 
         var kind = evt.Data.TryGetProperty("kind", out var kindProp) ? kindProp.GetString() ?? "" : "";
+        var phase = evt.Data.TryGetProperty("phase", out var phaseProp) ? phaseProp.GetString() ?? "" : "";
+
+        // ``kind=reasoning`` brackets each distinct thinking pass the model
+        // performs within a turn (model reasons → tool call → reasons again).
+        // The reasoning prose itself arrives on ``stream:"reasoning"``; here
+        // we only need the ``phase=end`` boundary so the timeline reducer can
+        // close the active reasoning bubble. Without this signal consecutive
+        // reasoning passes concatenate into a single ever-growing entry,
+        // because ActiveReasoningId is otherwise only cleared on turn end.
+        if (string.Equals(kind, "reasoning", StringComparison.OrdinalIgnoreCase))
+        {
+            try { Logger.Trace($"[ReasoningItem] phase={phase}"); } catch { }
+            return string.Equals(phase, "end", StringComparison.OrdinalIgnoreCase)
+                ? new ChatReasoningEndEvent()
+                : null;
+        }
+
         if (!string.Equals(kind, "tool", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        var phase = evt.Data.TryGetProperty("phase", out var phaseProp) ? phaseProp.GetString() ?? "" : "";
         var title = evt.Data.TryGetProperty("title", out var titleProp) ? titleProp.GetString() ?? "" : "";
         var toolName = ExtractToolKindFromTitle(title);
         var itemId = evt.Data.TryGetProperty("itemId", out var idProp) ? idProp.GetString() : null;
