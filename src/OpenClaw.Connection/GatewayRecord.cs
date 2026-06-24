@@ -33,6 +33,13 @@ public sealed record GatewayRecord
     /// <summary>WSL distro name for gateway records provisioned by SetupEngine.</summary>
     public string? SetupManagedDistroName { get; init; }
 
+    /// <summary>
+    /// How this setup-managed gateway is installed. Defaults to <see cref="GatewayInstallKind.Wsl"/>
+    /// for back-compat (existing records carry <see cref="SetupManagedDistroName"/>).
+    /// Native-managed records set this to <see cref="GatewayInstallKind.Native"/> and leave distro null.
+    /// </summary>
+    public GatewayInstallKind SetupManagedKind { get; init; } = GatewayInstallKind.Wsl;
+
     /// <summary>Per-gateway SSH tunnel configuration. Null if no tunnel needed.</summary>
     public SshTunnelConfig? SshTunnel { get; init; }
 

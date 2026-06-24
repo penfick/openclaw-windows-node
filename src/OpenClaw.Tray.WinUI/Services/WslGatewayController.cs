@@ -54,12 +54,66 @@ internal static class WslGatewayControlCommandBuilder
     }
 }
 
-internal sealed class WslGatewayController(IWslCommandRunner commandRunner, IOpenClawLogger logger)
+/// <summary>
+/// WSL gateway lifecycle controller. Implements <see cref="IGatewayController"/> with the distro
+/// bound at construction (factory use); also retains a legacy per-call overload so the current
+/// <c>ConnectionPage</c> call site compiles unchanged until the factory wiring lands.
+/// </summary>
+internal sealed class WslGatewayController : IGatewayController
 {
-    public async Task<WslGatewayControlResult> RunAsync(
+    private readonly string? _distroName;
+    private readonly IWslCommandRunner _commandRunner;
+    private readonly IOpenClawLogger _logger;
+
+    /// <summary>Back-compat ctor (distro passed per-call). Used by current ConnectionPage.</summary>
+    public WslGatewayController(IWslCommandRunner commandRunner, IOpenClawLogger logger)
+    {
+        _distroName = null;
+        _commandRunner = commandRunner;
+        _logger = logger;
+    }
+
+    /// <summary>Distro-bound ctor for the <see cref="IGatewayController"/> factory.</summary>
+    public WslGatewayController(string distroName, IWslCommandRunner commandRunner, IOpenClawLogger logger)
+    {
+        _distroName = distroName;
+        _commandRunner = commandRunner;
+        _logger = logger;
+    }
+
+    /// <summary>Interface impl (distro bound at construction). Used by the gateway-control factory.</summary>
+    public async Task<GatewayControlResult> RunAsync(GatewayControlAction action, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_distroName))
+            throw new InvalidOperationException("WSL gateway controller was created without a distro name.");
+
+        var wslAction = action switch
+        {
+            GatewayControlAction.Start => WslGatewayControlAction.Start,
+            GatewayControlAction.Stop => WslGatewayControlAction.Stop,
+            GatewayControlAction.Restart => WslGatewayControlAction.Restart,
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported gateway action."),
+        };
+        var result = await RunCoreAsync(_distroName, wslAction, cancellationToken).ConfigureAwait(false);
+        return new GatewayControlResult(
+            action,
+            result.ExitCode,
+            result.StandardOutput,
+            result.StandardError,
+            $"WSL distro '{_distroName}'");
+    }
+
+    /// <summary>Legacy per-call overload (ConnectionPage current use). Delegates to the core runner.</summary>
+    public Task<WslGatewayControlResult> RunAsync(
         string distroName,
         WslGatewayControlAction action,
         CancellationToken cancellationToken = default)
+        => RunCoreAsync(distroName, action, cancellationToken);
+
+    private async Task<WslGatewayControlResult> RunCoreAsync(
+        string distroName,
+        WslGatewayControlAction action,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(distroName))
         {
@@ -67,7 +121,7 @@ internal sealed class WslGatewayController(IWslCommandRunner commandRunner, IOpe
         }
 
         var normalizedDistroName = distroName.Trim();
-        var distros = await commandRunner.ListDistrosAsync(cancellationToken).ConfigureAwait(false);
+        var distros = await _commandRunner.ListDistrosAsync(cancellationToken).ConfigureAwait(false);
         if (!distros.Any(distro => string.Equals(distro.Name, normalizedDistroName, StringComparison.OrdinalIgnoreCase)))
         {
             return new WslGatewayControlResult(
@@ -78,8 +132,8 @@ internal sealed class WslGatewayController(IWslCommandRunner commandRunner, IOpe
                 $"WSL distro '{normalizedDistroName}' is not registered.");
         }
 
-        logger.Info($"Running OpenClaw gateway {WslGatewayControlCommandBuilder.ToVerb(action)} in WSL distro '{normalizedDistroName}'.");
-        var result = await commandRunner.RunInDistroAsync(
+        _logger.Info($"Running OpenClaw gateway {WslGatewayControlCommandBuilder.ToVerb(action)} in WSL distro '{normalizedDistroName}'.");
+        var result = await _commandRunner.RunInDistroAsync(
             normalizedDistroName,
             WslGatewayControlCommandBuilder.Build(action),
             cancellationToken).ConfigureAwait(false);
