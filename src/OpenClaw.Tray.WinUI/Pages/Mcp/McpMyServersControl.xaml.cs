@@ -6,11 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace OpenClawTray.Pages;
 
-/// <summary>「我的服务器」tab：列出/增删 gateway 的 mcp.servers（config.get + SetConfigAsync）。</summary>
+/// <summary>「我的服务器」tab：列出/增删改 gateway 的 MCP 服务器（mcp.servers）。
+/// 写入走 config.patch 合并补丁；CleanEntry 保证类型切换不留残字段；删除用 null 删键。
+/// 启动时把旧版误写到 acpx.config.mcpServers 的条目一次性迁回 mcp.servers。</summary>
 public sealed partial class McpMyServersControl : UserControl
 {
     private static App CurrentApp => (App)Microsoft.UI.Xaml.Application.Current!;
@@ -42,25 +45,40 @@ public sealed partial class McpMyServersControl : UserControl
                 ? cfgEl
                 : resp;
 
+            // 一次性迁移：旧版误写到 acpx.config.mcpServers → 挪到 mcp.servers
+            if (await TryMigrateLegacyAsync(client, root))
+            {
+                await LoadAsync(); // 迁移后重读
+                return;
+            }
+
             _servers.Clear();
             var rows = new List<McpServerRow>();
-            if (root.TryGetProperty("mcp", out var mcp) && mcp.TryGetProperty("servers", out var servers) && servers.ValueKind == JsonValueKind.Object)
+            var serversEl = McpConfig.Walk(root, McpConfig.ServersPath);
+            if (serversEl.ValueKind == JsonValueKind.Object)
             {
-                foreach (var prop in servers.EnumerateObject())
+                foreach (var prop in serversEl.EnumerateObject())
                 {
-                    var transport = prop.Value.TryGetProperty("transport", out var t) ? t.GetString() ?? "stdio" : "stdio";
                     var dict = ToClr(prop.Value) as Dictionary<string, object?> ?? new Dictionary<string, object?>();
+                    var transport = dict.TryGetValue("transport", out var t) ? t?.ToString() ?? "" : "";
+                    // 无 transport 且有 command → stdio；否则按 transport 字段（sse/streamable-http）
+                    var isStdio = string.IsNullOrEmpty(transport) || transport == "stdio";
+                    var displayTransport = isStdio ? "stdio" : transport;
                     _servers[prop.Name] = dict;
                     rows.Add(new McpServerRow
                     {
                         Name = prop.Name,
-                        Transport = transport,
-                        Display = BuildDisplay(dict, transport),
+                        Transport = displayTransport,
+                        Display = BuildDisplay(dict, displayTransport),
+                        EnvHint = BuildEnvHint(dict),
                     });
                 }
             }
+
             ServersList.ItemsSource = rows;
-            EmptyHint.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            var empty = rows.Count == 0;
+            EmptyState.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+            ServersList.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
             StatusText.Text = rows.Count > 0 ? $"共 {rows.Count} 个服务器" : string.Empty;
         }
         catch (Exception ex)
@@ -73,17 +91,46 @@ public sealed partial class McpMyServersControl : UserControl
         }
     }
 
+    /// <summary>若有旧版 acpx.mcpServers 条目，迁移到 mcp.servers 并返回 true（调用方应重读）。</summary>
+    private async Task<bool> TryMigrateLegacyAsync(IOperatorGatewayClient client, JsonElement root)
+    {
+        var acpxEl = McpConfig.Walk(root, McpConfig.LegacyAcpxPath);
+        if (acpxEl.ValueKind != JsonValueKind.Object) return false;
+        bool hasAny = false;
+        foreach (var _ in acpxEl.EnumerateObject()) { hasAny = true; break; }
+        if (!hasAny) return false;
+
+        StatusText.Text = "正在迁移旧版 MCP 配置到 mcp.servers…";
+        try
+        {
+            return await McpConfig.MigrateLegacyAsync(client, acpxEl);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"迁移失败：{ModelsPage.FriendlyConfigError(ex.Message)}（可忽略，新安装已用正确路径）";
+            return false;
+        }
+    }
+
     private static string BuildDisplay(Dictionary<string, object?> srv, string transport)
     {
-        if (transport != "stdio")
+        if (transport == "stdio")
         {
-            return srv.TryGetValue("url", out var u) ? u?.ToString() ?? "" : "";
+            var cmd = srv.TryGetValue("command", out var c) ? c?.ToString() ?? "" : "";
+            var args = srv.TryGetValue("args", out var a) && a is List<object?> al
+                ? string.Join(' ', al.Select(x => x?.ToString() ?? ""))
+                : "";
+            return string.IsNullOrWhiteSpace(args) ? cmd : $"{cmd} {args}";
         }
-        var cmd = srv.TryGetValue("command", out var c) ? c?.ToString() ?? "" : "";
-        var args = srv.TryGetValue("args", out var a) && a is List<object?> al
-            ? string.Join(' ', al.Select(x => x?.ToString() ?? ""))
-            : "";
-        return string.IsNullOrWhiteSpace(args) ? cmd : $"{cmd} {args}";
+        return srv.TryGetValue("url", out var u) ? u?.ToString() ?? "" : "";
+    }
+
+    /// <summary>"env: KEY1, KEY2"（仅列出键名，值不外泄）。</summary>
+    private static string BuildEnvHint(Dictionary<string, object?> srv)
+    {
+        if (!srv.TryGetValue("env", out var e) || e is not Dictionary<string, object?> ed || ed.Count == 0)
+            return "";
+        return "env: " + string.Join(", ", ed.Keys);
     }
 
     private async void OnAddClick(object sender, RoutedEventArgs e)
@@ -91,38 +138,44 @@ public sealed partial class McpMyServersControl : UserControl
         var client = CurrentApp.GatewayClient;
         if (client == null) { StatusText.Text = "未连接到网关。"; return; }
 
-        var name = NameBox.Text.Trim();
-        if (string.IsNullOrEmpty(name)) { StatusText.Text = "请填写名称。"; return; }
+        var dialog = new McpServerDialog { XamlRoot = this.XamlRoot };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary || dialog.Server is not { } server) return;
 
-        var transport = TransportCombo.SelectedItem?.ToString() ?? "stdio";
-        var dict = new Dictionary<string, object?> { ["transport"] = transport };
-        if (transport == "stdio")
-        {
-            if (string.IsNullOrWhiteSpace(CommandBox.Text)) { StatusText.Text = "stdio 需要填写命令。"; return; }
-            dict["command"] = CommandBox.Text.Trim();
-            var args = ArgsBox.Text.Trim();
-            if (!string.IsNullOrEmpty(args))
-                dict["args"] = SplitArgs(args);
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(UrlBox.Text)) { StatusText.Text = "streamable-http 需要填写 URL。"; return; }
-            dict["url"] = UrlBox.Text.Trim();
-        }
-
-        _servers[name] = dict;
-        StatusText.Text = $"正在写入 {name}…";
+        var name = dialog.ServerName;
+        StatusText.Text = $"正在添加 {name}…";
         try
         {
-            await client.SetConfigAsync("mcp.servers", _servers);
-            NameBox.Text = ""; CommandBox.Text = ""; ArgsBox.Text = ""; UrlBox.Text = "";
+            await McpConfig.WriteAsync(client, name, server);
             await LoadAsync();
-            StatusText.Text = $"已添加 {name}（如网关需要重启才能生效，请手动重启）。";
+            StatusText.Text = $"已添加 {name}。";
         }
         catch (Exception ex)
         {
-            _servers.Remove(name);
-            StatusText.Text = $"写入失败：{ex.Message}";
+            StatusText.Text = $"写入失败：{ModelsPage.FriendlyConfigError(ex.Message)}";
+        }
+    }
+
+    private async void OnEditClick(object sender, RoutedEventArgs e)
+    {
+        var client = CurrentApp.GatewayClient;
+        if (client == null) return;
+        if (sender is not Button btn || btn.Tag?.ToString() is not { } name) return;
+        if (!_servers.TryGetValue(name, out var raw)) return;
+
+        var dialog = new McpServerDialog { XamlRoot = this.XamlRoot };
+        dialog.ConfigureForEdit(name, raw);
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary || dialog.Server is not { } server) return;
+
+        StatusText.Text = $"正在保存 {name}…";
+        try
+        {
+            await McpConfig.WriteAsync(client, name, server);
+            await LoadAsync();
+            StatusText.Text = $"已更新 {name}。";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"写入失败：{ModelsPage.FriendlyConfigError(ex.Message)}";
         }
     }
 
@@ -131,33 +184,31 @@ public sealed partial class McpMyServersControl : UserControl
         var client = CurrentApp.GatewayClient;
         if (client == null) return;
         if (sender is not Button btn || btn.Tag?.ToString() is not { } name) return;
+        if (!_servers.ContainsKey(name)) return;
 
-        if (!_servers.Remove(name)) return;
+        var confirm = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = "删除服务器",
+            Content = $"确定删除「{name}」吗？",
+            PrimaryButtonText = "删除",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
         StatusText.Text = $"正在删除 {name}…";
         try
         {
-            await client.SetConfigAsync("mcp.servers", _servers);
+            await McpConfig.WriteAsync(client, name, null);
             await LoadAsync();
             StatusText.Text = $"已删除 {name}。";
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"删除失败：{ex.Message}";
-            await LoadAsync();
+            StatusText.Text = $"删除失败：{ModelsPage.FriendlyConfigError(ex.Message)}";
         }
     }
-
-    private void OnTransportChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (CommandBox == null || ArgsBox == null || UrlBox == null) return;
-        var isStdio = (TransportCombo.SelectedIndex == 0);
-        CommandBox.Visibility = isStdio ? Visibility.Visible : Visibility.Collapsed;
-        ArgsBox.Visibility = isStdio ? Visibility.Visible : Visibility.Collapsed;
-        UrlBox.Visibility = isStdio ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private static List<string> SplitArgs(string args)
-        => args.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
 
     private static object? ToClr(JsonElement e) => e.ValueKind switch
     {
@@ -177,4 +228,13 @@ public sealed class McpServerRow
     public string Name { get; set; } = "";
     public string Transport { get; set; } = "";
     public string Display { get; set; } = "";
+    public string EnvHint { get; set; } = "";
+    public Visibility EnvHintVisibility => string.IsNullOrEmpty(EnvHint) ? Visibility.Collapsed : Visibility.Visible;
+    public string TransportBadge => Transport switch
+    {
+        "stdio" => "stdio",
+        "streamable-http" => "http",
+        "sse" => "sse",
+        _ => Transport,
+    };
 }

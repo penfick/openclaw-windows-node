@@ -7,17 +7,11 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Padding="24,16,24,8" Spacing="8" HorizontalAlignment="Stretch" MaxWidth="1000">
-            <TextBlock Text="MCP 服务器" Style="{StaticResource TitleTextBlockStyle}"/>
-            <TextBlock Text="管理网关的 mcp.servers 配置，或从市场一键安装。stdio / streamable-http MCP 服务器在聊天中可被 Agent 调用。"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-        </StackPanel>
-
-        <Pivot Grid.Row="1">
+        <Pivot Grid.Row="0" x:Name="Tabs" Margin="0,4,0,0" SelectionChanged="OnTabsSelectionChanged">
             <PivotItem Header="我的服务器">
                 <local:McpMyServersControl x:Name="MyServers"/>
             </PivotItem>
@@ -25,5 +19,11 @@
                 <local:McpMarketplaceControl x:Name="Marketplace"/>
             </PivotItem>
         </Pivot>
+
+        <TextBlock Grid.Row="1"
+                   Text="MCP 服务器可被聊天中的 Agent 调用，支持 stdio / streamable-http 两种接入方式。"
+                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                   FontSize="11" TextWrapping="Wrap"
+                   Padding="24,2,24,12" MaxWidth="1000"/>
     </Grid>
 </Page>

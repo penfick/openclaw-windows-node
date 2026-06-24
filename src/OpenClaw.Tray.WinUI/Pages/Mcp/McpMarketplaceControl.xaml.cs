@@ -1,26 +1,82 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using OpenClaw.Shared;
 using OpenClawTray.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace OpenClawTray.Pages;
 
-/// <summary>「市场」tab：npm registry 搜索 + 精选 catalog + 一键安装（写 mcp.servers）。</summary>
+/// <summary>「市场」tab：npm registry 搜索 + 精选 catalog + 一键安装。
+/// 安装走 config.patch 合并补丁（config.set 在此网关被拒）；已配置的服务器名匹配后标「已安装」。
+/// 装完触发 <see cref="InstalledChanged"/>，由 McpConfigPage 刷新「我的服务器」。</summary>
 public sealed partial class McpMarketplaceControl : UserControl
 {
     private static App CurrentApp => (App)Microsoft.UI.Xaml.Application.Current!;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
 
+    // 已配置的 MCP 服务器名集合（权威状态来自 config.get）
+    private readonly HashSet<string> _installedNames = new(StringComparer.OrdinalIgnoreCase);
+    // 正在安装的服务器名（按钮显示「正在安装…」并禁用）
+    private string? _installingName;
+
+    /// <summary>市场装完触发：McpConfigPage 订阅后刷新「我的服务器」。</summary>
+    public event Action? InstalledChanged;
+
     public McpMarketplaceControl()
     {
         InitializeComponent();
-        CatalogList.ItemsSource = McpCatalog.Entries;
+        _ = LoadInstalledAndRenderCatalogAsync();
+    }
+
+    /// <summary>读 mcp.servers 名称集合，并渲染精选 catalog（标记已安装）。</summary>
+    public async Task LoadInstalledAndRenderCatalogAsync()
+    {
+        await LoadInstalledNamesAsync();
+        RenderCatalog();
+    }
+
+    private async Task LoadInstalledNamesAsync()
+    {
+        var client = CurrentApp.GatewayClient;
+        if (client == null) return;
+        try
+        {
+            var resp = await client.SendWizardRequestAsync("config.get");
+            var root = resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("config", out var cfgEl) && cfgEl.ValueKind == JsonValueKind.Object
+                ? cfgEl : resp;
+            _installedNames.Clear();
+            // native agent MCP 在 mcp.servers（openclaw mcp list 读的就是这里）
+            var serversEl = McpConfig.Walk(root, McpConfig.ServersPath);
+            if (serversEl.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in serversEl.EnumerateObject())
+                    if (!string.IsNullOrEmpty(prop.Name)) _installedNames.Add(prop.Name);
+            }
+        }
+        catch { /* 忽略，按未安装处理 */ }
+    }
+
+    private void RenderCatalog()
+    {
+        CatalogList.ItemsSource = McpCatalog.Entries
+            .Select(e => new McpCatalogCard(e, _installedNames.Contains(e.Name), _installingName == e.Name))
+            .ToList();
+    }
+
+    /// <summary>把搜索结果里同名片刷新成最新安装状态（不重发搜索）。</summary>
+    private void RefreshSearchInstalled()
+    {
+        if (SearchResults.ItemsSource is not IEnumerable<McpSearchCard> rows) return;
+        SearchResults.ItemsSource = rows
+            .Select(r => r with { IsInstalled = _installedNames.Contains(r.Name), Installing = _installingName == r.Name })
+            .ToList();
     }
 
     private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
@@ -40,7 +96,7 @@ public sealed partial class McpMarketplaceControl : UserControl
             var term = string.IsNullOrWhiteSpace(q) ? "mcp server" : q;
             var url = $"https://registry.npmmirror.com/-/v1/search?text={Uri.EscapeDataString(term)}&size=40";
             var json = await Http.GetStringAsync(url);
-            var results = new List<McpSearchResult>();
+            var results = new List<McpSearchCard>();
             using (var doc = JsonDocument.Parse(json))
             {
                 if (doc.RootElement.TryGetProperty("objects", out var objs) && objs.ValueKind == JsonValueKind.Array)
@@ -55,7 +111,7 @@ public sealed partial class McpMarketplaceControl : UserControl
                             && !name.Contains("@modelcontextprotocol", StringComparison.OrdinalIgnoreCase)
                             && !desc.Contains("mcp", StringComparison.OrdinalIgnoreCase))
                             continue;
-                        results.Add(new McpSearchResult { Name = name, Description = desc, Version = ver });
+                        results.Add(new McpSearchCard(name, desc, ver, _installedNames.Contains(name), false));
                     }
                 }
             }
@@ -75,71 +131,84 @@ public sealed partial class McpMarketplaceControl : UserControl
 
     private async void OnInstallCatalogClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button btn || btn.DataContext is not McpCatalogEntry entry) return;
-        await InstallAsync(entry.Name, entry.Package, entry.AuthEnvKey);
+        if (sender is not Button btn || btn.DataContext is not McpCatalogCard card) return;
+        await InstallAsync(card.Entry.Name, card.Entry.Package, card.Entry.AuthEnvKey);
     }
 
     private async void OnInstallSearchClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button btn || btn.DataContext is not McpSearchResult result) return;
-        // npm 搜索结果：name 作为 server 名 + package 名
-        await InstallAsync(result.Name, result.Name, null);
+        if (sender is not Button btn || btn.DataContext is not McpSearchCard card) return;
+        // npm 搜索结果：name 同时作为 server 名 + package 名
+        await InstallAsync(card.Name, card.Name, null);
     }
 
-    /// <summary>把一条 stdio/npx 配置写进 gateway 的 mcp.servers（读现有 → 合并 → SetConfigAsync）。</summary>
+    /// <summary>把一条 stdio/npx 配置合并进 gateway 的 mcp.servers（config.patch）。</summary>
     private async Task InstallAsync(string name, string package, string? authEnvKey)
     {
         var client = CurrentApp.GatewayClient;
         if (client == null) { StatusText.Text = "未连接到网关。"; return; }
         if (string.IsNullOrWhiteSpace(name)) { StatusText.Text = "名称为空。"; return; }
+        if (_installingName != null) { StatusText.Text = "请等待当前安装完成。"; return; }
 
+        // 立刻把目标卡片切成「正在安装…」并禁用，给出明确反馈
+        _installingName = name;
+        RenderCatalog();
+        RefreshSearchInstalled();
         StatusText.Text = $"正在安装 {name}…";
+
         try
         {
-            var resp = await client.SendWizardRequestAsync("config.get");
-            var root = resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("config", out var cfgEl) && cfgEl.ValueKind == JsonValueKind.Object
-                ? cfgEl
-                : resp;
-
-            var servers = new Dictionary<string, Dictionary<string, object?>>();
-            if (root.TryGetProperty("mcp", out var mcp) && mcp.TryGetProperty("servers", out var s) && s.ValueKind == JsonValueKind.Object)
+            // stdio 服务器：{command, args}（不带 transport），写 mcp.servers（native agent 路径）
+            var server = new JsonObject
             {
-                foreach (var prop in s.EnumerateObject())
-                    servers[prop.Name] = ToClr(prop.Value) as Dictionary<string, object?> ?? new Dictionary<string, object?>();
-            }
-
-            servers[name] = new Dictionary<string, object?>
-            {
-                ["transport"] = "stdio",
                 ["command"] = "npx",
-                ["args"] = new List<object?> { "-y", package },
+                ["args"] = new JsonArray { "-y", package },
             };
+            await McpConfig.WriteAsync(client, name, server);
 
-            await client.SetConfigAsync("mcp.servers", servers);
-            StatusText.Text = $"已安装 {name}。" + (authEnvKey != null ? $" 注意：此 MCP 需要配置环境变量 {authEnvKey} 才能工作。" : "");
+            // 权威重读 config（而不是只乐观地加本地集合），确保「已安装」状态可信
+            await LoadInstalledNamesAsync();
+            _installingName = null;
+            RenderCatalog();
+            RefreshSearchInstalled();
+            InstalledChanged?.Invoke();
+
+            StatusText.Text = $"已安装 {name}。" + (authEnvKey != null
+                ? $" 注意：此 MCP 需要配置环境变量 {authEnvKey}（在「我的服务器」里编辑该服务器的 env）才能工作。"
+                : "");
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"安装失败：{ex.Message}";
+            _installingName = null;
+            RenderCatalog();
+            RefreshSearchInstalled();
+            StatusText.Text = $"安装失败：{ModelsPage.FriendlyConfigError(ex.Message)}";
         }
     }
-
-    private static object? ToClr(JsonElement e) => e.ValueKind switch
-    {
-        JsonValueKind.String => (object?)e.GetString(),
-        JsonValueKind.Number => e.TryGetInt64(out var i) ? i : (object)e.GetDouble(),
-        JsonValueKind.True => true,
-        JsonValueKind.False => false,
-        JsonValueKind.Null => null,
-        JsonValueKind.Array => e.EnumerateArray().Select(ToClr).ToList(),
-        JsonValueKind.Object => e.EnumerateObject().ToDictionary(p => p.Name, p => ToClr(p.Value)),
-        _ => null,
-    };
 }
 
-public sealed class McpSearchResult
+public sealed class McpCatalogCard
 {
-    public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Version { get; set; } = "";
+    public McpCatalogEntry Entry { get; }
+    public McpCatalogCard(McpCatalogEntry entry, bool isInstalled, bool installing)
+    {
+        Entry = entry;
+        IsInstalled = isInstalled;
+        Installing = installing;
+    }
+    public string Name => Entry.Name;
+    public string Description => Entry.Description;
+    public string Category => Entry.Category;
+    public string Package => Entry.Package;
+    public string EnvHint => string.IsNullOrEmpty(Entry.AuthEnvKey) ? "" : $"需 {Entry.AuthEnvKey}";
+    public bool IsInstalled { get; }
+    public bool Installing { get; }
+    public string InstallLabel => Installing ? "正在安装…" : (IsInstalled ? "已安装" : "一键安装");
+    public bool CanInstall => !IsInstalled && !Installing;
+}
+
+public sealed record McpSearchCard(string Name, string Description, string Version, bool IsInstalled, bool Installing)
+{
+    public string InstallLabel => Installing ? "正在安装…" : (IsInstalled ? "已安装" : "安装");
+    public bool CanInstall => !IsInstalled && !Installing;
 }

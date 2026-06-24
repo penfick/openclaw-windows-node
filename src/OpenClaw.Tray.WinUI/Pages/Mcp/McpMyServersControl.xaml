@@ -5,60 +5,68 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="24,0,24,24" Spacing="16" HorizontalAlignment="Stretch" MaxWidth="1000">
+        <StackPanel Padding="24,4,24,24" Spacing="12" HorizontalAlignment="Stretch" MaxWidth="1000">
 
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <ProgressRing x:Name="LoadingProgress" IsActive="False" Width="20" Height="20"/>
-                <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-            </StackPanel>
+            <!-- 标题行：左「已配置的服务器」+ loading，右「＋ 添加」按钮 -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <ProgressRing x:Name="LoadingProgress" IsActive="False" Width="16" Height="16"/>
+                    <TextBlock Text="已配置的服务器" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="＋ 添加" Click="OnAddClick" Padding="16,7" FontSize="12" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
 
-            <TextBlock Text="已配置的服务器" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-            <ListView x:Name="ServersList" SelectionMode="None" IsItemClickEnabled="False">
-                <ListView.ItemTemplate>
+            <!-- 已配置卡片网格 -->
+            <ItemsControl x:Name="ServersList">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsWrapGrid Orientation="Horizontal" ItemWidth="284"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Margin="4" Width="276"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,2">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                        <TextBlock Text="{Binding Transport}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding Display}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"/>
+                                BorderThickness="1" CornerRadius="8" Padding="14">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    <Border CornerRadius="8" Padding="8,1" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TransportBadge}" FontSize="10"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="删除" Click="OnDeleteClick" Tag="{Binding Name}" VerticalAlignment="Center"/>
-                            </Grid>
+                                <TextBlock Text="{Binding Display}" FontSize="11" FontFamily="Consolas"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           TextWrapping="Wrap" MaxLines="3" MinHeight="32"/>
+                                <TextBlock Text="{Binding EnvHint}" FontSize="10"
+                                           Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                           Visibility="{Binding EnvHintVisibility}" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                    <Button Content="编辑" Click="OnEditClick" Tag="{Binding Name}" Padding="14,6" FontSize="12"/>
+                                    <Button Content="删除" Click="OnDeleteClick" Tag="{Binding Name}" Padding="14,6" FontSize="12"/>
+                                </StackPanel>
+                            </StackPanel>
                         </Border>
                     </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-            <TextBlock x:Name="EmptyHint" Text="尚无 MCP 服务器。" Visibility="Collapsed"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="16">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="添加服务器" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBox x:Name="NameBox" Header="名称" Width="180" PlaceholderText="my-server"/>
-                        <ComboBox x:Name="TransportCombo" Header="类型" Width="180" SelectedIndex="0" SelectionChanged="OnTransportChanged">
-                            <x:String>stdio</x:String>
-                            <x:String>streamable-http</x:String>
-                        </ComboBox>
-                    </StackPanel>
-                    <TextBox x:Name="CommandBox" Header="命令 (stdio，如 npx)" Width="500" PlaceholderText="npx"/>
-                    <TextBox x:Name="ArgsBox" Header="参数 (stdio，空格分隔)" Width="600" PlaceholderText="-y @modelcontextprotocol/server-filesystem /tmp"/>
-                    <TextBox x:Name="UrlBox" Header="URL (streamable-http)" Width="600" Visibility="Collapsed" PlaceholderText="http://localhost:8080/mcp"/>
-                    <Button Content="添加" Click="OnAddClick"/>
-                </StackPanel>
-            </Border>
+            <!-- 空状态：居中占位 -->
+            <StackPanel x:Name="EmptyState" Visibility="Collapsed" Spacing="10" HorizontalAlignment="Center" Margin="0,48,0,0">
+                <TextBlock Text="🔌" FontSize="36" HorizontalAlignment="Center"/>
+                <TextBlock Text="尚无 MCP 服务器" HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock Text="点右上角「＋ 添加」手动配置，或去「市场」一键安装。"
+                           HorizontalAlignment="Center" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
 
         </StackPanel>
     </ScrollViewer>

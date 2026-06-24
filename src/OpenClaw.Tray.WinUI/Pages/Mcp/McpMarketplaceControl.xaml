@@ -10,60 +10,72 @@
             <!-- npm 搜索 -->
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBox x:Name="SearchBox" Width="380" PlaceholderText="搜索 MCP 包（npm registry）…" KeyDown="OnSearchKeyDown"/>
-                <Button Content="搜索" Click="OnSearchClick"/>
+                <Button Content="搜索" Click="OnSearchClick" Padding="16,8"/>
                 <ProgressRing x:Name="SearchProgress" IsActive="False" Width="18" Height="18"/>
             </StackPanel>
-            <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+            <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
 
-            <ListView x:Name="SearchResults" SelectionMode="None" IsItemClickEnabled="False">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,2">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                        <TextBlock Text="{Binding Version}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding Description}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
-                                </StackPanel>
-                                <Button Grid.Column="1" Content="安装" Click="OnInstallSearchClick" Tag="{Binding Name}" VerticalAlignment="Center"/>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-
-            <!-- 精选 catalog -->
-            <TextBlock Text="精选 MCP 服务器" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-            <ItemsControl x:Name="CatalogList">
+            <ItemsControl x:Name="SearchResults">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsWrapGrid Orientation="Horizontal" ItemWidth="284"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        <Border Margin="4" Width="276"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,2">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{Binding Name}" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                        <TextBlock Text="{Binding Category}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding Description}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"/>
+                                BorderThickness="1" CornerRadius="8" Padding="14">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Version}" FontSize="10"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="一键安装" Click="OnInstallCatalogClick" VerticalAlignment="Center"/>
-                            </Grid>
+                                <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" MaxLines="3"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" MinHeight="42"/>
+                                <Button Content="{Binding InstallLabel}" Click="OnInstallSearchClick"
+                                        IsEnabled="{Binding CanInstall}"
+                                        HorizontalAlignment="Right" Padding="14,6" FontSize="12" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- 精选 catalog -->
+            <TextBlock Text="精选 MCP 服务器" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,4,0,0"/>
+            <ItemsControl x:Name="CatalogList">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsWrapGrid Orientation="Horizontal" ItemWidth="284"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="4" Width="276"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="8" Padding="14">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                    <Border CornerRadius="8" Padding="8,1" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                        <TextBlock Text="{Binding Category}" FontSize="10"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" MaxLines="3"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" MinHeight="42"/>
+                                <TextBlock Text="{Binding Package}" FontSize="10" FontFamily="Consolas"
+                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding EnvHint}" FontSize="10"
+                                           Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+                                <Button Content="{Binding InstallLabel}" Click="OnInstallCatalogClick"
+                                        IsEnabled="{Binding CanInstall}"
+                                        HorizontalAlignment="Right" Padding="14,6" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

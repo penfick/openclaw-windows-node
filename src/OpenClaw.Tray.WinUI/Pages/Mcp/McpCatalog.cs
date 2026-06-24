@@ -2,7 +2,7 @@ namespace OpenClawTray.Pages;
 
 /// <summary>
 /// 精选 MCP 服务器目录（port 自 XClaw src/pages/Mcp/mcp-catalog.ts）。
-/// 一键安装 = 往 gateway 的 mcp.servers 写一条 {transport:stdio, command:npx, args:[-y,Package]}。
+/// 一键安装 = 往 gateway 的 mcp.servers 写一条 {command:npx, args:[-y,Package]}（stdio，不带 transport）。
 /// </summary>
 public sealed record McpCatalogEntry(
     string Name,

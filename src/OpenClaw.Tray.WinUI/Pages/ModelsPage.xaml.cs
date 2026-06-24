@@ -184,7 +184,7 @@ public sealed partial class ModelsPage : Page
     }
 
     /// <summary>构造嵌套补丁：{"a":{"b":{finalKey:finalValue}}}（parentPath = "a.b"）。</summary>
-    private static JsonObject BuildNestedPatch(string parentPath, string finalKey, JsonNode? finalValue)
+    internal static JsonObject BuildNestedPatch(string parentPath, string finalKey, JsonNode? finalValue)
     {
         JsonObject node = new JsonObject { [finalKey] = finalValue };
         foreach (var seg in parentPath.Split('.').Reverse())
