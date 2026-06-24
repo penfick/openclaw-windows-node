@@ -36,7 +36,7 @@ public sealed partial class ConnectionPage : Page
     private GatewayRegistry? _gatewayRegistry;
     private GatewayDiscoveryService? _discoveryService;
     private IGatewayTerminalLauncher? _terminalLauncher;
-    private WslGatewayController? _wslGatewayController;
+    private WslExeCommandRunner? _wslCommandRunner;
 
     // ─── UI state ───
     private UserIntent _userIntent = UserIntent.None;
@@ -93,10 +93,8 @@ public sealed partial class ConnectionPage : Page
     private IGatewayTerminalLauncher TerminalLauncher =>
         _terminalLauncher ??= new GatewayTerminalLauncher(new OpenClawTray.AppLogger());
 
-    private WslGatewayController WslGatewayController =>
-        _wslGatewayController ??= new WslGatewayController(
-            new WslExeCommandRunner(new OpenClawTray.AppLogger()),
-            new OpenClawTray.AppLogger());
+    private WslExeCommandRunner WslCommandRunner =>
+        _wslCommandRunner ??= new WslExeCommandRunner(new OpenClawTray.AppLogger());
 
     // ─── Initialization ───────────────────────────────────────────────
 
@@ -457,7 +455,7 @@ public sealed partial class ConnectionPage : Page
         var showInPageMode = plan.Mode is ConnectionPageMode.Cockpit or ConnectionPageMode.Recovery;
         var showTerminal = showInPageMode &&
                            _activeHostAccessPlan.CanOpenTerminal &&
-                           !_activeHostAccessPlan.CanControlWslGateway;
+                           !_activeHostAccessPlan.CanControlGateway;
         StripTerminalButton.Visibility = showTerminal ? Visibility.Visible : Visibility.Collapsed;
         StripTerminalButton.IsEnabled = !_gatewayHostActionInProgress;
         ToolTipService.SetToolTip(StripTerminalButton, _activeHostAccessPlan.TerminalTooltip);
@@ -465,7 +463,7 @@ public sealed partial class ConnectionPage : Page
             StripTerminalButton,
             _activeHostAccessPlan.TerminalLabel);
 
-        var showWslControls = showInPageMode && _activeHostAccessPlan.CanControlWslGateway;
+        var showWslControls = showInPageMode && _activeHostAccessPlan.CanControlGateway;
         GatewayHostControlsSection.Visibility = showWslControls ? Visibility.Visible : Visibility.Collapsed;
         if (!showWslControls)
         {
@@ -1694,20 +1692,20 @@ public sealed partial class ConnectionPage : Page
 
     private void OnStartGatewayClicked(object sender, RoutedEventArgs e)
     {
-        _ = RunWslGatewayControlAsync(WslGatewayControlAction.Start);
+        _ = RunGatewayControlAsync(GatewayControlAction.Start);
     }
 
     private void OnStopGatewayClicked(object sender, RoutedEventArgs e)
     {
-        _ = RunWslGatewayControlAsync(WslGatewayControlAction.Stop);
+        _ = RunGatewayControlAsync(GatewayControlAction.Stop);
     }
 
     private void OnRestartGatewayClicked(object sender, RoutedEventArgs e)
     {
-        _ = RunWslGatewayControlAsync(WslGatewayControlAction.Restart);
+        _ = RunGatewayControlAsync(GatewayControlAction.Restart);
     }
 
-    private async Task RunWslGatewayControlAsync(WslGatewayControlAction action)
+    private async Task RunGatewayControlAsync(GatewayControlAction action)
     {
         if (_gatewayHostActionInProgress)
         {
@@ -1716,9 +1714,16 @@ public sealed partial class ConnectionPage : Page
 
         var activeRecord = _gatewayRegistry?.GetActive();
         var accessPlan = GatewayHostAccessClassifier.Classify(activeRecord);
-        if (!accessPlan.CanControlWslGateway || string.IsNullOrWhiteSpace(accessPlan.DistroName))
+        if (!accessPlan.CanControlGateway)
         {
-            SetGatewayHostActionStatus("This gateway is not an app-managed WSL gateway.", isError: true);
+            SetGatewayHostActionStatus("This gateway is not app-managed (no start/stop control).", isError: true);
+            return;
+        }
+
+        var controller = GatewayControllerFactory.Create(activeRecord, WslCommandRunner, new OpenClawTray.AppLogger());
+        if (controller is null)
+        {
+            SetGatewayHostActionStatus("This gateway is not app-managed (no start/stop control).", isError: true);
             return;
         }
 
@@ -1727,12 +1732,15 @@ public sealed partial class ConnectionPage : Page
         var cancellationToken = cts.Token;
         _gatewayHostActionInProgress = true;
         ApplyGatewayHostAccess(_currentPlan);
-        var verb = WslGatewayControlCommandBuilder.ToVerb(action);
-        SetGatewayHostActionStatus($"{ActionInProgressLabel(action)} gateway in {accessPlan.DistroName}…");
+        var verb = action.ToString().ToLowerInvariant();
+        var location = string.IsNullOrEmpty(accessPlan.GatewayControlLocationLabel)
+            ? "gateway"
+            : accessPlan.GatewayControlLocationLabel;
+        SetGatewayHostActionStatus($"{ActionInProgressLabel(action)} gateway in {location}…");
 
         try
         {
-            if (action == WslGatewayControlAction.Stop && _connectionManager != null)
+            if (action == GatewayControlAction.Stop && _connectionManager != null)
             {
                 try
                 {
@@ -1740,23 +1748,23 @@ public sealed partial class ConnectionPage : Page
                 }
                 catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    Services.Logger.Warn($"[ConnectionPage] Disconnect before WSL gateway stop failed; continuing stop: {ex.Message}");
+                    Services.Logger.Warn($"[ConnectionPage] Disconnect before gateway stop failed; continuing stop: {ex.Message}");
                 }
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var result = await WslGatewayController.RunAsync(accessPlan.DistroName!, action, cancellationToken);
+            var result = await controller.RunAsync(action, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (!result.Success)
             {
                 var details = string.IsNullOrWhiteSpace(result.OutputSummary)
-                    ? $"wsl.exe exited with code {result.ExitCode}."
+                    ? $"gateway control exited with code {result.ExitCode}."
                     : result.OutputSummary;
                 SetGatewayHostActionStatus($"{UppercaseFirst(verb)} failed: {details}", isError: true);
                 return;
             }
 
-            if (action == WslGatewayControlAction.Stop)
+            if (action == GatewayControlAction.Stop)
             {
                 SetGatewayHostActionStatus("Gateway stopped.");
                 RefreshFromSnapshot(_connectionManager?.CurrentSnapshot ?? _lastSnapshot);
@@ -1769,11 +1777,11 @@ public sealed partial class ConnectionPage : Page
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            Services.Logger.Info($"[ConnectionPage] WSL gateway {verb} cancelled.");
+            Services.Logger.Info($"[ConnectionPage] Gateway {verb} cancelled.");
         }
         catch (Exception ex)
         {
-            Services.Logger.Warn($"[ConnectionPage] WSL gateway {verb} failed: {ex.Message}");
+            Services.Logger.Warn($"[ConnectionPage] Gateway {verb} failed: {ex.Message}");
             SetGatewayHostActionStatus($"{UppercaseFirst(verb)} failed: {ex.Message}", isError: true);
         }
         finally
@@ -1812,24 +1820,24 @@ public sealed partial class ConnectionPage : Page
             : char.ToUpperInvariant(value[0]) + value[1..];
     }
 
-    private static string PastTense(WslGatewayControlAction action)
+    private static string PastTense(GatewayControlAction action)
     {
         return action switch
         {
-            WslGatewayControlAction.Start => "started",
-            WslGatewayControlAction.Restart => "restarted",
-            WslGatewayControlAction.Stop => "stopped",
+            GatewayControlAction.Start => "started",
+            GatewayControlAction.Restart => "restarted",
+            GatewayControlAction.Stop => "stopped",
             _ => "updated"
         };
     }
 
-    private static string ActionInProgressLabel(WslGatewayControlAction action)
+    private static string ActionInProgressLabel(GatewayControlAction action)
     {
         return action switch
         {
-            WslGatewayControlAction.Start => "Starting",
-            WslGatewayControlAction.Stop => "Stopping",
-            WslGatewayControlAction.Restart => "Restarting",
+            GatewayControlAction.Start => "Starting",
+            GatewayControlAction.Stop => "Stopping",
+            GatewayControlAction.Restart => "Restarting",
             _ => "Updating"
         };
     }
