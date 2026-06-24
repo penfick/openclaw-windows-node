@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenClaw.Connection;
 using OpenClaw.Shared;
 
@@ -1129,6 +1130,26 @@ public sealed class InstallCliStep : SetupStep
 
     public override async Task<StepResult> ExecuteAsync(SetupContext ctx, CancellationToken ct)
     {
+        if (ctx.IsNative())
+        {
+            // Native: verify openclaw is on PATH; install via install.ps1 if missing.
+            var probe = await ctx.Commands.RunAsync("cmd.exe", new[] { "/c", "openclaw --version" }, TimeSpan.FromSeconds(20), null, null, null, ct);
+            if (probe.ExitCode == 0 && !string.IsNullOrWhiteSpace(probe.Stdout))
+            {
+                ctx.Logger.Info($"OpenClaw CLI already installed (native): {probe.Stdout.Trim()}");
+                return StepResult.Ok($"CLI already installed: {probe.Stdout.Trim()}");
+            }
+            var ps = "iwr -useb https://openclaw.ai/install.ps1 -OutFile $env:TEMP\\oc-setup.ps1; & $env:TEMP\\oc-setup.ps1 -NoOnboard";
+            var install = await ctx.Commands.RunAsync("powershell.exe", new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps }, TimeSpan.FromMinutes(5), null, null, null, ct);
+            if (install.ExitCode != 0)
+                return StepResult.Fail($"Native CLI install failed (exit {install.ExitCode}): {install.Stderr}");
+            var verify = await ctx.Commands.RunAsync("cmd.exe", new[] { "/c", "openclaw --version" }, TimeSpan.FromSeconds(20), null, null, null, ct);
+            if (verify.ExitCode != 0)
+                return StepResult.Fail("Native CLI install reported success but openclaw is not on PATH (a new shell or reboot may be needed for PATH refresh).");
+            ctx.Logger.Info($"OpenClaw CLI installed (native): {verify.Stdout.Trim()}");
+            return StepResult.Ok($"CLI installed: {verify.Stdout.Trim()}");
+        }
+
         var distro = ctx.DistroName!;
         var user = ctx.Config.Wsl.User;
 
@@ -1298,6 +1319,16 @@ public sealed class ConfigureGatewayStep : SetupStep
             }
         }
 
+        if (ctx.IsNative())
+        {
+            // Native: write gateway config directly to %USERPROFILE%\.openclaw\openclaw.json
+            // (avoids shell-quoting the JSON allowCommands value through cmd /c).
+            var nativeCfg = await WriteNativeGatewayConfigAsync(ctx, token, ct);
+            if (!nativeCfg.IsSuccess) return nativeCfg;
+            ctx.Logger.StateChange("shared_gateway_token", null, "[SET]");
+            return StepResult.Ok("Gateway configured (native)");
+        }
+
         var configCommands = BuildConfigCommands(gw, port, escapedAllowedCommands);
 
         ctx.Logger.Info($"Gateway node allowCommands derived from setup capabilities: {allowedCommandsJson}");
@@ -1414,6 +1445,58 @@ public sealed class ConfigureGatewayStep : SetupStep
 
     internal static bool IsSafeExtraConfigKey(string value)
         => System.Text.RegularExpressions.Regex.IsMatch(value, "^[A-Za-z0-9._-]+$");
+
+    /// <summary>
+    /// Native ConfigureGateway: merge the gateway.* keys into %USERPROFILE%\.openclaw\openclaw.json.
+    /// Writes mode/port/bind/auth.{mode,token}/reload.mode/nodes.allowCommands (as a JSON array).
+    /// Mirrors what BuildConfigCommands emits for WSL, but as a direct file write so no shell quoting
+    /// of the JSON allowCommands value is needed. (ExtraConfig/device-pair keys not applied in this
+    /// native v1 — they're enhancements; the gateway runs without them.)
+    /// </summary>
+    private static async Task<StepResult> WriteNativeGatewayConfigAsync(SetupContext ctx, string token, CancellationToken ct)
+    {
+        var gw = ctx.Config.Gateway;
+        var port = ctx.Config.GatewayPort;
+        var configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".openclaw");
+        var configPath = Path.Combine(configDir, "openclaw.json");
+        Directory.CreateDirectory(configDir);
+
+        JsonObject root;
+        if (File.Exists(configPath))
+        {
+            try { root = JsonNode.Parse(await File.ReadAllTextAsync(configPath, ct)) as JsonObject ?? new JsonObject(); }
+            catch { root = new JsonObject(); }
+        }
+        else
+        {
+            root = new JsonObject();
+        }
+
+        var gateway = root["gateway"] as JsonObject ?? new JsonObject();
+        gateway["mode"] = "local";
+        gateway["port"] = port;
+        gateway["bind"] = gw.Bind;
+
+        var auth = gateway["auth"] as JsonObject ?? new JsonObject();
+        auth["mode"] = gw.AuthMode;
+        auth["token"] = token;
+        gateway["auth"] = auth;
+
+        var reload = gateway["reload"] as JsonObject ?? new JsonObject();
+        reload["mode"] = gw.ReloadMode;
+        gateway["reload"] = reload;
+
+        var nodes = gateway["nodes"] as JsonObject ?? new JsonObject();
+        var allowCommandsJson = JsonSerializer.Serialize(ctx.Config.Capabilities.GetEnabledCommandIds());
+        nodes["allowCommands"] = JsonNode.Parse(allowCommandsJson);
+        gateway["nodes"] = nodes;
+
+        root["gateway"] = gateway;
+
+        await File.WriteAllTextAsync(configPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), ct);
+        ctx.Logger.Info($"Native gateway config written to {configPath}");
+        return StepResult.Ok();
+    }
 }
 
 public sealed class InstallGatewayServiceStep : SetupStep
@@ -1423,10 +1506,7 @@ public sealed class InstallGatewayServiceStep : SetupStep
 
     public override async Task<StepResult> ExecuteAsync(SetupContext ctx, CancellationToken ct)
     {
-        var distro = ctx.DistroName!;
-
-        var result = await ctx.Commands.RunInWslAsync(
-            distro, $"{ctx.WslPathPrefix} && openclaw gateway install --force", TimeSpan.FromSeconds(60), ct: ct);
+        var result = await ctx.RunOpenClawAsync("gateway install --force", TimeSpan.FromSeconds(60), null, ct);
 
         if (result.ExitCode != 0)
             return StepResult.Fail($"Service install failed (exit {result.ExitCode}): {result.Stderr}");
@@ -1436,7 +1516,7 @@ public sealed class InstallGatewayServiceStep : SetupStep
 
     public override async Task RollbackAsync(SetupContext ctx, CancellationToken ct)
     {
-        await ctx.Commands.RunInWslAsync(ctx.DistroName!, $"{ctx.WslPathPrefix} && openclaw gateway uninstall", TimeSpan.FromSeconds(30), ct: ct);
+        await ctx.RunOpenClawAsync("gateway uninstall", TimeSpan.FromSeconds(30), null, ct);
     }
 }
 
@@ -1448,6 +1528,32 @@ public sealed class StartGatewayStep : SetupStep
 
     public override async Task<StepResult> ExecuteAsync(SetupContext ctx, CancellationToken ct)
     {
+        if (ctx.IsNative())
+        {
+            var startResult = await ctx.RunOpenClawAsync("gateway start", TimeSpan.FromSeconds(30), null, ct);
+            if (startResult.ExitCode != 0)
+                return StepResult.Fail($"Gateway start failed (exit {startResult.ExitCode}): {startResult.Stderr}");
+
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var deadline = DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(ctx.Config.Gateway.HealthTimeoutSeconds));
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    var resp = await http.GetAsync("http://127.0.0.1:" + ctx.Config.GatewayPort + "/", ct);
+                    if (resp.StatusCode is HttpStatusCode.OK or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                    {
+                        ctx.Logger.Info($"Gateway is accepting connections (HTTP {(int)resp.StatusCode})");
+                        return StepResult.Ok("Gateway running (native)");
+                    }
+                }
+                catch { }
+                await Task.Delay(2000, ct);
+            }
+            return StepResult.Fail($"Gateway did not become healthy within {ctx.Config.Gateway.HealthTimeoutSeconds}s");
+        }
+
         var distro = ctx.DistroName!;
         var pathCmd = ctx.WslPathPrefix;
 
@@ -1602,8 +1708,6 @@ public sealed class MintBootstrapTokenStep : SetupStep
 
     public override async Task<StepResult> ExecuteAsync(SetupContext ctx, CancellationToken ct)
     {
-        var distro = ctx.DistroName!;
-
         // Token was already set by ConfigureGatewayStep
         if (string.IsNullOrWhiteSpace(ctx.SharedGatewayToken))
             return StepResult.Fail("No shared gateway token set by previous step");
@@ -1614,8 +1718,7 @@ public sealed class MintBootstrapTokenStep : SetupStep
             ["OPENCLAW_GATEWAY_TOKEN"] = ctx.SharedGatewayToken
         };
 
-        var mint = await ctx.Commands.RunInWslAsync(
-            distro, $"{ctx.WslPathPrefix} && openclaw qr --json", TimeSpan.FromSeconds(30), env, ct);
+        var mint = await ctx.RunOpenClawAsync("qr --json", TimeSpan.FromSeconds(30), env, ct);
 
         if (mint.ExitCode == 0 && !string.IsNullOrWhiteSpace(mint.Stdout))
         {
@@ -1693,11 +1796,12 @@ public sealed class PairOperatorStep : SetupStep
             {
                 Id = Guid.NewGuid().ToString("N")[..16],
                 Url = gatewayUrl,
-                FriendlyName = $"Local ({ctx.DistroName})",
+                FriendlyName = ctx.IsNative() ? "Local (native)" : $"Local ({ctx.DistroName})",
                 SharedGatewayToken = ctx.SharedGatewayToken,
                 BootstrapToken = ctx.BootstrapToken,
                 IsLocal = true,
-                SetupManagedDistroName = ctx.DistroName,
+                SetupManagedDistroName = ctx.IsNative() ? null : ctx.DistroName,
+                SetupManagedKind = ctx.IsNative() ? GatewayInstallKind.Native : GatewayInstallKind.Wsl,
                 LastConnected = DateTime.UtcNow
             };
 
@@ -1878,16 +1982,14 @@ public sealed class PairOperatorStep : SetupStep
 
     internal static async Task<StepResult> AutoApprovePairing(SetupContext ctx, string? requestId, CancellationToken ct)
     {
-        var distro = ctx.DistroName!;
         var token = ctx.SharedGatewayToken ?? ctx.BootstrapToken ?? throw new InvalidOperationException("No gateway token available for auto-approve");
 
         var env = new Dictionary<string, string> { ["OPENCLAW_GATEWAY_TOKEN"] = token };
 
         if (string.IsNullOrWhiteSpace(requestId))
         {
-            var preview = await ctx.Commands.RunInWslAsync(
-                distro,
-                $"""{ctx.WslPathPrefix} && openclaw devices approve --latest --json""",
+            var preview = await ctx.RunOpenClawAsync(
+                "devices approve --latest --json",
                 TimeSpan.FromSeconds(30), env, ct);
 
             ctx.Logger.Info($"Approve preview: exit={preview.ExitCode}");
@@ -1911,9 +2013,8 @@ public sealed class PairOperatorStep : SetupStep
         ctx.Logger.Info($"Approving pairing request: {requestId}");
         var approvalEnv = ApprovalRequestHelper.AddRequestIdEnvironment(env, requestId!);
 
-        var approve = await ctx.Commands.RunInWslAsync(
-            distro,
-            $"""{ctx.WslPathPrefix} && {ApprovalRequestHelper.ApprovalCommand(ApprovalRequestKind.Device)}""",
+        var approve = await ctx.RunOpenClawAsync(
+            ApprovalRequestHelper.ApprovalArgs(ApprovalRequestKind.Device, ctx.IsNative(), requestId!),
             TimeSpan.FromSeconds(30), approvalEnv, ct);
 
         ctx.Logger.Info($"Approve result: exit={approve.ExitCode}");
@@ -2335,9 +2436,8 @@ public sealed class PairNodeStep : SetupStep
         if (string.IsNullOrWhiteSpace(requestId))
         {
             approvalKind = ApprovalRequestKind.Node;
-            var pending = await ctx.Commands.RunInWslAsync(
-                distro,
-                $"""{ctx.WslPathPrefix} && openclaw nodes list --json""",
+            var pending = await ctx.RunOpenClawAsync(
+                "nodes list --json",
                 TimeSpan.FromSeconds(30), env, ct);
 
             ctx.Logger.Info($"Node pending list: exit={pending.ExitCode}");
@@ -2361,9 +2461,8 @@ public sealed class PairNodeStep : SetupStep
         ctx.Logger.Info($"Approving node pairing request: {requestId}");
         var approvalEnv = ApprovalRequestHelper.AddRequestIdEnvironment(env, requestId!);
 
-        var approve = await ctx.Commands.RunInWslAsync(
-            distro,
-            $"""{ctx.WslPathPrefix} && {ApprovalRequestHelper.ApprovalCommand(approvalKind)}""",
+        var approve = await ctx.RunOpenClawAsync(
+            ApprovalRequestHelper.ApprovalArgs(approvalKind, ctx.IsNative(), requestId!),
             TimeSpan.FromSeconds(30), approvalEnv, ct);
 
         ctx.Logger.Info($"Node approve result: exit={approve.ExitCode}");
@@ -2422,9 +2521,8 @@ public sealed class VerifyEndToEndStep : SetupStep
     public override async Task<StepResult> ExecuteAsync(SetupContext ctx, CancellationToken ct)
     {
         // Verify gateway is still healthy
-        var distro = ctx.DistroName!;
-        var status = await ctx.Commands.RunInWslAsync(
-            distro, $"{ctx.WslPathPrefix} && openclaw gateway status --json", TimeSpan.FromSeconds(15), ct: ct);
+        var status = await ctx.RunOpenClawAsync(
+            "gateway status --json", TimeSpan.FromSeconds(15), null, ct);
 
         if (status.ExitCode != 0 || !status.Stdout.Contains("running", StringComparison.OrdinalIgnoreCase))
             return StepResult.Fail("Gateway is not running");
@@ -2484,9 +2582,8 @@ public sealed class VerifyEndToEndStep : SetupStep
 
         for (var i = 0; i < maxDrainIterations; i++)
         {
-            var preview = await ctx.Commands.RunInWslAsync(
-                distro,
-                $"""{pathPrefix} && openclaw devices approve --latest --json""",
+            var preview = await ctx.RunOpenClawAsync(
+                "devices approve --latest --json",
                 TimeSpan.FromSeconds(15), env, ct);
 
             if (preview.Stdout.Contains("No pending", StringComparison.OrdinalIgnoreCase) ||
@@ -2500,9 +2597,8 @@ public sealed class VerifyEndToEndStep : SetupStep
             {
                 ctx.Logger.Info($"Draining pending device approval: {parsed.RequestId}");
                 var approvalEnv = ApprovalRequestHelper.AddRequestIdEnvironment(env, parsed.RequestId!);
-                var approve = await ctx.Commands.RunInWslAsync(
-                    distro,
-                    $"""{pathPrefix} && {ApprovalRequestHelper.ApprovalCommand(ApprovalRequestKind.Device)}""",
+                var approve = await ctx.RunOpenClawAsync(
+                    ApprovalRequestHelper.ApprovalArgs(ApprovalRequestKind.Device, ctx.IsNative(), parsed.RequestId!),
                     TimeSpan.FromSeconds(15), approvalEnv, ct);
 
                 if (approve.ExitCode != 0)
@@ -2550,9 +2646,8 @@ public sealed class VerifyEndToEndStep : SetupStep
 
         for (var i = 0; i < maxDrainIterations; i++)
         {
-            var nodeList = await ctx.Commands.RunInWslAsync(
-                distro,
-                $"""{pathPrefix} && openclaw nodes list --json""",
+            var nodeList = await ctx.RunOpenClawAsync(
+                "nodes list --json",
                 TimeSpan.FromSeconds(15), env, ct);
 
             var parsed = ApprovalRequestHelper.TryReadPendingRequestIds(nodeList.Stdout.Trim());
@@ -2571,9 +2666,8 @@ public sealed class VerifyEndToEndStep : SetupStep
             {
                 ctx.Logger.Info($"Draining pending node approval: {requestId}");
                 var approvalEnv = ApprovalRequestHelper.AddRequestIdEnvironment(env, requestId);
-                var approve = await ctx.Commands.RunInWslAsync(
-                    distro,
-                    $"""{pathPrefix} && {ApprovalRequestHelper.ApprovalCommand(ApprovalRequestKind.Node)}""",
+                var approve = await ctx.RunOpenClawAsync(
+                    ApprovalRequestHelper.ApprovalArgs(ApprovalRequestKind.Node, ctx.IsNative(), requestId),
                     TimeSpan.FromSeconds(15), approvalEnv, ct);
 
                 if (approve.ExitCode != 0)

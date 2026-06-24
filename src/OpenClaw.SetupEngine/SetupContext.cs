@@ -315,6 +315,9 @@ public sealed class SetupContext
         return Commands.RunInWslAsync(DistroName!, $"{WslPathPrefix} && openclaw {args}", timeout, environment, ct);
     }
 
+    /// <summary>True when setup is provisioning a native Windows gateway (no WSL).</summary>
+    public bool IsNative() => Config.InstallKind == GatewayInstallKind.Native;
+
     public SetupContext(SetupConfig config, SetupLogger logger, TransactionJournal journal, ICommandRunner commands, CancellationToken ct)
     {
         Config = config;

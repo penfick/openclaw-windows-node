@@ -20,6 +20,24 @@ internal static partial class ApprovalRequestHelper
     internal static string ApprovalCommand(ApprovalRequestKind kind)
         => $"openclaw {Noun(kind)} approve \"${RequestIdEnvironmentVariable}\" --json";
 
+    /// <summary>
+    /// Approve args WITHOUT the <c>openclaw</c> prefix (SetupContext.RunOpenClawAsync adds it),
+    /// install-kind aware:
+    /// <list type="bullet">
+    /// <item><b>WSL</b>: keeps the <c>$OPENCLAW_APPROVAL_REQUEST_ID</c> placeholder — bash expands it
+    ///   from the env set by <see cref="AddRequestIdEnvironment"/>.</item>
+    /// <item><b>Native</b>: embeds the validated <paramref name="requestId"/> directly — cmd does not
+    ///   expand <c>$VAR</c>.</item>
+    /// </list>
+    /// </summary>
+    internal static string ApprovalArgs(ApprovalRequestKind kind, bool native, string requestId)
+    {
+        var noun = Noun(kind);
+        return native
+            ? $"{noun} approve \"{requestId.Trim()}\" --json"
+            : $"{noun} approve \"${RequestIdEnvironmentVariable}\" --json";
+    }
+
     internal static Dictionary<string, string> AddRequestIdEnvironment(
         IReadOnlyDictionary<string, string> environment,
         string requestId)
