@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OpenClaw.Connection;
 
 namespace OpenClaw.SetupEngine;
 
@@ -10,6 +11,14 @@ public sealed class SetupConfig
     public string DistroName { get; set; } = "OpenClawGateway";
     public int GatewayPort { get; set; } = 18789;
     public string BaseDistro { get; set; } = "Ubuntu-24.04";
+
+    /// <summary>
+    /// How the gateway is installed and run.
+    /// Wsl = app-owned WSL distro (historical default; runs the Linux openclaw gateway inside WSL).
+    /// Native = native Windows process via install.ps1 + Scheduled Task (no WSL).
+    /// Defaults to Wsl so existing config/behavior is unchanged.
+    /// </summary>
+    public GatewayInstallKind InstallKind { get; set; } = GatewayInstallKind.Wsl;
     public bool SkipPermissions { get; set; }
     public bool SkipWizard { get; set; }
     public bool Headless { get; set; }
@@ -282,6 +291,29 @@ public sealed class SetupContext
 
     // WSL PATH prefix using configured user
     public string WslPathPrefix => WslConstants.GetPathPrefix(Config.Wsl.User);
+
+    /// <summary>
+    /// Run <c>openclaw &lt;args&gt;</c> via the configured install kind, so setup steps stay
+    /// install-kind-agnostic for openclaw invocations:
+    /// <list type="bullet">
+    /// <item><b>Wsl</b> → <c>bash -lc "PATH_PREFIX &amp;&amp; openclaw &lt;args&gt;"</c> in the app-owned distro
+    ///   (identical to the legacy direct <see cref="ICommandRunner.RunInWslAsync"/> call — zero behavior change).</item>
+    /// <item><b>Native</b> → <c>cmd /c openclaw &lt;args&gt;</c> as a native Windows process (PATH resolves openclaw.cmd).</item>
+    /// </list>
+    /// Non-openclaw WSL commands (wsl.conf, useradd, systemctl, ss, journalctl, curl-installer) stay on
+    /// <see cref="ICommandRunner.RunInWslAsync"/> and live in WSL-only steps that skip for native.
+    /// </summary>
+    public Task<CommandResult> RunOpenClawAsync(
+        string args,
+        TimeSpan timeout,
+        IReadOnlyDictionary<string, string>? environment = null,
+        CancellationToken ct = default)
+    {
+        if (Config.InstallKind == GatewayInstallKind.Native)
+            return Commands.RunAsync("cmd.exe", new[] { "/c", $"openclaw {args}" }, timeout, environment, null, null, ct);
+
+        return Commands.RunInWslAsync(DistroName!, $"{WslPathPrefix} && openclaw {args}", timeout, environment, ct);
+    }
 
     public SetupContext(SetupConfig config, SetupLogger logger, TransactionJournal journal, ICommandRunner commands, CancellationToken ct)
     {
