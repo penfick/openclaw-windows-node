@@ -54,6 +54,156 @@ public sealed partial class SkillsPage : Page
         {
             _ = CurrentApp.GatewayClient.RequestSkillsStatusAsync(GetSelectedAgentId());
         }
+
+        // 公司市场 tab：首次导航 CompanySkillsPage（在 Frame 中复用）
+        if (CompanyFrame.Content == null)
+        {
+            CompanyFrame.Navigate(typeof(CompanySkillsPage));
+        }
+    }
+
+    // ── 公共市场（skills.sh，走网关 skills.search：关键词搜索 + 客户端分页 + 已安装检查）──
+
+    private const int PublicPageSize = 12;       // 客户端每页卡片数
+    private const string PublicDefaultKeyword = "tool";
+    private List<PublicMarketSkill> _publicAll = new();
+    private int _publicPage = 1;
+    private string _publicKeyword = PublicDefaultKeyword;
+    private bool _publicLoaded;
+    // 本次会话通过公共市场装过的 slug（用于把卡片标成「已安装」）。
+    // 不用 _allSkills 全量 slug 匹配——同名技能（不同 owner）会全部误标，而
+    // bundled 技能（如 1password）本就不是从 skills.sh 市场来的，不该标。
+    private readonly HashSet<string> _installedThisSession = new(StringComparer.OrdinalIgnoreCase);
+    private int PublicPageCount => (_publicAll.Count + PublicPageSize - 1) / PublicPageSize;
+
+    private void OnPivotSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // 首次切到「公共市场」时用默认词搜索（skills.sh 不支持无关键词浏览）
+        if (SkillsPivot.SelectedItem is PivotItem pi && pi.Header?.ToString() == "公共市场" && !_publicLoaded)
+            _ = SearchPublicAsync(_publicKeyword);
+    }
+
+    private void OnPublicSearchKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == global::Windows.System.VirtualKey.Enter) DoPublicSearch();
+    }
+
+    private void OnPublicSearchClick(object sender, RoutedEventArgs e) => DoPublicSearch();
+
+    private void DoPublicSearch()
+    {
+        var kw = PublicSearchBox.Text.Trim();
+        _publicKeyword = string.IsNullOrEmpty(kw) ? PublicDefaultKeyword : kw;
+        _ = SearchPublicAsync(_publicKeyword);
+    }
+
+    private void OnPublicPrevClick(object sender, RoutedEventArgs e)
+    {
+        if (_publicPage > 1) RenderPublicPage(_publicPage - 1);
+    }
+
+    private void OnPublicNextClick(object sender, RoutedEventArgs e)
+    {
+        if (_publicPage < PublicPageCount) RenderPublicPage(_publicPage + 1);
+    }
+
+    /// <summary>调网关 skills.search（ClawHub）拉取结果，存入 _publicAll。</summary>
+    private async Task SearchPublicAsync(string keyword)
+    {
+        var client = CurrentApp.GatewayClient;
+        if (client == null) { PublicStatusText.Text = "未连接到网关。"; return; }
+
+        PublicProgress.IsActive = true;
+        PublicPrevBtn.IsEnabled = false;
+        PublicNextBtn.IsEnabled = false;
+        try
+        {
+            _publicAll = await SkillHubClient.SearchAsync(client, keyword);
+            _publicKeyword = keyword;
+            _publicLoaded = true;
+            RenderPublicPage(1);
+        }
+        catch (Exception ex)
+        {
+            PublicStatusText.Text = $"搜索失败：{ex.Message}";
+            PublicGrid.ItemsSource = null;
+        }
+        finally
+        {
+            PublicProgress.IsActive = false;
+        }
+    }
+
+    /// <summary>已安装 slug 集合：_allSkills（skills.status 的 skillKey）+ _installedThisSession。
+    /// 注：skillKey 就是 slug，但不同来源/owner 可能共享 slug（workspace 的 pptx-generator vs
+    /// ClawHub 的 pptx-generator），无法从 source 区分（ClawHub 装的也落 workspace），所以个别同名
+    /// 技能可能误标——这是数据层面的限制，靠 slug 匹配已是最优。</summary>
+    private HashSet<string> GetInstalledSlugs()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in _allSkills)
+            if (!string.IsNullOrEmpty(s.SkillKey)) set.Add(s.SkillKey);
+        foreach (var slug in _installedThisSession) set.Add(slug);
+        return set;
+    }
+
+    /// <summary>客户端分页：从 _publicAll 切出第 page 页渲染。</summary>
+    private void RenderPublicPage(int page)
+    {
+        _publicPage = page;
+        var installed = GetInstalledSlugs();
+
+        var pageItems = _publicAll
+            .Skip((page - 1) * PublicPageSize)
+            .Take(PublicPageSize)
+            .Select(s => new PublicSkillCard(s, installed.Contains(s.Slug)))
+            .ToList();
+        PublicGrid.ItemsSource = pageItems;
+
+        var totalPages = PublicPageCount;
+        var isDefault = string.IsNullOrEmpty(_publicKeyword) || _publicKeyword == PublicDefaultKeyword;
+        var kwTxt = isDefault ? "热门技能" : $"「{_publicKeyword}」";
+        PublicStatusText.Text = _publicAll.Count > 0
+            ? $"{kwTxt} 共 {_publicAll.Count} 个 · 第 {page}/{totalPages} 页"
+            : $"未找到匹配 {kwTxt} 的技能，换个关键词试试。";
+
+        PublicPageText.Text = totalPages > 1 ? $"第 {page} / {totalPages} 页" : "";
+        PublicPrevBtn.IsEnabled = page > 1;
+        PublicNextBtn.IsEnabled = page < totalPages;
+    }
+
+    private async void OnPublicDetailClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag?.ToString() is not { } slug) return;
+        await new SkillDetailDialog(slug) { XamlRoot = this.XamlRoot }.ShowAsync();
+    }
+
+    private async void OnPublicInstallClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag?.ToString() is not { } slug) return;
+        var client = CurrentApp.GatewayClient;
+        if (client == null) { PublicStatusText.Text = "未连接到网关。"; return; }
+
+        PublicStatusText.Text = $"正在安装 {slug}…";
+        btn.IsEnabled = false;
+        try
+        {
+            // skills.install ClawHub 模式：{ source:"clawhub", slug }。SendWizardRequestAsync
+            // 在网关返回 ok:false 时抛异常，所以能拿到真实失败原因（之前 InstallSkillAsync
+            // 是 fire-and-forget，发出去就当成功，实际没装）。
+            await client.SendWizardRequestAsync("skills.install",
+                new { source = "clawhub", slug }, timeoutMs: 60_000);
+
+            _installedThisSession.Add(slug);
+            RenderPublicPage(_publicPage);                       // 当前页这张标成「已安装」
+            _ = client.RequestSkillsStatusAsync(GetSelectedAgentId()); // 已安装 tab 刷新
+            PublicStatusText.Text = $"已安装：{slug}";
+        }
+        catch (Exception ex)
+        {
+            PublicStatusText.Text = $"安装失败 [{slug}]：{ex.Message}";
+            btn.IsEnabled = true;
+        }
     }
 
     private void OnAppStateChanged(object? sender, PropertyChangedEventArgs e)
@@ -163,12 +313,18 @@ public sealed partial class SkillsPage : Page
             {
                 var emoji = emojiEl.GetString() ?? "";
                 if (!string.IsNullOrEmpty(emoji))
-                    s.Name = $"{emoji} {s.Name}";
+                    s.Emoji = emoji;
             }
             if (item.TryGetProperty("description", out var descEl))
                 s.Description = descEl.GetString() ?? "";
             if (item.TryGetProperty("source", out var srcEl))
                 s.Source = srcEl.GetString() ?? "";
+            if (item.TryGetProperty("baseDir", out var baseDirEl))
+                s.BaseDir = baseDirEl.GetString() ?? "";
+            if (item.TryGetProperty("homepage", out var homeEl))
+                s.Homepage = homeEl.GetString() ?? "";
+            if (item.TryGetProperty("bundled", out var bundledEl) && bundledEl.ValueKind == JsonValueKind.True)
+                s.Bundled = true;
             if (item.TryGetProperty("skillKey", out var keyEl))
                 s.SkillKey = keyEl.GetString() ?? s.Id;
             else
@@ -197,13 +353,13 @@ public sealed partial class SkillsPage : Page
         var enabled = _allSkills.Where(s => s.IsEnabled).ToList();
         var disabled = _allSkills.Where(s => !s.IsEnabled).ToList();
 
-        EnabledPanel.Children.Clear();
-        DisabledPanel.Children.Clear();
+        EnabledPanel.Items.Clear();
+        DisabledPanel.Items.Clear();
 
         foreach (var s in enabled)
-            EnabledPanel.Children.Add(BuildCard(s));
+            EnabledPanel.Items.Add(BuildCard(s));
         foreach (var s in disabled)
-            DisabledPanel.Children.Add(BuildCard(s));
+            DisabledPanel.Items.Add(BuildCard(s));
 
         EnabledHeaderText.Text = LocalizationHelper.Format("SkillsPage_EnabledHeaderFormat", enabled.Count);
         DisabledHeaderText.Text = LocalizationHelper.Format("SkillsPage_DisabledHeaderFormat", disabled.Count);
@@ -224,26 +380,30 @@ public sealed partial class SkillsPage : Page
         }
     }
 
-    private Grid BuildCard(SkillData s)
+    private Border BuildCard(SkillData s)
     {
-        var card = new Grid
+        var card = new Border
         {
-            Padding = new Thickness(16, 10, 16, 12),
-            Margin = new Thickness(0, 2, 0, 0),
-            CornerRadius = new CornerRadius(6),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(14),
+            Margin = new Thickness(4),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        card.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        card.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var root = new StackPanel { Spacing = 6 };
+        double contentOpacity = s.IsEnabled ? 1.0 : 0.55;
 
-        double contentOpacity = s.IsEnabled ? 1.0 : 0.5;
-
-        // Row 0, Col 0: Name + badge
-        var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Opacity = contentOpacity };
-        nameRow.Children.Add(new TextBlock { Text = s.Name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        // \u2500\u2500 header: emoji + name + badge \u2500\u2500
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        if (!string.IsNullOrEmpty(s.Emoji))
+            header.Children.Add(new TextBlock { Text = s.Emoji, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Opacity = contentOpacity });
+        header.Children.Add(new TextBlock
+        {
+            Text = s.Name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Opacity = contentOpacity
+        });
 
         var badgeBgKey = s.IsEnabled ? "SystemFillColorSuccessBackgroundBrush" : "ControlFillColorSecondaryBrush";
         var badgeFgKey = s.IsEnabled ? "SystemFillColorSuccessBrush" : "TextFillColorSecondaryBrush";
@@ -263,52 +423,103 @@ public sealed partial class SkillsPage : Page
             Foreground = (Brush)Application.Current.Resources[badgeFgKey],
             VerticalAlignment = VerticalAlignment.Center
         };
-        nameRow.Children.Add(badge);
-        Grid.SetRow(nameRow, 0);
-        Grid.SetColumn(nameRow, 0);
-        card.Children.Add(nameRow);
+        header.Children.Add(badge);
+        root.Children.Add(header);
 
-        // Row 0, Col 1: Source
-        var source = new TextBlock
-        {
-            Text = s.Source, FontSize = 11, FontFamily = new FontFamily("Consolas"),
-            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
-            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0),
-            Opacity = contentOpacity
-        };
-        Grid.SetRow(source, 0);
-        Grid.SetColumn(source, 1);
-        card.Children.Add(source);
-
-        // Row 0, Col 2: Toggle button
-        var toggleBtn = new Button
-        {
-            Tag = s.SkillKey,
-            Padding = new Thickness(6, 4, 6, 4), MinWidth = 0, MinHeight = 0
-        };
-        ToolTipService.SetToolTip(toggleBtn, s.IsEnabled ? "Disable" : "Enable");
-        toggleBtn.Content = new FontIcon { Glyph = s.IsEnabled ? "\uE769" : "\uE768", FontSize = 12 };
-        toggleBtn.Click += OnToggleSkillClick;
-        Grid.SetRow(toggleBtn, 0);
-        Grid.SetColumn(toggleBtn, 2);
-        card.Children.Add(toggleBtn);
-
-        // Row 1: Description
+        // \u2500\u2500 description\uff08\u9650\u5236 2 \u884c + \u7701\u7565\u53f7\uff0c\u907f\u514d\u957f\u63cf\u8ff0\u628a\u5e95\u90e8\u6309\u94ae\u6324\u51fa\u53ef\u89c6\u533a\uff09\u2500\u2500
         if (!string.IsNullOrEmpty(s.Description))
         {
-            var desc = new TextBlock
+            root.Children.Add(new TextBlock
             {
-                Text = s.Description, FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxLines = 2,
-                Margin = new Thickness(0, 4, 0, 0),
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-                Opacity = contentOpacity
-            };
-            Grid.SetRow(desc, 1);
-            Grid.SetColumnSpan(desc, 3);
-            card.Children.Add(desc);
+                Text = s.Description, FontSize = 11, TextWrapping = TextWrapping.Wrap, MaxLines = 2,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"], Opacity = contentOpacity
+            });
         }
 
+        // \u2500\u2500 footer: source + upload + toggle \u2500\u2500
+        var footer = new Grid { ColumnSpacing = 6, Margin = new Thickness(0, 6, 0, 0) };
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var srcText = s.Bundled ? "\u5185\u7F6E\u6280\u80FD" : (string.IsNullOrEmpty(s.Source) ? "" : s.Source);
+        footer.Children.Add(new TextBlock
+        {
+            Text = srcText, FontSize = 10, FontFamily = new FontFamily("Consolas"),
+            Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
+        });
+
+        // \u4E0A\u4F20\u5230\u516C\u53F8\u5E02\u573A
+        var uploadBtn = new Button { Tag = s.SkillKey, Padding = new Thickness(8, 4, 8, 4), MinWidth = 0, MinHeight = 0 };
+        uploadBtn.Content = new TextBlock { Text = "\u4E0A\u4F20", FontSize = 11 };
+        ToolTipService.SetToolTip(uploadBtn, "\u4E0A\u4F20\u5230\u516C\u53F8\u5E02\u573A");
+        uploadBtn.Click += OnUploadClick;
+        Grid.SetColumn(uploadBtn, 2);
+        footer.Children.Add(uploadBtn);
+
+        // \u8BE6\u60C5\u6309\u94AE\uFF08col 1\uFF09
+        var detailBtn = new Button { Tag = s.SkillKey, Padding = new Thickness(8, 4, 8, 4), MinWidth = 0, MinHeight = 0 };
+        detailBtn.Content = new TextBlock { Text = "\u8BE6\u60C5", FontSize = 11 };
+        ToolTipService.SetToolTip(detailBtn, "\u67E5\u770B\u8BE6\u60C5");
+        detailBtn.Click += OnInstalledDetailClick;
+        Grid.SetColumn(detailBtn, 1);
+        footer.Children.Add(detailBtn);
+
+        // \u542F\u7528/\u7981\u7528
+        var toggleBtn = new Button { Tag = s.SkillKey, Padding = new Thickness(8, 4, 8, 4), MinWidth = 0, MinHeight = 0 };
+        ToolTipService.SetToolTip(toggleBtn, s.IsEnabled ? "\u7981\u7528" : "\u542F\u7528");
+        toggleBtn.Content = new FontIcon { Glyph = s.IsEnabled ? "\uE769" : "\uE768", FontSize = 12 };
+        toggleBtn.Click += OnToggleSkillClick;
+        Grid.SetColumn(toggleBtn, 3);
+        footer.Children.Add(toggleBtn);
+
+        root.Children.Add(footer);
+        card.Child = root;
         return card;
+    }
+
+    // \u2500\u2500 \u4E0A\u4F20\u5230\u516C\u53F8\u5E02\u573A \u2500\u2500
+
+    private async void OnInstalledDetailClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string skillKey) return;
+        var skill = _allSkills.FirstOrDefault(s => s.SkillKey == skillKey);
+        if (skill == null) return;
+
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(skill.Source)) parts.Add($"来源 {skill.Source}");
+        parts.Add(skill.Bundled ? "内置技能" : "工作区技能");
+        if (!string.IsNullOrEmpty(skill.Homepage)) parts.Add(skill.Homepage);
+        var localMeta = string.Join("   ·   ", parts);
+        // 先试 skills.detail(skillKey) 拿作者/版本/完整说明；非 ClawHub 技能回退本地
+        await new SkillDetailDialog(skill.SkillKey, skill.Name, skill.Description, localMeta) { XamlRoot = this.XamlRoot }.ShowAsync();
+    }
+
+    private async void OnUploadClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string skillKey) return;
+        var skill = _allSkills.FirstOrDefault(s => s.SkillKey == skillKey);
+        if (skill == null) return;
+
+        if (string.IsNullOrEmpty(skill.BaseDir))
+        {
+            ShowInstalledStatus("\u8BE5\u6280\u80FD\u65E0\u672C\u5730\u76EE\u5F55\uFF0C\u65E0\u6CD5\u4E0A\u4F20\u3002");
+            return;
+        }
+
+        // \u6253\u5305\u8D70 wsl.exe\uFF08\u4E0D\u4F9D\u8D56 UNC\uFF09\uFF0C\u5931\u8D25\u7531\u5F39\u6846\u5185\u7684 PackSkill \u629B\u51FA\u5E76\u663E\u793A\u3002
+        var dialog = new UploadSkillDialog { XamlRoot = this.XamlRoot };
+        dialog.Setup(skill.Name, skill.SkillKey, skill.Description, skill.BaseDir);
+        await dialog.ShowAsync();
+    }
+
+    private void ShowInstalledStatus(string msg)
+    {
+        InstalledStatusText.Text = msg;
+        InstalledStatusText.Visibility = Visibility.Visible;
     }
 
     private class SkillData
@@ -318,6 +529,35 @@ public sealed partial class SkillsPage : Page
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
         public string Source { get; set; } = "";
+        public string Emoji { get; set; } = "";
+        public string BaseDir { get; set; } = "";
+        public string Homepage { get; set; } = "";
+        public bool Bundled { get; set; }
         public bool IsEnabled { get; set; } = true;
     }
+}
+
+public sealed class PublicSkillCard
+{
+    private readonly PublicMarketSkill _item;
+    public PublicSkillCard(PublicMarketSkill item, bool isInstalled) { _item = item; IsInstalled = isInstalled; }
+
+    public string Slug => _item.Slug;
+    public string Name => string.IsNullOrEmpty(_item.Name) ? _item.Slug : _item.Name;
+    public string Description => _item.Summary;
+    public string AuthorLine => string.IsNullOrEmpty(_item.Author) ? "" : $"by {_item.Author}";
+    public string StatsLine
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (_item.Downloads > 0) parts.Add($"⬇ {_item.Downloads}");
+            if (!string.IsNullOrEmpty(_item.Version)) parts.Add($"v{_item.Version}");
+            return string.Join("   ", parts);
+        }
+    }
+
+    public bool IsInstalled { get; }
+    public string InstallLabel => IsInstalled ? "已安装" : "安装";
+    public bool CanInstall => !IsInstalled;
 }

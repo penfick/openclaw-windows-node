@@ -22,14 +22,10 @@ public sealed class MxcAvailability
     /// </summary>
     public const string WxcExecOverrideEnvVar = "OPENCLAW_WXC_EXEC";
 
-    private const int SupportedBuild = 26300;
-
-    // TODO: This is all temporary and a moment in time; feature gate this correctly ASAP.
-    /// <summary>
-    /// Temporary MXC support table: only build 26300 with UBR 8289+ is enabled.
-    /// All other builds are blocked until validated and the table is updated.
-    /// </summary>
-    private const int MinSupportedUbr = 8289;
+    // MXC (AppContainer) 在 Win11 24H2 (build 26100) 起的 AppContainer primitives 均可用。
+    // 原代码硬门控单一 build 26300/UBR 8289（Insider 版本），把正式版 26200/26100 判为
+    // unsupported → Node Sandbox unavailable。放宽到 24H2+，覆盖主流 Win11 正式版。
+    private const int MinSupportedBuild = 26100;
 
     public bool IsAppContainerAvailable { get; }
     public bool IsIsolationSessionAvailable { get; }
@@ -114,17 +110,9 @@ public sealed class MxcAvailability
 
     internal static string? GetWindowsBuildUnsupportedReason(int build, int ubr)
     {
-        if (build != SupportedBuild)
-            return $"Windows build {build} is not MXC supported build {SupportedBuild}.";
-
-        if (ubr < MinSupportedUbr)
-        {
-            return
-                $"Windows UBR {ubr} below MXC minimum {MinSupportedUbr} " +
-                $"(for build {SupportedBuild}). " +
-                "Install latest cumulative update.";
-        }
-
+        _ = ubr; // UBR 不再门控（原 8289 是 Insider 版本号），保留参数避免破坏调用方
+        if (build < MinSupportedBuild)
+            return $"Windows build {build} is below MXC minimum {MinSupportedBuild} (Win11 24H2+ required).";
         return null;
     }
 

@@ -4,73 +4,158 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid HorizontalAlignment="Stretch">
-            <StackPanel Padding="24" Spacing="8"
-                        HorizontalAlignment="Stretch" MaxWidth="900">
+    <Grid>
+        <Pivot x:Name="SkillsPivot" SelectionChanged="OnPivotSelectionChanged">
+            <!-- 已安装（网关 skills 管理） -->
+            <PivotItem Header="已安装">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Padding="24" Spacing="8" HorizontalAlignment="Stretch" MaxWidth="900">
 
-                <!-- Header -->
-                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
-                    <TextBlock x:Uid="SkillsPage_Skills" Text="🧩 Skills" Style="{StaticResource TitleTextBlockStyle}"/>
-                    <TextBlock x:Name="CountText" Text="" VerticalAlignment="Center"
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                </StackPanel>
-                <ComboBox x:Uid="AgentFilterCombo" x:Name="AgentFilterCombo" Header="Agent"
-                          MinWidth="200" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
+                            <TextBlock x:Uid="SkillsPage_Skills" Text="🧩 Skills" Style="{StaticResource TitleTextBlockStyle}"/>
+                            <TextBlock x:Name="CountText" Text="" VerticalAlignment="Center"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <ComboBox x:Uid="AgentFilterCombo" x:Name="AgentFilterCombo" Header="Agent"
+                                  MinWidth="200" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="InstalledStatusText" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" Visibility="Collapsed"/>
 
-                <!-- Skills Groups -->
-                <StackPanel x:Name="SkillsGroups" Spacing="8" Visibility="Collapsed">
-                    <Expander x:Name="EnabledExpander"
-                              IsExpanded="True"
-                              HorizontalAlignment="Stretch"
-                              HorizontalContentAlignment="Stretch">
-                        <Expander.Header>
-                            <TextBlock x:Uid="SkillsPage_EnabledHeader" x:Name="EnabledHeaderText" Text="Enabled"
-                                       Style="{StaticResource BodyStrongTextBlockStyle}"
+                        <StackPanel x:Name="SkillsGroups" Spacing="8" Visibility="Collapsed">
+                            <Expander x:Name="EnabledExpander"
+                                      IsExpanded="True"
+                                      HorizontalAlignment="Stretch"
+                                      HorizontalContentAlignment="Stretch">
+                                <Expander.Header>
+                                    <TextBlock x:Uid="SkillsPage_EnabledHeader" x:Name="EnabledHeaderText" Text="Enabled"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                                               VerticalAlignment="Center"/>
+                                </Expander.Header>
+                                <ItemsControl x:Name="EnabledPanel">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="300"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </Expander>
+
+                            <Expander x:Name="DisabledExpander"
+                                      IsExpanded="True"
+                                      HorizontalAlignment="Stretch"
+                                      HorizontalContentAlignment="Stretch"
+                                      Visibility="Collapsed">
+                                <Expander.Header>
+                                    <TextBlock x:Uid="SkillsPage_DisabledHeader" x:Name="DisabledHeaderText" Text="Disabled"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                                               VerticalAlignment="Center"/>
+                                </Expander.Header>
+                                <ItemsControl x:Name="DisabledPanel">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="300"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </Expander>
+                        </StackPanel>
+
+                        <StackPanel x:Name="LoadingState" Orientation="Horizontal" Spacing="12"
+                                    HorizontalAlignment="Center" Margin="0,32,0,0"
+                                    Visibility="Collapsed">
+                            <ProgressRing IsActive="True" Width="24" Height="24"/>
+                            <TextBlock x:Uid="SkillsPage_LoadingSkills" Text="Loading skills..."
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        VerticalAlignment="Center"/>
-                        </Expander.Header>
-                        <StackPanel x:Name="EnabledPanel" Spacing="4"/>
-                    </Expander>
+                        </StackPanel>
 
-                    <Expander x:Name="DisabledExpander"
-                              IsExpanded="True"
-                              HorizontalAlignment="Stretch"
-                              HorizontalContentAlignment="Stretch"
-                              Visibility="Collapsed">
-                        <Expander.Header>
-                            <TextBlock x:Uid="SkillsPage_DisabledHeader" x:Name="DisabledHeaderText" Text="Disabled"
-                                       Style="{StaticResource BodyStrongTextBlockStyle}"
-                                       VerticalAlignment="Center"/>
-                        </Expander.Header>
-                        <StackPanel x:Name="DisabledPanel" Spacing="4"/>
-                    </Expander>
-                </StackPanel>
+                        <StackPanel x:Name="EmptyState" Visibility="Collapsed"
+                                    HorizontalAlignment="Center" Spacing="8" Margin="0,48,0,0">
+                            <FontIcon Glyph="&#xEA86;" FontSize="48" HorizontalAlignment="Center"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Uid="SkillsPage_NoSkillsInstalled" Text="No skills installed"
+                                       Style="{StaticResource SubtitleTextBlockStyle}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock x:Uid="SkillsPage_SkillsExtendYourAgent" Text="Skills extend your agent's capabilities. Install skills via the CLI or ClawHub."
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="320"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
 
-                <!-- Loading State -->
-                <StackPanel x:Name="LoadingState" Orientation="Horizontal" Spacing="12"
-                            HorizontalAlignment="Center" Margin="0,32,0,0"
-                            Visibility="Collapsed">
-                    <ProgressRing IsActive="True" Width="24" Height="24"/>
-                    <TextBlock x:Uid="SkillsPage_LoadingSkills" Text="Loading skills..."
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
+            <!-- 公司市场（复用 CompanySkillsPage） -->
+            <PivotItem Header="公司市场">
+                <Frame x:Name="CompanyFrame"/>
+            </PivotItem>
 
-                <!-- Empty State -->
-                <StackPanel x:Name="EmptyState" Visibility="Collapsed"
-                            HorizontalAlignment="Center" Spacing="8" Margin="0,48,0,0">
-                    <FontIcon Glyph="&#xEA86;" FontSize="48" HorizontalAlignment="Center"
-                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                    <TextBlock x:Uid="SkillsPage_NoSkillsInstalled" Text="No skills installed"
-                               Style="{StaticResource SubtitleTextBlockStyle}"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock x:Uid="SkillsPage_SkillsExtendYourAgent" Text="Skills extend your agent's capabilities. Install skills via the CLI or ClawHub."
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="320"/>
-                </StackPanel>
-            </StackPanel>
-        </Grid>
-    </ScrollViewer>
+            <!-- 公共市场（lightmake.site / skillhub：分页浏览 + 搜索 + 安装） -->
+            <PivotItem Header="公共市场">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 标题 + 搜索 -->
+                    <StackPanel Grid.Row="0" Spacing="8" Padding="24,16,24,8">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="公共 Skills 市场" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
+                            <ProgressRing x:Name="PublicProgress" IsActive="False" Width="16" Height="16" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="PublicSearchBox" Width="360" PlaceholderText="搜索技能（回车）…留空浏览全部" KeyDown="OnPublicSearchKeyDown"/>
+                            <Button Content="搜索" Click="OnPublicSearchClick" Padding="16,8"/>
+                        </StackPanel>
+                        <TextBlock x:Name="PublicStatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- 卡片网格 -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,0,24,8">
+                        <ItemsControl x:Name="PublicGrid">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsWrapGrid Orientation="Horizontal" ItemWidth="284"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="4" Width="276"
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1" CornerRadius="8" Padding="14">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding AuthorLine}" FontSize="10"
+                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" MaxLines="3"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" MinHeight="42"/>
+                                            <TextBlock Text="{Binding StatsLine}" FontSize="10"
+                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,6,0,0">
+                                                <Button Content="详情" Click="OnPublicDetailClick" Tag="{Binding Slug}" Padding="14,6" FontSize="12"/>
+                                                <Button Content="{Binding InstallLabel}" Click="OnPublicInstallClick" Tag="{Binding Slug}"
+                                                        IsEnabled="{Binding CanInstall}" Padding="14,6" FontSize="12"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- 分页 -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Padding="0,8,0,14">
+                        <Button x:Name="PublicPrevBtn" Content="‹ 上一页" Click="OnPublicPrevClick" Padding="12,5" FontSize="12"/>
+                        <TextBlock x:Name="PublicPageText" VerticalAlignment="Center" FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <Button x:Name="PublicNextBtn" Content="下一页 ›" Click="OnPublicNextClick" Padding="12,5" FontSize="12"/>
+                    </StackPanel>
+                </Grid>
+            </PivotItem>
+        </Pivot>
+    </Grid>
 </Page>

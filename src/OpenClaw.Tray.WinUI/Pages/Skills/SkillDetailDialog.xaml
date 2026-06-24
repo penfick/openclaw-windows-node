@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="OpenClawTray.Pages.SkillDetailDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="技能详情"
+    PrimaryButtonText="关闭"
+    MinWidth="600">
+
+    <Grid MinWidth="560">
+        <StackPanel x:Name="LoadingPanel" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" Margin="0,24">
+            <ProgressRing IsActive="True" Width="20" Height="20"/>
+            <TextBlock Text="加载中…" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <ScrollViewer x:Name="DetailContent" Visibility="Collapsed" MaxHeight="520" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
+            <StackPanel Spacing="10">
+                <TextBlock x:Name="NameTb" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap"/>
+                <TextBlock x:Name="MetaTb" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap"/>
+                <TextBlock x:Name="SummaryTb" FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Margin="0,4,0,0"/>
+
+                <TextBlock x:Name="DescHeader" Text="说明" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                <TextBlock x:Name="DescTb" FontSize="13" TextWrapping="Wrap"/>
+
+                <TextBlock x:Name="TagsTb" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock x:Name="ErrorTb" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Visibility="Collapsed" TextWrapping="Wrap" MaxWidth="520"/>
+    </Grid>
+</ContentDialog>

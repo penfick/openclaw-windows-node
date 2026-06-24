@@ -175,11 +175,24 @@
                 <SvgImageSource x:Key="Notifications_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Notifications.svg"/>
                 <SvgImageSource x:Key="Debug_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Debug.svg"/>
                 <SvgImageSource x:Key="Info_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Info.svg"/>
+                <SvgImageSource x:Key="Mcp_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Config.svg"/>
+                <SvgImageSource x:Key="Models_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Usage.svg"/>
+                <SvgImageSource x:Key="TianYin_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Voice.svg"/>
+                <SvgImageSource x:Key="TianYinAssistant_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Chat.svg"/>
+                <SvgImageSource x:Key="Account_Icon" UriSource="ms-appx:///Assets/SidebarIcons/Permissions.svg"/>
             </NavigationView.Resources>
 
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Uid="HubWindow_NavigationViewItem_82" x:Name="NavChat" Tag="chat" Content="Chat">
                     <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Chat_Icon}"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Name="NavTianYin" Content="天音" SelectsOnInvoked="False">
+                    <NavigationViewItem.Icon><ImageIcon Source="{StaticResource TianYin_Icon}"/></NavigationViewItem.Icon>
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem x:Name="NavTianYinAssistant" Tag="tianyin-assistant" Content="天音助手">
+                            <NavigationViewItem.Icon><ImageIcon Source="{StaticResource TianYinAssistant_Icon}"/></NavigationViewItem.Icon>
+                        </NavigationViewItem>
+                    </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
                 <NavigationViewItemSeparator/>
 
@@ -192,6 +205,12 @@
             </NavigationViewItem>
             <NavigationViewItem x:Uid="HubWindow_NavigationViewItem_97" x:Name="NavSkills" Tag="skills" Content="Skills">
                 <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Skills_Icon}"/></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="NavModels" Tag="models" Content="Models">
+                <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Models_Icon}"/></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="NavMcpConfig" Tag="mcp-config" Content="MCP 服务器">
+                <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Mcp_Icon}"/></NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem x:Uid="HubWindow_NavigationViewItem_109" x:Name="NavChannels" Tag="channels" Content="Channels">
                 <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Channels_Icon}"/></NavigationViewItem.Icon>
@@ -254,6 +273,9 @@
             </NavigationViewItem>
             <NavigationViewItem x:Uid="HubWindow_NavigationViewItem_148" Tag="info" Content="Info">
                 <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Info_Icon}"/></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="NavAccount" Tag="account" Content="账号">
+                <NavigationViewItem.Icon><ImageIcon Source="{StaticResource Account_Icon}"/></NavigationViewItem.Icon>
             </NavigationViewItem>
             </NavigationView.FooterMenuItems>
 

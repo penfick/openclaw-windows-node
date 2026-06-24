@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="OpenClawTray.Pages.AddProviderDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    PrimaryButtonClick="OnPrimaryClick"
+    SecondaryButtonClick="OnSecondaryClick"
+    MinWidth="660">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶部标题栏：标题（左）+ 关闭 ✕（右）。取消/关闭统一走右上角叉号 -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="DialogTitle" Grid.Column="0" Text="添加 Provider" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Click="OnCloseClick"
+                    Background="Transparent" BorderThickness="0" Padding="10,6" CornerRadius="6"
+                    FontSize="14" Content="✕" ToolTipService.ToolTip="关闭"
+                    VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- ═══ 步骤 1：选择 Provider ═══ -->
+        <ScrollViewer Grid.Row="1" x:Name="Step1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+            <StackPanel Spacing="12">
+                <TextBlock Text="选择 Provider 类型" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13"/>
+                <ItemsControl x:Name="ProviderList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" ItemWidth="150"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Click="OnProviderClick" Padding="0" Margin="3"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8">
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1" CornerRadius="8" Padding="10,8" MinHeight="60">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                        <TextBlock Text="{Binding Icon}" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}" FontSize="11"
+                                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                                   TextWrapping="WrapWholeWords" MaxWidth="132"/>
+                                    </StackPanel>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ═══ 步骤 2：填写凭据 ═══ -->
+        <ScrollViewer Grid.Row="1" x:Name="Step2" Visibility="Collapsed"
+                      VerticalScrollBarVisibility="Auto" MaxHeight="540" Padding="0,0,12,0">
+            <StackPanel Spacing="14" MinWidth="540">
+
+                <!-- Provider 信息头（紧凑） -->
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock x:Name="SelectedIcon" FontSize="20" VerticalAlignment="Center"/>
+                        <StackPanel Spacing="1">
+                            <TextBlock x:Name="SelectedName" FontWeight="SemiBold" FontSize="14"/>
+                            <TextBlock x:Name="SelectedHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 凭据表单：全部全宽左对齐，保持对齐 -->
+                <TextBox x:Name="IdBox" Header="Provider ID"
+                         HorizontalAlignment="Stretch" PlaceholderText="my-provider"/>
+
+                <TextBox x:Name="BaseUrlBox" Header="Base URL"
+                         HorizontalAlignment="Stretch"
+                         PlaceholderText="https://api.example.com/v1"/>
+
+                <PasswordBox x:Name="ApiKeyBox" Header="API Key"
+                             HorizontalAlignment="Stretch"
+                             PlaceholderText="sk-..."/>
+
+                <!-- API 协议类型（custom 才显示） + 获取可用模型：并排一行 -->
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel x:Name="ApiTypePanel" Grid.Column="0" Spacing="4" Visibility="Collapsed" MinWidth="240">
+                        <TextBlock Text="API 协议类型" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ComboBox x:Name="ApiTypeCombo" SelectedIndex="0" HorizontalAlignment="Stretch" MinWidth="240">
+                            <x:String>openai-completions</x:String>
+                            <x:String>openai-responses</x:String>
+                            <x:String>anthropic-messages</x:String>
+                            <x:String>google-generative-ai</x:String>
+                        </ComboBox>
+                    </StackPanel>
+                    <Button x:Name="FetchModelsButton" Grid.Column="1" Content="🔍 获取可用模型"
+                            Click="OnFetchModelsClick" Padding="14,10"
+                            VerticalAlignment="Bottom" HorizontalAlignment="Stretch"/>
+                </Grid>
+
+                <!-- 获取进度/状态（紧贴按钮下方，不占独立大行） -->
+                <StackPanel x:Name="FetchStatusRow" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                    <ProgressRing x:Name="FetchProgress" IsActive="False" Width="16" Height="16"/>
+                    <TextBlock x:Name="FetchStatus" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- 模型选择 -->
+                <ComboBox x:Name="ModelCombo" Header="选择模型" MinWidth="360"
+                          HorizontalAlignment="Stretch" Visibility="Collapsed"
+                          SelectionChanged="OnModelSelected"/>
+
+                <TextBlock x:Name="ErrorText" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Visibility="Collapsed" TextWrapping="Wrap"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</ContentDialog>

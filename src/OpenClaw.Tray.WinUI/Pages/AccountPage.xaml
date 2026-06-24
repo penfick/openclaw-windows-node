@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="OpenClawTray.Pages.AccountPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- NOTE: 文案暂硬编码中文（企业内部功能）。后续如需多语言，迁移到 Strings/<locale>/Resources.resw 并用 x:Uid。 -->
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid HorizontalAlignment="Stretch">
+            <StackPanel Padding="24" Spacing="16" HorizontalAlignment="Stretch" MaxWidth="900">
+
+                <TextBlock Text="OA账号" Style="{StaticResource TitleTextBlockStyle}"/>
+                <TextBlock Text="登录 OA 账号以使用公司 Skills 市场等内部功能。此账号与网关设备配对相互独立。"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+
+                <!-- 未登录 -->
+                <Border x:Name="LoggedOutCard"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="尚未登录" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="LoginButton" Content="登录" Click="OnLoginClick"/>
+                            <ProgressRing x:Name="LoginProgress" IsActive="False" Width="20" Height="20"/>
+                            <TextBlock x:Name="LoginMessageText" VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 已登录 -->
+                <Border x:Name="LoggedInCard"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="8">
+                        <Grid ColumnSpacing="12" RowSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="姓名：" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="DisplayNameText" Grid.Row="0" Grid.Column="1" Text="—"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="用户名：" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="UsernameText" Grid.Row="1" Grid.Column="1" Text="—"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="部门：" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="DepartmentText" Grid.Row="2" Grid.Column="1" Text="—"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="职位：" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="PositionText" Grid.Row="3" Grid.Column="1" Text="—"/>
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="邮箱：" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock x:Name="EmailText" Grid.Row="4" Grid.Column="1" Text="—"/>
+                        </Grid>
+                        <Button x:Name="LogoutButton" Content="登出" Click="OnLogoutClick" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

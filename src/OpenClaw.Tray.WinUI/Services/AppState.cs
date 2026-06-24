@@ -98,6 +98,11 @@ internal sealed class AppState : INotifyPropertyChanged
     private DevicePairingListInfo? _devicePairList;
     public DevicePairingListInfo? DevicePairList { get => _devicePairList; set => SetField(ref _devicePairList, value); }
 
+    // ── Auth (corporate OA login; independent of gateway pairing) ───────
+
+    private OaAuthState? _authState;
+    public OaAuthState? AuthState { get => _authState; set => SetField(ref _authState, value); }
+
     // ── Models ──────────────────────────────────────────────────────────
 
     private ModelsListInfo? _modelsList;
@@ -284,4 +289,16 @@ internal sealed class AppState : INotifyPropertyChanged
         ClearAgentEvents();
         lock (_sessionPreviewsLock) _sessionPreviews.Clear();
     }
+}
+
+/// <summary>
+/// Runtime snapshot of the corporate OA (OAuth) login state. Independent of
+/// gateway device pairing — this gates the Company Skills Hub (Bearer token)
+/// and is preserved across gateway connect/disconnect cycles.
+/// </summary>
+public sealed record OaAuthState
+{
+    public bool Authenticated { get; init; }
+    public OaUserInfo? UserInfo { get; init; }
+    public long TokenExpiresAtMs { get; init; }
 }

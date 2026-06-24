@@ -413,6 +413,14 @@ public sealed partial class HubWindow : WindowEx
 
     private void NavigateInternal(string tag)
     {
+        // OA 登录限制：未登录 OA 账号时，除「OA账号」页外一律拦截，强制跳转到登录页。
+        // 登录成功后 AuthState.Authenticated 变 true，本拦截自动放开。
+        if (AppModel?.AuthState?.Authenticated != true
+            && !string.Equals(tag, "account", StringComparison.OrdinalIgnoreCase))
+        {
+            tag = "account";
+        }
+
         var pageType = TagToPageType(tag);
         if (pageType == null)
         {
@@ -771,6 +779,7 @@ public sealed partial class HubWindow : WindowEx
             case UsagePage usage: usage.Initialize(); break;
             case CronPage cron: cron.Initialize(); break;
             case SkillsPage skills: skills.Initialize(); break;
+            case ModelsPage models: models.Initialize(); break;
             case ConfigPage config:
                 try { config.Initialize(); }
                 catch (Exception ex)
@@ -810,6 +819,9 @@ public sealed partial class HubWindow : WindowEx
             case NotificationsPage notifications: notifications.Initialize(_appNotificationService); break;
             case DebugPage debug: debug.Initialize(); break;
             case AboutPage about: about.Initialize(); break;
+            case AccountPage account: account.Initialize(); break;
+            case McpConfigPage mcpConfig: mcpConfig.Initialize(); break;
+            case DifyPage dify: dify.Initialize(); break;
         }
     }
 
@@ -823,6 +835,9 @@ public sealed partial class HubWindow : WindowEx
     private static Type? TagToPageType(string? tag) => tag switch
     {
         "chat" => typeof(ChatPage),
+        "account" => typeof(AccountPage),
+        "mcp-config" => typeof(McpConfigPage),
+        "tianyin-assistant" => typeof(DifyPage),
         "connection" => typeof(ConnectionPage),
         "channels" => typeof(ChannelsPage),
         "nodes" => typeof(InstancesPage),
@@ -848,6 +863,7 @@ public sealed partial class HubWindow : WindowEx
         "sessions" => typeof(SessionsPage),
         "agentevents" => typeof(AgentEventsPage),
         "skills" => typeof(SkillsPage),
+        "models" => typeof(ModelsPage),
         "cron" => typeof(CronPage),
         "workspace" => typeof(WorkspacePage),
         "about" => typeof(AboutPage),

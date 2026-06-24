@@ -139,6 +139,14 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     private Microsoft.UI.Dispatching.DispatcherQueue? _dispatcherQueue;
     private AppState? _appState;
     internal AppState? AppState => _appState;
+    private OAuthAuthService? _oAuthAuthService;
+    internal OAuthAuthService? OAuthAuth => _oAuthAuthService;
+    private CompanySkillsHubClient? _companySkillsHub;
+    internal CompanySkillsHubClient? CompanySkillsHub => _companySkillsHub;
+    private CompanySkillInstaller? _skillInstaller;
+    internal CompanySkillInstaller? SkillInstaller => _skillInstaller;
+    private DifyClient? _difyClient;
+    internal DifyClient? Dify => _difyClient;
     private UpdateCoordinator? _updateCoordinator;
     private GatewayService? _gatewayService;
     private CancellationTokenSource? _deepLinkCts;
@@ -417,6 +425,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             var deepLink = protocolUri
                 ?? (_startupArgs.Length > 1 && _startupArgs[1].StartsWith("openclaw://", StringComparison.OrdinalIgnoreCase)
                     ? _startupArgs[1] : null)
+                ?? (_startupArgs.Length > 1 && _startupArgs[1].StartsWith("tclaw://", StringComparison.OrdinalIgnoreCase)
+                    ? _startupArgs[1] : null)
                 ?? (string.Equals(_postSetupLaunch, "chat", StringComparison.OrdinalIgnoreCase)
                     ? "openclaw://chat" : null);
             if (deepLink != null)
@@ -465,6 +475,19 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         _gatewayService.NotificationReceived += OnGatewayNotificationReceived;
         _appState.PropertyChanged += OnAppStateChanged;
 
+        // OA 登录（独立于 gateway 设备配对；access token 供公司 Skills Hub 用作 Bearer）
+        _oAuthAuthService = new OAuthAuthService(_settings, _appState);
+        if (_dispatcherQueue != null)
+            _oAuthAuthService.UiEnqueue = action => _dispatcherQueue.TryEnqueue(() => action());
+        _ = _oAuthAuthService.RestoreSessionAsync();
+
+        // 企业 Skills 市场（依赖 OA token + 网关 skills.upload/install RPC）
+        _companySkillsHub = new CompanySkillsHubClient(_settings, _oAuthAuthService);
+        _skillInstaller = new CompanySkillInstaller(_companySkillsHub, () => GatewayClient);
+
+        // Dify 自有知识库（独立于网关，直连 Dify 实例）
+        _difyClient = new DifyClient(_settings);
+
         _diagnosticsClipboard = new DiagnosticsClipboardService(BuildCommandCenterState);
         _toastService = new ToastService(() => _settings);
         _appNotificationService = new AppNotificationService();
@@ -477,6 +500,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
         // Register URI scheme on first run
         DeepLinkHandler.RegisterUriScheme();
+        // OA 登录回调用的自定义 scheme（公司 OA 不接受 http://localhost loopback redirect）
+        DeepLinkHandler.RegisterCustomScheme("tclaw", "OpenClaw OA Callback");
 
         // Anchor the WinUI runtime so transient windows (UpdateDialog,
         // setup wizard, etc.) don't terminate the process when closed.
@@ -2770,6 +2795,72 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             hubWindow.Activate();
     }
 
+    /// <summary>
+    /// 强制把 Hub 主窗口拉到前台。OA 登录回调是从浏览器（另一个进程）触发的，
+    /// Window.Activate() 不足以跨进程抢前台（Windows 前台保护会挡），需要用
+    /// AttachThreadInput 把本线程输入附加到当前前台线程，再 SetForegroundWindow。
+    /// </summary>
+    private void ForceHubWindowToForeground()
+    {
+        var win = _hubWindow;
+        if (win == null) return;
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(win);
+            if (win.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter op
+                && op.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
+            {
+                op.Restore(activateWindow: true);
+            }
+
+            var foreHwnd = GetForegroundWindow();
+            var foreThread = GetWindowThreadProcessId(foreHwnd, out _);
+            var appThread = GetCurrentThreadId();
+            var attached = false;
+            if (foreThread != appThread && foreThread != 0)
+            {
+                attached = AttachThreadInput(appThread, foreThread, true);
+            }
+            try
+            {
+                ShowWindow(hwnd, SW_RESTORE);
+                SetForegroundWindow(hwnd);
+                BringWindowToTop(hwnd);
+            }
+            finally
+            {
+                if (attached) AttachThreadInput(appThread, foreThread, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[OAuth] Force foreground failed: {ex.Message}");
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    private const int SW_RESTORE = 9;
+
     private void ShowSettings()
     {
         ShowHub("settings");
@@ -3507,6 +3598,26 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     private async Task HandleDeepLinkAsync(string uri)
     {
+        // OA OAuth 回调（tclaw://oauth/callback?code=...）直通 OAuthAuthService，不走 deep link 管线。
+        if (uri.StartsWith("tclaw://", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_oAuthAuthService != null)
+            {
+                try
+                {
+                    var ok = await _oAuthAuthService.HandleCallbackAsync(uri);
+                    if (ok)
+                    {
+                        // 登录成功：把主窗口激活到前台并停在 OA账号页
+                        ShowHub("account", activate: true);
+                        ForceHubWindowToForeground();
+                    }
+                }
+                catch (Exception ex) { Logger.Error($"[OAuth] callback handling failed: {ex.Message}"); }
+            }
+            return;
+        }
+
         var result = DeepLinkParser.ParseDeepLink(uri);
         if (result == null)
         {
@@ -3608,7 +3719,9 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 return;
             }
 
-            if (DeepLinkParser.ParseDeepLink(uri) == null)
+            // tclaw:// 是 OA OAuth 回调，不走 openclaw:// 的 DeepLinkParser，单独放行转发。
+            var isTclawCallback = uri.StartsWith("tclaw://", StringComparison.OrdinalIgnoreCase);
+            if (!isTclawCallback && DeepLinkParser.ParseDeepLink(uri) == null)
             {
                 Logger.Warn($"Rejected invalid deep link before IPC forwarding: {DeepLinkSecurityPolicy.RedactForLog(uri)}");
                 return;

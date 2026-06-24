@@ -156,6 +156,22 @@ public class SettingsManager
     public int SandboxTimeoutMs { get => _data.SandboxTimeoutMs > 0 ? _data.SandboxTimeoutMs : 30_000; set => _data = _data with { SandboxTimeoutMs = value }; }
     public long SandboxMaxOutputBytes { get => _data.SandboxMaxOutputBytes > 0 ? _data.SandboxMaxOutputBytes : 4 * 1024 * 1024; set => _data = _data with { SandboxMaxOutputBytes = value }; }
 
+    // ── 企业功能（OA 登录 / Dify 知识库 / 公司 Skills Hub）──────────────
+    /// <summary>OA access token (plaintext in memory; dpapi-protected on disk).</summary>
+    public string OaAccessToken { get => _data.OaAccessToken ?? ""; set => _data = _data with { OaAccessToken = value }; }
+    /// <summary>OA refresh token (plaintext in memory; dpapi-protected on disk).</summary>
+    public string OaRefreshToken { get => _data.OaRefreshToken ?? ""; set => _data = _data with { OaRefreshToken = value }; }
+    /// <summary>OA access token absolute expiry (Unix epoch ms). 0 = no token.</summary>
+    public long OaTokenExpiresAtMs { get => _data.OaTokenExpiresAtMs; set => _data = _data with { OaTokenExpiresAtMs = value }; }
+    /// <summary>OA user profile snapshot.</summary>
+    public OaUserInfo? OaUserInfo { get => _data.OaUserInfo; set => _data = _data with { OaUserInfo = value }; }
+    /// <summary>Dify instance base URL.</summary>
+    public string DifyBaseUrl { get => _data.DifyBaseUrl ?? ""; set => _data = _data with { DifyBaseUrl = value }; }
+    /// <summary>Dify app API key (plaintext in memory; dpapi-protected on disk).</summary>
+    public string DifyApiKey { get => _data.DifyApiKey ?? ""; set => _data = _data with { DifyApiKey = value }; }
+    /// <summary>Company Skills Hub base URL. Default http://localhost:3000.</summary>
+    public string CompanySkillsHubUrl { get => string.IsNullOrWhiteSpace(_data.CompanySkillsHubUrl) ? "http://localhost:3000" : _data.CompanySkillsHubUrl; set => _data = _data with { CompanySkillsHubUrl = value }; }
+
     public SettingsManager() : this(GetDefaultSettingsDirectory())
     {
     }
@@ -268,7 +284,14 @@ public class SettingsManager
         SandboxDesktopAccess = null,
         SandboxCustomFolders = new(),
         SandboxTimeoutMs = 30_000,
-        SandboxMaxOutputBytes = 4 * 1024 * 1024
+        SandboxMaxOutputBytes = 4 * 1024 * 1024,
+        OaAccessToken = "",
+        OaRefreshToken = "",
+        OaTokenExpiresAtMs = 0,
+        OaUserInfo = null,
+        DifyBaseUrl = "",
+        DifyApiKey = "",
+        CompanySkillsHubUrl = "http://localhost:3000"
     };
 
     private static SettingsData NormalizeLoadedData(SettingsData loaded)
@@ -299,6 +322,13 @@ public class SettingsManager
             SandboxCustomFolders = CloneSandboxCustomFolders(loaded.SandboxCustomFolders),
             SandboxTimeoutMs = loaded.SandboxTimeoutMs > 0 ? loaded.SandboxTimeoutMs : defaults.SandboxTimeoutMs,
             SandboxMaxOutputBytes = loaded.SandboxMaxOutputBytes > 0 ? loaded.SandboxMaxOutputBytes : defaults.SandboxMaxOutputBytes,
+            OaAccessToken = UnprotectSettingSecret(loaded.OaAccessToken) ?? defaults.OaAccessToken,
+            OaRefreshToken = UnprotectSettingSecret(loaded.OaRefreshToken) ?? defaults.OaRefreshToken,
+            OaTokenExpiresAtMs = loaded.OaTokenExpiresAtMs,
+            OaUserInfo = loaded.OaUserInfo,
+            DifyBaseUrl = loaded.DifyBaseUrl ?? defaults.DifyBaseUrl,
+            DifyApiKey = UnprotectSettingSecret(loaded.DifyApiKey) ?? defaults.DifyApiKey,
+            CompanySkillsHubUrl = string.IsNullOrWhiteSpace(loaded.CompanySkillsHubUrl) ? defaults.CompanySkillsHubUrl : loaded.CompanySkillsHubUrl,
             McpOnlyMode = null
         };
 
@@ -384,6 +414,13 @@ public class SettingsManager
         SandboxCustomFolders = SandboxCustomFolders.Count == 0 ? null : CloneSandboxCustomFolders(SandboxCustomFolders),
         SandboxTimeoutMs = SandboxTimeoutMs,
         SandboxMaxOutputBytes = SandboxMaxOutputBytes,
+        OaAccessToken = OaAccessToken,
+        OaRefreshToken = OaRefreshToken,
+        OaTokenExpiresAtMs = OaTokenExpiresAtMs,
+        OaUserInfo = OaUserInfo,
+        DifyBaseUrl = string.IsNullOrWhiteSpace(DifyBaseUrl) ? null : DifyBaseUrl,
+        DifyApiKey = DifyApiKey,
+        CompanySkillsHubUrl = CompanySkillsHubUrl,
         McpOnlyMode = null
     };
 
@@ -403,6 +440,10 @@ public class SettingsManager
                 var data = ToSettingsData();
                 // Apply DPAPI protection to the API key for on-disk storage only
                 data.TtsElevenLabsApiKey = ProtectSettingSecret(data.TtsElevenLabsApiKey);
+                // 企业功能敏感凭据同样 DPAPI 加密落盘
+                data.OaAccessToken = ProtectSettingSecret(data.OaAccessToken);
+                data.OaRefreshToken = ProtectSettingSecret(data.OaRefreshToken);
+                data.DifyApiKey = ProtectSettingSecret(data.DifyApiKey);
 
                 var json = data.ToJson();
                 File.WriteAllText(_settingsFilePath, json);

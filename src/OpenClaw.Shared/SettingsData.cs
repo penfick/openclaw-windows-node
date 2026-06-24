@@ -153,6 +153,22 @@ public record class SettingsData
     /// </summary>
     public long SandboxMaxOutputBytes { get; set; } = 4 * 1024 * 1024;
 
+    // ── 企业功能（OA 登录 / Dify 知识库 / 公司 Skills Hub）──────────────
+    /// <summary>OA access token. Persisted as a dpapi:-prefixed blob by SettingsManager.</summary>
+    public string? OaAccessToken { get; set; }
+    /// <summary>OA refresh token. Persisted as a dpapi:-prefixed blob by SettingsManager.</summary>
+    public string? OaRefreshToken { get; set; }
+    /// <summary>OA access token absolute expiry (Unix epoch ms). 0 = no token.</summary>
+    public long OaTokenExpiresAtMs { get; set; }
+    /// <summary>OA user profile snapshot (from OAuthUserInfo.ashx).</summary>
+    public OaUserInfo? OaUserInfo { get; set; }
+    /// <summary>Dify instance base URL, e.g. https://dify.example.com.</summary>
+    public string? DifyBaseUrl { get; set; }
+    /// <summary>Dify app API key. Persisted as a dpapi:-prefixed blob by SettingsManager.</summary>
+    public string? DifyApiKey { get; set; }
+    /// <summary>Company Skills Hub base URL.</summary>
+    public string CompanySkillsHubUrl { get; set; } = "http://localhost:3000";
+
     // ── (Voice / STT settings consolidated into the block above.) ──
 
     private static readonly JsonSerializerOptions s_options = new()
@@ -176,4 +192,21 @@ public record class SettingsData
             return null;
         }
     }
+}
+
+/// <summary>
+/// OA (corporate OAuth) user profile snapshot. Mirrors the fields returned by
+/// the corporate OAuthUserInfo endpoint. Used by the Company Skills Hub client
+/// for author metadata and displayed in the account UI.
+/// </summary>
+public record class OaUserInfo
+{
+    public string? UserId { get; set; }
+    public string? Username { get; set; }
+    public string? DisplayName { get; set; }
+    public string? Email { get; set; }
+    public string? DepartmentId { get; set; }
+    public string? DepartmentName { get; set; }
+    public string? Position { get; set; }
+    public List<string>? Roles { get; set; }
 }

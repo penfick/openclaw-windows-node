@@ -249,6 +249,11 @@ public class SessionInfo
     public bool IsMain { get; set; }
     public string Status { get; set; } = "unknown";
     public string? Model { get; set; }
+    /// <summary>LLM provider for the session's current model (e.g. "runanytime"),
+    /// distinct from the channel/origin <see cref="Provider"/>. The session stores
+    /// the bare model id separately, so without this we can't rebuild the full
+    /// "provider/model" ref when the same id exists under multiple providers.</summary>
+    public string? ModelProvider { get; set; }
     public string? Channel { get; set; }
     public string? DisplayName { get; set; }
     public string? Provider { get; set; }

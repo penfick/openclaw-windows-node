@@ -533,7 +533,7 @@ public sealed class OpenClawChatRoot : Component
                 ChannelId: composerThread.Id!,
                 AvailableChannels: channelGroups,
                 AvailableModels: snapshot.AvailableModels,
-                CurrentModel: composerThread.Model,
+                CurrentModel: NormalizeModelRef(composerThread.Model, snapshot.AvailableModels),
                 CurrentThinkingLevel: composerThread.ThinkingLevel,
                 OnSend: (msg, att) =>
                 {
@@ -599,6 +599,25 @@ public sealed class OpenClawChatRoot : Component
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Normalize a session's model ref to the full "{provider}/{id}" form used by
+    /// the model dropdown. Sessions report the bare id (e.g. "mimo-v2.5-pro" or
+    /// "moonshotai/kimi-k2.6"); the dropdown is keyed by full refs. Without this,
+    /// the ComboBox can't highlight the active model, and switching a slash-id
+    /// model would send a ref the gateway mis-parses.
+    /// </summary>
+    private static string NormalizeModelRef(string? model, string[] availableFullRefs)
+    {
+        if (string.IsNullOrEmpty(model)) return model ?? "";
+        if (Array.IndexOf(availableFullRefs, model) >= 0) return model;
+        foreach (var full in availableFullRefs)
+        {
+            if (full.EndsWith("/" + model, StringComparison.Ordinal))
+                return full;
+        }
+        return model;
     }
 
     /// <summary>

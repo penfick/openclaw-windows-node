@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="OpenClawTray.Pages.CompanySkillsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- NOTE: 文案暂硬编码中文（企业内部功能）。 -->
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid HorizontalAlignment="Stretch">
+            <StackPanel Padding="24" Spacing="16" HorizontalAlignment="Stretch" MaxWidth="1000">
+
+                <TextBlock Text="公司 Skills 市场" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                <TextBlock Text="浏览、安装公司内部 Skills。安装通过网关 skills.upload/install 完成；要分享技能请在「已安装」页点上传。"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+
+                <!-- 未登录提示 -->
+                <Border x:Name="LoginRequiredCard"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="请先登录 OA 账号" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBlock Text="公司 Skills 市场需要 OA 账号授权。"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <Button Content="前往 OA 账号" Click="OnGotoAccountClick"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 主内容 -->
+                <StackPanel x:Name="MainContent" Spacing="12">
+
+                    <!-- 搜索栏 -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="KeywordBox" Width="360" PlaceholderText="按关键词搜索 Skill…（留空浏览全部）"
+                                 KeyDown="OnKeywordKeyDown"/>
+                        <Button x:Name="SearchButton" Content="搜索" Click="OnSearchClick" Padding="16,8"/>
+                        <ProgressRing x:Name="SearchProgress" IsActive="False" Width="18" Height="18"/>
+                    </StackPanel>
+
+                    <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+
+                    <ItemsControl x:Name="ResultsList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal" ItemWidth="284"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="4" Width="276"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1" CornerRadius="8" Padding="14">
+                                    <StackPanel Spacing="6">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding VersionBadge}" FontSize="10"
+                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" MaxLines="3"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" MinHeight="42"/>
+                                        <TextBlock Text="{Binding MetaLine}" FontSize="10"
+                                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,6,0,0">
+                                            <Button Content="详情" Click="OnCompanyDetailClick" Tag="{Binding Id}" Padding="14,6" FontSize="12"/>
+                                            <Button Content="{Binding InstallLabel}" Click="OnInstallClick" Tag="{Binding Id}"
+                                                    IsEnabled="{Binding CanInstall}" Padding="14,6" FontSize="12"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

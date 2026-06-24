@@ -45,6 +45,42 @@ public static class DeepLinkHandler
         }
     }
 
+    /// <summary>
+    /// Registers an arbitrary custom URI scheme (e.g. <c>tclaw://</c> for the OA
+    /// OAuth callback) pointing at this executable. Mirrors
+    /// <see cref="RegisterUriScheme"/> but parameterized.
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    public static void RegisterCustomScheme(string scheme, string label)
+    {
+        if (IsPackagedApp())
+        {
+            Logger.Info($"URI scheme {scheme}:// must be declared in MSIX manifest (packaged mode)");
+            return;
+        }
+
+        try
+        {
+            var exePath = Environment.ProcessPath ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
+
+            using var key = Registry.CurrentUser.CreateSubKey($@"SOFTWARE\Classes\{scheme}");
+            key?.SetValue("", $"URL:{label}");
+            key?.SetValue("URL Protocol", "");
+
+            using var iconKey = key?.CreateSubKey("DefaultIcon");
+            iconKey?.SetValue("", $"\"{exePath}\",0");
+
+            using var commandKey = key?.CreateSubKey(@"shell\open\command");
+            commandKey?.SetValue("", $"\"{exePath}\" \"%1\"");
+
+            Logger.Info($"URI scheme registered: {scheme}://");
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Failed to register URI scheme {scheme}://: {ex.Message}");
+        }
+    }
+
 #if OPENCLAW_TRAY_TESTS
     private static bool IsPackagedApp() => false;
 #else

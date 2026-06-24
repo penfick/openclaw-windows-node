@@ -1215,10 +1215,11 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     private static string[] ExtractModelNames(ModelsListInfo info)
     {
         if (info?.Models is null || info.Models.Count == 0) return Array.Empty<string>();
-        // Use model Id (wire format, e.g. "claude-opus-4.5") so the composer
-        // can match against SessionInfo.Model (which is also the wire Id).
-        // The ComboBox will show Ids directly; a future pass could introduce
-        // a separate display-name array if prettier labels are desired.
+        // Build the full wire ref "{provider}/{id}" (e.g. "nvidia/moonshotai/kimi-k2.6").
+        // Sending the bare id alone breaks for ids that themselves contain a '/': the
+        // gateway splits the ref on the FIRST '/', so "moonshotai/kimi-k2.6" gets
+        // mis-parsed as provider="moonshotai" → "model not allowed". The full ref is
+        // always correct; ids without a '/' resolve fine either way.
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var list = new List<string>(info.Models.Count);
         foreach (var m in info.Models)
@@ -1226,7 +1227,11 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             if (m.HasConfiguredFlag && !m.IsConfigured) continue;
             var id = m.Id;
             if (string.IsNullOrEmpty(id)) continue;
-            if (seen.Add(id)) list.Add(id);
+            var provider = m.Provider;
+            var fullRef = !string.IsNullOrEmpty(provider) && !id.StartsWith(provider + "/", StringComparison.Ordinal)
+                ? $"{provider}/{id}"
+                : id;
+            if (seen.Add(fullRef)) list.Add(fullRef);
         }
         return list.ToArray();
     }
@@ -3743,7 +3748,11 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             Status = ChatThreadStatus.Running,
             Activity = string.IsNullOrEmpty(s.CurrentActivity) ? ChatActivity.Idle : ChatActivity.Working,
             Workspace = s.Channel,
-            Model = s.Model,
+            // Rebuild the full "provider/model" ref. Sessions store the bare model id
+            // plus a separate modelProvider; without joining them, a bare id that exists
+            // under multiple providers (e.g. "moonshotai/kimi-k2.6" under both nvidia and
+            // a custom provider) is ambiguous and the dropdown highlights the wrong one.
+            Model = BuildFullModelRef(s.Model, s.ModelProvider),
             ThinkingLevel = s.ThinkingLevel,
             InputTokens = s.InputTokens,
             OutputTokens = s.OutputTokens,
@@ -3752,6 +3761,15 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             CreatedAt = s.StartedAt is { } st ? ToOffset(st) : null,
             UpdatedAt = s.UpdatedAt is { } ut ? ToOffset(ut) : null,
         };
+    }
+
+    /// <summary>Join a session's bare model id with its modelProvider into the full
+    /// "provider/model" wire ref. No-op when provider is absent or already prefixed.</summary>
+    private static string? BuildFullModelRef(string? model, string? provider)
+    {
+        if (string.IsNullOrEmpty(model)) return model;
+        if (string.IsNullOrEmpty(provider)) return model;
+        return model.StartsWith(provider + "/", StringComparison.Ordinal) ? model : $"{provider}/{model}";
     }
 
     /// <summary>

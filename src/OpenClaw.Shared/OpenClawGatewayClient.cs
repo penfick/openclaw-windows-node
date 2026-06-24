@@ -3392,6 +3392,8 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
                 _logger.Info($"[SESSION] {session.Key}: model changed '{session.Model}' → '{newModel}'");
             session.Model = newModel;
         }
+        if (item.TryGetProperty("modelProvider", out var modelProvider))
+            session.ModelProvider = modelProvider.GetString();
         if (item.TryGetProperty("channel", out var channel))
             session.Channel = channel.GetString();
         if (item.TryGetProperty("displayName", out var displayName))
