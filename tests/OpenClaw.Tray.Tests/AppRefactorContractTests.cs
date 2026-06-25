@@ -283,6 +283,40 @@ public sealed class AppRefactorContractTests
         Assert.DoesNotContain("ms-appx:///Assets/Setup/", xaml);
     }
 
+    [Fact]
+    public void TrayIcon_UpdateDelegatesToCoordinator()
+    {
+        var source = ReadAppSources();
+        var method = ExtractMethod(source, "UpdateTrayIcon");
+
+        Assert.Contains("_trayIconCoordinator?.UpdateTrayIcon()", method);
+        Assert.DoesNotContain("SetIcon(", method);
+        Assert.DoesNotContain("private void ApplyTrayTooltip", source);
+    }
+
+    [Fact]
+    public void TrayCoordinator_UpdateGuardsLivenessBeforeTouchingIcon()
+    {
+        var source = ReadCoordinatorSource();
+        var method = ExtractMethod(source, "UpdateTrayIcon");
+
+        // A queued update can run after shutdown disposes the tray icon, so the
+        // coordinator must bail on the liveness check before it ever calls SetIcon.
+        var guardIndex = method.IndexOf("_isAlive()", StringComparison.Ordinal);
+        var setIconIndex = method.IndexOf("SetIcon(", StringComparison.Ordinal);
+
+        Assert.True(guardIndex >= 0, "UpdateTrayIcon must check the liveness guard");
+        Assert.True(setIconIndex >= 0, "UpdateTrayIcon must still set the icon");
+        Assert.True(guardIndex < setIconIndex, "Liveness guard must run before SetIcon");
+    }
+
+    private static string ReadCoordinatorSource()
+    {
+        var root = TestRepositoryPaths.GetRepositoryRoot();
+        return File.ReadAllText(Path.Combine(
+            root, "src", "OpenClaw.Tray.WinUI", "Services", "TrayIconCoordinator.cs"));
+    }
+
     private static string ReadAppSources()
     {
         var root = TestRepositoryPaths.GetRepositoryRoot();
