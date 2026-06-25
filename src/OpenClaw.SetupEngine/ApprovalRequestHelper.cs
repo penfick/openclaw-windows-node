@@ -33,8 +33,11 @@ internal static partial class ApprovalRequestHelper
     internal static string ApprovalArgs(ApprovalRequestKind kind, bool native, string requestId)
     {
         var noun = Noun(kind);
+        // Native: requestId is a validated GUID-like token (IsSafeRequestId: no spaces/special chars),
+        // so it needs NO shell quoting — wrapping it in quotes through `cmd /c openclaw …` mangles the
+        // arg (openclaw sees the literal quotes) and approve exits 1.
         return native
-            ? $"{noun} approve \"{requestId.Trim()}\" --json"
+            ? $"{noun} approve {requestId.Trim()} --json"
             : $"{noun} approve \"${RequestIdEnvironmentVariable}\" --json";
     }
 

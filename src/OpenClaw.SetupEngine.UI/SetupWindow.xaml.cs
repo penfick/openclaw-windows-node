@@ -3,6 +3,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using OpenClaw.Connection;
 using OpenClaw.SetupEngine.UI.Pages;
 using System.Runtime.InteropServices;
 
@@ -70,6 +71,11 @@ public sealed partial class SetupWindow : Window
         _config = SetupConfig.FromEnvironment(_config);
         GatewayLkgVersion.ApplyToConfig(_config);
         _config.ApplyUiDefaults(rollbackOnFailure: !HasFlag(args, "--no-rollback-on-failure"));
+
+        // 方案 1：安装向导默认装原生 Windows gateway（无 WSL）。
+        // 高级用户要 WSL 时设 OPENCLAW_SETUP_INSTALL_KIND=wsl（FromEnvironment 已应用）。
+        if (Environment.GetEnvironmentVariable("OPENCLAW_SETUP_INSTALL_KIND") is null)
+            _config.InstallKind = GatewayInstallKind.Native;
 
         Closed += (_, _) =>
         {

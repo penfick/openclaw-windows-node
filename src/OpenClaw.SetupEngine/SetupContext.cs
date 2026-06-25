@@ -61,6 +61,9 @@ public sealed class SetupConfig
             config.Headless = true;
         if (Environment.GetEnvironmentVariable("OPENCLAW_SETUP_LOG_PATH") is { Length: > 0 } logPath)
             config.LogPath = logPath;
+        if (Environment.GetEnvironmentVariable("OPENCLAW_SETUP_INSTALL_KIND") is { Length: > 0 } kind
+            && Enum.TryParse<GatewayInstallKind>(kind, true, out var installKind))
+            config.InstallKind = installKind;
 
         return config;
     }
@@ -78,7 +81,8 @@ public sealed class SetupConfig
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     /// <summary>

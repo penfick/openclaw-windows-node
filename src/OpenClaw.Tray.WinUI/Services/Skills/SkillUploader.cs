@@ -1,16 +1,21 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 
 namespace OpenClawTray.Services;
 
 /// <summary>
-/// 把已安装技能（baseDir 在网关 WSL distro 内）打包成 zip 字节，用于上传到公司市场。
+/// 把已安装技能的目录打包成 zip 字节，用于上传到公司市场。
 ///
-/// 因为这环境 <c>\\wsl.localhost\</c> UNC 共享不可用（Windows 访问不到 WSL 文件），
-/// 这里改用 <c>wsl.exe</c> 在 WSL 侧用 python3 现场打包、base64 编码后从 stdout 流回
-/// Windows 解码——不依赖 UNC，也不依赖 /mnt/c（该 distro 未挂载）。
+/// 按网关安装方式分流：
+/// <list type="bullet">
+/// <item><b>Native</b> 网关：技能目录是 Windows 路径（<c>%USERPROFILE%\.openclaw\skills\…</c>），
+///   直接用 <see cref="ZipFile"/> 在进程内打包——不依赖 wsl.exe。</item>
+/// <item><b>WSL</b> 网关：技能目录在 distro 内（<c>\\wsl.localhost\</c> UNC 不可用、<c>/mnt/c</c> 未挂载），
+///   用 <c>wsl.exe</c> 在 WSL 侧 python3 现场打包 + base64 流回。</item>
+/// </list>
 /// </summary>
 internal static class SkillUploader
 {
@@ -47,12 +52,37 @@ sys.stdout.write(base64.b64encode(buf.getvalue()).decode())
         return DefaultDistro;
     }
 
-    /// <summary>用 wsl.exe 在 WSL 侧打包 baseDir 为 zip，返回字节数组。</summary>
+    /// <summary>打包技能目录为 zip 字节。Windows 路径（native）走 C# ZipFile；Linux 路径（WSL）走 wsl.exe。</summary>
     public static byte[] PackSkill(string gatewayBaseDir)
     {
         if (string.IsNullOrWhiteSpace(gatewayBaseDir))
             throw new InvalidOperationException("该技能无本地目录，无法上传。");
 
+        if (IsWindowsPath(gatewayBaseDir))
+            return PackNative(gatewayBaseDir);
+
+        return PackViaWsl(gatewayBaseDir);
+    }
+
+    /// <summary>Windows 盘符路径（<c>X:\…</c>）或 UNC（<c>\\…</c>）视为 Windows 可直达。</summary>
+    private static bool IsWindowsPath(string p) =>
+        p.Length >= 3 && p[1] == ':' && (p[2] == '\\' || p[2] == '/')
+        || p.StartsWith(@"\\", StringComparison.Ordinal);
+
+    /// <summary>Native：进程内 ZipFile 打包（includeBaseDirectory:false → 条目相对 baseDir）。</summary>
+    private static byte[] PackNative(string dir)
+    {
+        if (!Directory.Exists(dir))
+            throw new InvalidOperationException($"技能目录不存在：{dir}");
+
+        using var ms = new MemoryStream();
+        ZipFile.CreateFromDirectory(dir, ms, CompressionLevel.Optimal, includeBaseDirectory: false);
+        return ms.ToArray();
+    }
+
+    /// <summary>WSL：用 wsl.exe 在 WSL 侧打包 baseDir 为 zip，返回字节数组。</summary>
+    private static byte[] PackViaWsl(string gatewayBaseDir)
+    {
         var distro = ResolveDistro();
         var psi = new ProcessStartInfo
         {

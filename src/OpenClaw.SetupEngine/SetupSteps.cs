@@ -1493,6 +1493,23 @@ public sealed class ConfigureGatewayStep : SetupStep
 
         root["gateway"] = gateway;
 
+        // device-pair: `openclaw qr` requires plugins.entries.device-pair.config.publicUrl even
+        // for loopback (it refuses to emit a pairing payload without a reachable URL). Mirror the
+        // WSL BuildConfigCommands behavior: loopback → http://127.0.0.1:<port>, and enable the plugin.
+        if (gw.Bind == "loopback")
+        {
+            var plugins = root["plugins"] as JsonObject ?? new JsonObject();
+            var entries = plugins["entries"] as JsonObject ?? new JsonObject();
+            var devicePair = entries["device-pair"] as JsonObject ?? new JsonObject();
+            var dpConfig = devicePair["config"] as JsonObject ?? new JsonObject();
+            dpConfig["publicUrl"] = $"http://127.0.0.1:{port}";
+            devicePair["config"] = dpConfig;
+            devicePair["enabled"] = true;
+            entries["device-pair"] = devicePair;
+            plugins["entries"] = entries;
+            root["plugins"] = plugins;
+        }
+
         await File.WriteAllTextAsync(configPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), ct);
         ctx.Logger.Info($"Native gateway config written to {configPath}");
         return StepResult.Ok();
