@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using OpenClaw.Connection;
 using OpenClaw.SetupEngine;
 using OpenClaw.SetupEngine.UI;
 using OpenClaw.Shared;
@@ -34,8 +35,12 @@ public sealed partial class WelcomePage : Page
             ? Color.FromArgb(255, 0x2C, 0x2C, 0x2C)
             : Color.FromArgb(255, 0xF0, 0xF0, 0xF0));
 
-        InfoText.Text = "This local setup installs a small WSL Linux instance dedicated to OpenClaw. "
-                      + "If you'd rather connect to an existing or remote gateway, choose Advanced setup.";
+        var native = _config?.InstallKind == GatewayInstallKind.Native;
+        InfoText.Text = native
+            ? "This local setup installs the OpenClaw gateway directly on Windows — no WSL required. "
+              + "If you'd rather connect to an existing or remote gateway, choose Advanced setup."
+            : "This local setup installs a small WSL Linux instance dedicated to OpenClaw. "
+              + "If you'd rather connect to an existing or remote gateway, choose Advanced setup.";
 
         StartLobsterBreatheAnimation();
     }
@@ -70,13 +75,17 @@ public sealed partial class WelcomePage : Page
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenClawTray");
 
         var existing = ExistingConfigDetector.Detect(dataDir, _config!.DistroName);
-        var summary = ExistingConfigDetector.BuildReplacementSummary(existing);
+        var summary = ExistingConfigDetector.BuildReplacementSummary(existing, _config!.InstallKind);
 
         var dialog = new ContentDialog
         {
             Title = existing.HasLocalGateway || existing.HasDistro
-                ? "Replace existing WSL gateway?"
-                : "Install a new WSL gateway?",
+                ? (_config?.InstallKind == GatewayInstallKind.Native
+                    ? "Replace existing gateway?"
+                    : "Replace existing WSL gateway?")
+                : (_config?.InstallKind == GatewayInstallKind.Native
+                    ? "Install a new gateway?"
+                    : "Install a new WSL gateway?"),
             Content = summary,
             PrimaryButtonText = "Continue",
             CloseButtonText = "Cancel",

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using OpenClaw.SetupEngine.UI;
+using OpenClaw.Connection;
 using OpenClaw.Shared;
 using Windows.UI;
 
@@ -46,7 +47,9 @@ public sealed partial class ProgressPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         _config = e.Parameter as SetupConfig ?? new SetupConfig();
-        SubtitleText.Text = $"Creating {_config.DistroName} WSL instance";
+        SubtitleText.Text = _config.InstallKind == GatewayInstallKind.Native
+            ? "Setting up the native gateway"
+            : $"Creating {_config.DistroName} WSL instance";
 
         BuildStepRows();
         StartPipeline();
@@ -54,8 +57,14 @@ public sealed partial class ProgressPage : Page
 
     private void BuildStepRows()
     {
+        // Native pipeline filters the WSL-only steps (create/configure/lockdown), so their
+        // display groups would never receive a step event and stay "pending" forever — skip them.
+        var native = _config?.InstallKind == GatewayInstallKind.Native;
         foreach (var (groupId, displayName, _) in StepGroups)
         {
+            if (native && (groupId == "wsl-create" || groupId == "wsl-configure"))
+                continue;
+
             var row = new StepRow(displayName);
             _rows[groupId] = row;
             StepsPanel.Children.Add(row.Element);
@@ -171,14 +180,23 @@ public sealed partial class ProgressPage : Page
             if (groupIndex < 0) return;
 
             var group = StepGroups[groupIndex];
-            var row = _rows[group.GroupId];
+
+            // Native install skips the WSL-only groups when building rows, so their entries
+            // are absent from _rows. A direct indexer lookup would throw KeyNotFoundException
+            // inside this DispatcherQueue (COM-invoked) callback, which the CLR stows via
+            // combase and tears the process down (bypassing the managed UnhandledException
+            // handler). Use TryGetValue everywhere and tolerate missing rows.
+            if (!_rows.TryGetValue(group.GroupId, out var row))
+                return;
 
             if (e.Outcome == null)
             {
-                // Step started — mark all previous groups as done if still running
+                // Step started — mark all previous groups as done if still running.
+                // Skip groups that were filtered out of the UI (native WSL groups).
                 for (int i = 0; i < groupIndex; i++)
                 {
-                    var prevRow = _rows[StepGroups[i].GroupId];
+                    if (!_rows.TryGetValue(StepGroups[i].GroupId, out var prevRow))
+                        continue;
                     if (prevRow.Status == StepStatus.Running)
                         prevRow.SetStatus(StepStatus.Done);
                 }
@@ -248,7 +266,7 @@ public sealed partial class ProgressPage : Page
     }
 
     private static List<SetupStep> BuildSteps(SetupConfig config)
-        => SetupStepFactory.BuildDefaultSteps()
+        => SetupStepFactory.BuildStepsFor(config)
             .Where(step => step is not RunGatewayWizardStep)
             .ToList();
 }

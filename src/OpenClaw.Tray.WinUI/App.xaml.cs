@@ -44,6 +44,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     private TrayIcon? _trayIcon;
     private GatewayConnectionManager? _connectionManager;
     private GatewayRegistry? _gatewayRegistry;
+    private GatewaySupervisor? _gatewaySupervisor;
     private OpenClawTray.Chat.OpenClawChatCoordinator? _chatCoordinator;
     /// <summary>
     /// Cached reference to the most recently constructed local-setup engine. Used by
@@ -55,6 +56,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     public IOperatorGatewayClient? GatewayClient => _connectionManager?.OperatorClient;
     public GatewayRegistry? Registry => _gatewayRegistry;
     public GatewayConnectionManager? ConnectionManager => _connectionManager;
+    /// <summary>Auto-restarts the native-managed gateway when its process dies. Null until the connection manager is built.</summary>
+    internal GatewaySupervisor? GatewaySupervisor => _gatewaySupervisor;
     internal SettingsManager Settings => _settings ?? throw new InvalidOperationException("Settings are not initialized.");
 
     /// <summary>The active hub window, exposed so pages can obtain an HWND for file pickers.</summary>
@@ -615,6 +618,18 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             tunnelManager: _sshTunnelService);
         _connectionManager.OperatorClientChanged += OnOperatorClientChanged;
         _connectionManager.StateChanged += OnManagerStateChanged;
+
+        // Supervise the native-managed gateway: restart it if the process dies (clean exit
+        // after a config hot-reload, crash, etc.) and reconnect the operator client. The
+        // PeriodicTimer waits one interval before the first probe, so this never races the
+        // startup connect below. Suppressed while the setup wizard is open.
+        _gatewaySupervisor = new GatewaySupervisor(
+            _gatewayRegistry,
+            appLogger,
+            ct => new NativeGatewayController(appLogger).RunAsync(GatewayControlAction.Start, ct),
+            () => _connectionManager?.ConnectAsync() ?? Task.CompletedTask,
+            isSuppressed: () => _setupWindow != null);
+        _gatewaySupervisor.Start();
 
         // First-run check (also supports forced onboarding for testing).
         // Wrapped in try/catch so a wizard construction failure cannot tear
@@ -3780,6 +3795,17 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         });
 
         // Dispose runtime services
+        var gatewaySupervisor = _gatewaySupervisor;
+        if (gatewaySupervisor != null)
+        {
+            await SafeShutdownStepAsync("gateway supervisor", async () =>
+            {
+                await gatewaySupervisor.StopAsync();
+                gatewaySupervisor.Dispose();
+            });
+            _gatewaySupervisor = null;
+        }
+
         var connectionManager = _connectionManager;
         if (connectionManager != null)
         {

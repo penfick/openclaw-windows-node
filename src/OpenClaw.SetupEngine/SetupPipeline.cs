@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenClaw.Connection;
 
 namespace OpenClaw.SetupEngine;
 
@@ -61,6 +62,24 @@ public static class SetupStepFactory
             new RunGatewayWizardStep(),
             new StartKeepaliveStep(),
         ];
+    }
+
+    /// <summary>
+    /// Default steps filtered for the install kind. A native install never touches WSL,
+    /// so the WSL-only preflight/create/configure/lockdown/keepalive/stale-distro steps
+    /// are removed. Both the headless CLI (Program) and the wizard UI (ProgressPage) must
+    /// build their pipeline through this so native runs stay WSL-free.
+    /// </summary>
+    public static List<SetupStep> BuildStepsFor(SetupConfig config)
+    {
+        var steps = BuildDefaultSteps();
+        if (config.InstallKind == GatewayInstallKind.Native)
+        {
+            steps = steps.Where(s => s is not
+                (PreflightWslStep or CreateWslInstanceStep or ConfigureWslInstanceStep
+                 or ValidateWslLockdownStep or StartKeepaliveStep or CleanupStaleDistroStep)).ToList();
+        }
+        return steps;
     }
 }
 

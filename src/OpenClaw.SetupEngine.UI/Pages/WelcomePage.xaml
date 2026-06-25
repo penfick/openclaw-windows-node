@@ -41,7 +41,7 @@
 
             <!-- Start button -->
             <Button x:Name="StartButton"
-                    Content="Install new WSL Gateway"
+                    Content="Set up locally"
                     HorizontalAlignment="Stretch"
                     Height="44" FontSize="15" FontWeight="SemiBold"
                     Click="StartButton_Click">

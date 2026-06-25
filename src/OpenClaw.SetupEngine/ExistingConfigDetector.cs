@@ -73,10 +73,12 @@ public sealed class ExistingConfigDetector
     /// <summary>
     /// Build a human-readable summary of what will happen during setup.
     /// </summary>
-    public static string BuildReplacementSummary(ExistingConfig config)
+    public static string BuildReplacementSummary(ExistingConfig config, GatewayInstallKind installKind)
     {
         if (!config.HasLocalGateway && !config.HasDistro)
-            return "A new local WSL gateway will be created. No existing configuration will be affected.";
+            return installKind == GatewayInstallKind.Native
+                ? "A new local gateway will be installed on Windows. No existing configuration will be affected."
+                : "A new local WSL gateway will be created. No existing configuration will be affected.";
 
         var lines = new List<string>();
 

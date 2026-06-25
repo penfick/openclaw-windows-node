@@ -204,17 +204,7 @@ public static class Program
     }
 
     private static List<SetupStep> BuildSteps(SetupConfig config)
-    {
-        var steps = SetupStepFactory.BuildDefaultSteps();
-        if (config.InstallKind == GatewayInstallKind.Native)
-        {
-            // WSL-only steps don't apply to a native install (no distro to create/configure/keep-alive).
-            steps = steps.Where(s => s is not
-                (PreflightWslStep or CreateWslInstanceStep or ConfigureWslInstanceStep
-                 or ValidateWslLockdownStep or StartKeepaliveStep or CleanupStaleDistroStep)).ToList();
-        }
-        return steps;
-    }
+        => SetupStepFactory.BuildStepsFor(config);
 
     private static string? GetArg(string[] args, string name)
     {

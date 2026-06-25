@@ -1767,10 +1767,14 @@ public sealed partial class ConnectionPage : Page
             if (action == GatewayControlAction.Stop)
             {
                 SetGatewayHostActionStatus("Gateway stopped.");
+                // Tell the supervisor not to undo this stop — the user intends the gateway down.
+                CurrentApp.GatewaySupervisor?.NotifyUserStopped();
                 RefreshFromSnapshot(_connectionManager?.CurrentSnapshot ?? _lastSnapshot);
                 return;
             }
 
+            // Start / Restart brought the gateway back up — resume supervision.
+            CurrentApp.GatewaySupervisor?.NotifyUserStarted();
             SetGatewayHostActionStatus($"Gateway {PastTense(action)}. Reconnecting…");
             BeginReconnectMask();
             ((IAppCommands)CurrentApp).Reconnect();
