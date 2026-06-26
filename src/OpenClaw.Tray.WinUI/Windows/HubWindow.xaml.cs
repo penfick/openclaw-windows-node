@@ -822,6 +822,7 @@ public sealed partial class HubWindow : WindowEx
             case AccountPage account: account.Initialize(); break;
             case McpConfigPage mcpConfig: mcpConfig.Initialize(); break;
             case DifyPage dify: dify.Initialize(); break;
+            case DifySettingsPage difySettings: difySettings.LoadFields(); break;
         }
     }
 
@@ -838,6 +839,7 @@ public sealed partial class HubWindow : WindowEx
         "account" => typeof(AccountPage),
         "mcp-config" => typeof(McpConfigPage),
         "tianyin-assistant" => typeof(DifyPage),
+        "tianyin-settings" => typeof(DifySettingsPage),
         "connection" => typeof(ConnectionPage),
         "channels" => typeof(ChannelsPage),
         "nodes" => typeof(InstancesPage),

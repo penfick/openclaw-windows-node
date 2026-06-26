@@ -192,6 +192,9 @@
                         <NavigationViewItem x:Name="NavTianYinAssistant" Tag="tianyin-assistant" Content="天音助手">
                             <NavigationViewItem.Icon><ImageIcon Source="{StaticResource TianYinAssistant_Icon}"/></NavigationViewItem.Icon>
                         </NavigationViewItem>
+                        <NavigationViewItem x:Name="NavTianYinSettings" Tag="tianyin-settings" Content="天音设置">
+                            <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;"/></NavigationViewItem.Icon>
+                        </NavigationViewItem>
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
                 <NavigationViewItemSeparator/>

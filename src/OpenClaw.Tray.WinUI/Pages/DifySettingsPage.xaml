@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="OpenClawTray.Pages.DifySettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 天音知识库设置：服务地址 + API Key。文案硬编码中文（企业内部功能）。 -->
+
+    <Grid Padding="24,16,24,16" MaxWidth="1000">
+        <StackPanel Spacing="12" HorizontalAlignment="Stretch">
+            <TextBlock Text="天音知识库设置" Style="{StaticResource SubtitleTextBlockStyle}"/>
+            <TextBlock Text="配置用于智能问答的服务地址与应用密钥。连接信息保存在本地。"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="12" MaxWidth="640">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="服务地址" Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBox x:Name="BaseUrlBox" PlaceholderText="https://your-host/v1"/>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="API Key" Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <PasswordBox x:Name="ApiKeyBox" PlaceholderText="app-xxxxxxxxxxxxxxxx"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存" Click="OnSaveClick" Style="{StaticResource AccentButtonStyle}"/>
+                        <Button Content="测试连接" Click="OnTestClick"/>
+                        <ProgressRing x:Name="TestProgress" IsActive="False" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="StatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</Page>

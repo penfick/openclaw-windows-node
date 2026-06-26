@@ -49,7 +49,7 @@ internal sealed class DifyClient : IDisposable
     {
         var baseUrl = (_settings.DifyBaseUrl ?? "").TrimEnd('/');
         if (string.IsNullOrEmpty(baseUrl))
-            throw new InvalidOperationException("未配置 Dify 服务地址，请先在 Dify 页面填写。");
+            throw new InvalidOperationException("未配置天音知识库服务地址，请在「天音设置」中填写。");
         return baseUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase)
             ? $"{baseUrl}/chat-messages"
             : $"{baseUrl}/v1/chat-messages";
@@ -58,7 +58,7 @@ internal sealed class DifyClient : IDisposable
     private void EnsureApiKey()
     {
         if (string.IsNullOrEmpty(_settings.DifyApiKey))
-            throw new InvalidOperationException("未配置 Dify API Key。");
+            throw new InvalidOperationException("未配置天音知识库 API Key。");
     }
 
     /// <summary>Stream a chat message, raising progress events as SSE arrives.</summary>
@@ -83,7 +83,7 @@ internal sealed class DifyClient : IDisposable
         if (!resp.IsSuccessStatusCode)
         {
             var text = await resp.Content.ReadAsStringAsync(ct);
-            throw new Exception($"Dify 请求失败 ({(int)resp.StatusCode}): {text}");
+            throw new Exception($"天音知识库请求失败 ({(int)resp.StatusCode}): {text}");
         }
 
         using var stream = await resp.Content.ReadAsStreamAsync(ct);
@@ -159,7 +159,7 @@ internal sealed class DifyClient : IDisposable
                     }
                 case "error":
                     return new DifyEvent(DifyEventType.Error,
-                        Error: root.TryGetProperty("message", out var mEl) ? mEl.GetString() ?? "Dify 错误" : "Dify 错误");
+                        Error: root.TryGetProperty("message", out var mEl) ? mEl.GetString() ?? "天音知识库错误" : "天音知识库错误");
                 default:
                     return null; // ping, workflow, tts etc.
             }
