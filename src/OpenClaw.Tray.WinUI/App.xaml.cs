@@ -987,6 +987,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             case "connection": ShowHub("connection"); break;
             case "permissions": ShowHub("permissions"); break;
             case "dashboard": OpenDashboard(); break;
+            case "diagnostics": ShowHub("debug"); break;
             case "canvas": ShowCanvasWindow(); break;
             case "openchat": ShowHub("chat"); break;
             case "voice": ShowHub("voice"); break; // was: ShowVoiceOverlay()
@@ -1318,6 +1319,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             Settings = _settings,
             SetupMenuLabel = setupMenuLabel,
             ShowSetupMenuEntry = !hasSetupManagedLocalWslGateway,
+            LastUpdated = _appState?.LastCheckTime,
         };
     }
 
