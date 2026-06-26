@@ -86,7 +86,11 @@ internal enum NodeCardState
 {
     Hidden,
     Off,
+    /// <summary>Gateway node is off, local MCP server is enabled.</summary>
+    OffMcpOnly,
     OnHealthy,
+    /// <summary>Node role is connecting / starting up (not yet ready).</summary>
+    OnNodeConnecting,
     OnPermissionsIncomplete,
     OnNodeApprovalRequired,
     OnNodeReapprovalRequired,
@@ -220,7 +224,7 @@ internal sealed record ConnectionPagePlan
         // ─── Derived layout ───
         return snap.OverallState switch
         {
-            OverallConnectionState.Idle => BuildIdle(savedGatewayCount, activeRecord),
+            OverallConnectionState.Idle => BuildIdle(savedGatewayCount, activeRecord, settings),
 
             OverallConnectionState.Connecting => BuildCockpitConnecting(snap, activeRecord, displayName),
 
@@ -249,7 +253,7 @@ internal sealed record ConnectionPagePlan
                 ActiveGatewayHasSshTunnel = activeRecord?.SshTunnel != null,
             },
 
-            _ => BuildIdle(savedGatewayCount, activeRecord),
+            _ => BuildIdle(savedGatewayCount, activeRecord, settings),
         };
     }
 
@@ -257,8 +261,12 @@ internal sealed record ConnectionPagePlan
     // Mode builders
     // ───────────────────────────────────────────────────────────────────
 
-    private static ConnectionPagePlan BuildIdle(int savedCount, GatewayRecord? activeRecord)
+    private static ConnectionPagePlan BuildIdle(
+        int savedCount,
+        GatewayRecord? activeRecord,
+        SettingsManager? settings)
     {
+        var idleNodeCard = BuildIdleNodeCardState(settings);
         if (savedCount == 0)
         {
             return new ConnectionPagePlan
@@ -268,11 +276,12 @@ internal sealed record ConnectionPagePlan
                 StripAccent = ConnectionAccent.Neutral,
                 StripHeadline = "No gateway yet",
                 StripSub = "Add a gateway to get started.",
+                NodeCard = idleNodeCard,
             };
         }
 
         // Saved gateways exist but none active — drop straight into Cockpit
-        // (Operator/Node panels hide themselves because OperatorCardState=Hidden).
+        // (role panels hide themselves unless local MCP-only status is visible).
         return new ConnectionPagePlan
         {
             Mode = ConnectionPageMode.Cockpit,
@@ -280,6 +289,7 @@ internal sealed record ConnectionPagePlan
             StripAccent = ConnectionAccent.Neutral,
             StripHeadline = "Not connected",
             StripSub = "Pick a gateway below, or add a new one.",
+            NodeCard = idleNodeCard,
             RelevantGatewayId = activeRecord?.Id,
         };
     }
@@ -617,7 +627,8 @@ internal sealed record ConnectionPagePlan
         var nodeCardAllowsTrustOverride = plan.NodeCard is
             NodeCardState.OnHealthy or
             NodeCardState.OnPermissionsIncomplete or
-            NodeCardState.OnNodePairingRequired ||
+            NodeCardState.OnNodePairingRequired or
+            NodeCardState.OnNodeConnecting ||
             nodeConnectingAllowsTrustOverride;
         // Authoritative node-list trust can override any non-device-pair card.
         // Snapshot fallback is narrower: Unknown stays on discovery-only pairing UI.
@@ -685,14 +696,16 @@ internal sealed record ConnectionPagePlan
     private static NodeCardState BuildNodeCardState(GatewayConnectionSnapshot snap, SettingsManager? settings)
     {
         if (settings == null) return NodeCardState.Hidden;
-        if (!settings.EnableNodeMode) return NodeCardState.Off;
 
-        // Operator must be connected for the node card to be meaningful.
+        if (!settings.EnableNodeMode)
+            return settings.EnableMcpServer ? NodeCardState.OffMcpOnly : NodeCardState.Off;
+
         if (snap.OperatorState != RoleConnectionState.Connected)
             return NodeCardState.Off;
 
         return snap.NodeState switch
         {
+            RoleConnectionState.Connecting => NodeCardState.OnNodeConnecting,
             RoleConnectionState.PairingRequired => NodeCardState.OnNodePairingRequired,
             RoleConnectionState.PairingRejected => NodeCardState.OnNodeRejected,
             RoleConnectionState.RateLimited => NodeCardState.OnNodeRateLimited,
@@ -700,6 +713,15 @@ internal sealed record ConnectionPagePlan
             _ when CountEnabledCapabilities(settings) == 0 => NodeCardState.OnPermissionsIncomplete,
             _ => NodeCardState.OnHealthy,
         };
+    }
+
+    private static NodeCardState BuildIdleNodeCardState(SettingsManager? settings)
+    {
+        if (settings == null) return NodeCardState.Hidden;
+
+        return !settings.EnableNodeMode && settings.EnableMcpServer
+            ? NodeCardState.OffMcpOnly
+            : NodeCardState.Hidden;
     }
 
     private static string? BuildNodeApproveCommand(GatewayConnectionSnapshot snap)

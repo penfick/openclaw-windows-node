@@ -321,10 +321,9 @@ public sealed partial class ConnectionPage : Page
         bool isRecovery = plan.Mode == ConnectionPageMode.Recovery;
         bool isAdding   = plan.Mode == ConnectionPageMode.AddGateway;
 
-        // Operator + Node cards only when we actually have an active operator
-        // connection AND we're not in a focused sub-view (Welcome / Recovery /
-        // AddGateway). Recovery's help block carries the action; the role
-        // cards would just compete with it.
+        // Operator + Node cards are normally tied to an active operator session.
+        // Local MCP-only mode has no operator session, but still needs the Node
+        // card so users can see that MCP is serving local tools.
         bool hasOperatorSession = _lastSnapshot.OverallState is
             OverallConnectionState.Connected
             or OverallConnectionState.Ready
@@ -332,9 +331,12 @@ public sealed partial class ConnectionPage : Page
             or OverallConnectionState.Connecting
             or OverallConnectionState.PairingRequired
             or OverallConnectionState.Disconnecting;
-        bool showRoles = hasOperatorSession && !isWelcome && !isAdding && !isRecovery;
+        var hasStandaloneNodeCard = plan.NodeCard != NodeCardState.Hidden && !hasOperatorSession;
+        bool showRoles = (hasOperatorSession || hasStandaloneNodeCard) && !isAdding && !isRecovery;
         CockpitPanel.Visibility = showRoles ? Visibility.Visible : Visibility.Collapsed;
-        OperatorSection.Visibility = showRoles ? Visibility.Visible : Visibility.Collapsed;
+        OperatorSection.Visibility = showRoles && plan.OperatorCard != OperatorCardState.Hidden
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         // Bottom section: exactly one of these is visible
         //   • SavedGatewaysCard  — Cockpit / Recovery (always present when registry has items)
@@ -814,6 +816,14 @@ public sealed partial class ConnectionPage : Page
                 Helpers.FluentIconCatalog.StatusOk,
                 "SystemFillColorSuccessBrush",
                 capCount == 1 ? LocalizationHelper.GetString("ConnectionPage_NodeActiveOneCapability") : string.Format(LocalizationHelper.GetString("ConnectionPage_NodeActiveCapabilities"), capCount)),
+            NodeCardState.OnNodeConnecting => (
+                Helpers.FluentIconCatalog.Sync,
+                "SystemFillColorCautionBrush",
+                LocalizationHelper.GetString("ConnectionPage_NodeStarting")),
+            NodeCardState.OffMcpOnly => (
+                Helpers.FluentIconCatalog.Terminal,
+                "SystemFillColorAttentionBrush",
+                LocalizationHelper.GetString("ConnectionPage_NodeMcpOnly")),
             NodeCardState.OnPermissionsIncomplete => (
                 Helpers.FluentIconCatalog.StatusWarn,
                 "SystemFillColorCautionBrush",
@@ -858,47 +868,72 @@ public sealed partial class ConnectionPage : Page
             ? ResolveBrush("SystemFillColorCriticalBrush")
             : ResolveBrush("TextFillColorPrimaryBrush");
 
-        // The gateway's node-list contract owns this boundary. Pending
-        // declarations are visible for approval context but never counted or
-        // labeled as approved/effective.
-        bool showSurfaces = settings != null && plan.NodeCard != NodeCardState.Off
-                                             && plan.NodeCard != NodeCardState.Hidden;
-        NodeCapabilityText.Visibility = showSurfaces ? Visibility.Visible : Visibility.Collapsed;
-        NodeCommandText.Visibility = showSurfaces ? Visibility.Visible : Visibility.Collapsed;
-        NodePermissionText.Visibility = showSurfaces ? Visibility.Visible : Visibility.Collapsed;
-        if (showSurfaces)
+        if (plan.NodeCard == NodeCardState.OffMcpOnly)
         {
-            NodeCapabilityText.Text = BuildNodeSurfaceListString(
-                "ConnectionPage_NodeEffectiveCapabilities",
-                plan.NodeEffectiveCapabilities);
-            NodeCommandText.Text = BuildNodeSurfaceListString(
-                "ConnectionPage_NodeEffectiveCommands",
-                plan.NodeEffectiveCommands);
-            NodePermissionText.Text = BuildNodePermissionListString(
-                "ConnectionPage_NodeEffectivePermissions",
-                plan.NodeEffectivePermissions);
-        }
+            NodeCapabilityText.Visibility = Visibility.Visible;
+            NodeCapabilityText.Text = LocalizationHelper.Format(
+                "ConnectionPage_NodeMcpOnlyReachable", NodeService.McpServerUrl);
+            NodeCommandText.Visibility = Visibility.Collapsed;
+            NodePermissionText.Visibility = Visibility.Collapsed;
+            NodePendingDeclarationsPanel.Visibility = Visibility.Collapsed;
 
-        var showPendingDeclarations = showSurfaces &&
-            (plan.NodeApprovalState is GatewayNodeApprovalState.PendingApproval or
-                GatewayNodeApprovalState.PendingReapproval ||
-             plan.NodePendingDeclaredCapabilities.Count > 0 ||
-             plan.NodePendingDeclaredCommands.Count > 0 ||
-             plan.NodePendingDeclaredPermissions.Count > 0);
-        NodePendingDeclarationsPanel.Visibility = showPendingDeclarations
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        if (showPendingDeclarations)
+            var mcpError = CurrentApp.ActiveNodeService?.McpStartupError;
+            if (!string.IsNullOrEmpty(mcpError))
+            {
+                NodeStatusIcon.Glyph = Helpers.FluentIconCatalog.StatusErr;
+                NodeStatusIcon.Foreground = ResolveBrush("SystemFillColorCriticalBrush");
+                NodeStatusText.Text = LocalizationHelper.GetString("ConnectionPage_NodeMcpError");
+                NodeStatusText.Foreground = ResolveBrush("SystemFillColorCriticalBrush");
+                NodeCapabilityText.Visibility = Visibility.Collapsed;
+                NodeBodyText.Text = mcpError;
+                NodeBodyText.Foreground = ResolveBrush("SystemFillColorCriticalBrush");
+                NodeBodyText.Visibility = Visibility.Visible;
+            }
+        }
+        else
         {
-            NodePendingCapabilityText.Text = BuildNodeSurfaceListString(
-                "ConnectionPage_NodePendingDeclaredCapabilities",
-                plan.NodePendingDeclaredCapabilities);
-            NodePendingCommandText.Text = BuildNodeSurfaceListString(
-                "ConnectionPage_NodePendingDeclaredCommands",
-                plan.NodePendingDeclaredCommands);
-            NodePendingPermissionText.Text = BuildNodePermissionListString(
-                "ConnectionPage_NodePendingDeclaredPermissions",
-                plan.NodePendingDeclaredPermissions);
+            // Pending declarations are visible for approval context but never
+            // counted as the active node contract.
+            bool showSurfaces = settings != null && plan.NodeCard != NodeCardState.Off
+                                                 && plan.NodeCard != NodeCardState.Hidden
+                                                 && plan.NodeCard != NodeCardState.OnNodeConnecting;
+            NodeCapabilityText.Visibility = showSurfaces ? Visibility.Visible : Visibility.Collapsed;
+            NodeCommandText.Visibility = showSurfaces ? Visibility.Visible : Visibility.Collapsed;
+            NodePermissionText.Visibility = showSurfaces ? Visibility.Visible : Visibility.Collapsed;
+            if (showSurfaces)
+            {
+                NodeCapabilityText.Text = BuildNodeSurfaceListString(
+                    "ConnectionPage_NodeEffectiveCapabilities",
+                    plan.NodeEffectiveCapabilities);
+                NodeCommandText.Text = BuildNodeSurfaceListString(
+                    "ConnectionPage_NodeEffectiveCommands",
+                    plan.NodeEffectiveCommands);
+                NodePermissionText.Text = BuildNodePermissionListString(
+                    "ConnectionPage_NodeEffectivePermissions",
+                    plan.NodeEffectivePermissions);
+            }
+
+            var showPendingDeclarations = showSurfaces &&
+                (plan.NodeApprovalState is GatewayNodeApprovalState.PendingApproval or
+                    GatewayNodeApprovalState.PendingReapproval ||
+                 plan.NodePendingDeclaredCapabilities.Count > 0 ||
+                 plan.NodePendingDeclaredCommands.Count > 0 ||
+                 plan.NodePendingDeclaredPermissions.Count > 0);
+            NodePendingDeclarationsPanel.Visibility = showPendingDeclarations
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            if (showPendingDeclarations)
+            {
+                NodePendingCapabilityText.Text = BuildNodeSurfaceListString(
+                    "ConnectionPage_NodePendingDeclaredCapabilities",
+                    plan.NodePendingDeclaredCapabilities);
+                NodePendingCommandText.Text = BuildNodeSurfaceListString(
+                    "ConnectionPage_NodePendingDeclaredCommands",
+                    plan.NodePendingDeclaredCommands);
+                NodePendingPermissionText.Text = BuildNodePermissionListString(
+                    "ConnectionPage_NodePendingDeclaredPermissions",
+                    plan.NodePendingDeclaredPermissions);
+            }
         }
 
         // Sync toggle from current settings (suppress event)
@@ -1102,7 +1137,9 @@ public sealed partial class ConnectionPage : Page
     {
         var chips = new List<Border>();
         if (capabilities == null || capabilities.Count == 0) return chips;
-        if (state == NodeCardState.Off || state == NodeCardState.Hidden) return chips;
+        if (state == NodeCardState.Off || state == NodeCardState.Hidden
+            || state == NodeCardState.OffMcpOnly || state == NodeCardState.OnNodeConnecting)
+            return chips;
 
         void Add(string label, bool enabled, bool warn = false, bool error = false)
         {
