@@ -102,7 +102,12 @@ internal sealed class DifyClient : IDisposable
         }
     }
 
-    /// <summary>Blocking hello probe to verify baseUrl + apiKey.</summary>
+    /// <summary>
+    /// Fast auth/reachability probe. Uses <c>response_mode=streaming</c> and reads only the
+    /// response headers: a Dify chat-messages request returns 200 + headers as soon as the
+    /// stream opens (before any LLM work), so this completes in ~RTT instead of waiting for a
+    /// full answer. A bad key returns 401 just as fast. Fails after 15s if the host is down.
+    /// </summary>
     public async Task<bool> TestConnectionAsync(CancellationToken ct = default)
     {
         EnsureApiKey();
@@ -111,13 +116,22 @@ internal sealed class DifyClient : IDisposable
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.DifyApiKey);
         req.Content = JsonContent.Create(new
         {
-            query = "hello",
+            query = "hi",
             inputs = new { },
-            response_mode = "blocking",
+            response_mode = "streaming",
             user = DefaultUser,
         });
-        using var resp = await _http.SendAsync(req, ct);
-        return resp.IsSuccessStatusCode;
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linkedCts.CancelAfter(TimeSpan.FromSeconds(15));
+        try
+        {
+            using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return false; // timed out waiting for headers — host unreachable / too slow
+        }
     }
 
     private static DifyEvent? TryParseEvent(string json)

@@ -9,7 +9,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -246,38 +245,49 @@ public sealed class DifyMessage : INotifyPropertyChanged
 /// <summary>Splits a response into reasoning (&lt;think&gt;…&lt;/think&gt;) and answer.</summary>
 internal static class DifyThinkSplit
 {
-    private static readonly Regex ThinkRegex = new(@"<think[\s\S]*?</think>", RegexOptions.Compiled);
-
     public static (string? thinking, string answer) Split(string content)
     {
         if (string.IsNullOrEmpty(content)) return (null, content);
 
         var thinkingParts = new List<string>();
         var answerParts = new List<string>();
-        int lastIndex = 0;
-
-        foreach (Match m in ThinkRegex.Matches(content))
+        int i = 0;
+        while (i < content.Length)
         {
-            if (m.Index > lastIndex)
-                answerParts.Add(content.Substring(lastIndex, m.Index - lastIndex));
-            var inner = m.Value;
-            int startTag = inner.IndexOf('>');
-            if (startTag >= 0) inner = inner[(startTag + 1)..];
-            inner = inner.Replace("</think>", "", StringComparison.Ordinal).Trim();
-            if (!string.IsNullOrWhiteSpace(inner))
-                thinkingParts.Add(inner);
-            lastIndex = m.Index + m.Length;
-        }
+            int open = content.IndexOf("<think", i, StringComparison.Ordinal);
+            if (open < 0)
+            {
+                answerParts.Add(content[i..]);
+                break;
+            }
+            if (open > i) answerParts.Add(content[i..open]);
 
-        if (lastIndex < content.Length)
-            answerParts.Add(content[lastIndex..]);
+            int gt = content.IndexOf('>', open);
+            int bodyStart = gt >= 0 ? gt + 1 : open + "<think".Length;
+            int close = content.IndexOf("</think>", bodyStart, StringComparison.Ordinal);
+            if (close < 0)
+            {
+                // Streaming: <think> opened but </think> hasn't arrived yet — the remainder
+                // is in-progress reasoning. Route it to the thinking block now (small font)
+                // instead of leaving it in the answer, which is what made reasoning text look
+                // oversized while streaming and snap to the right size once </think> landed.
+                var partial = content[bodyStart..].Trim();
+                if (!string.IsNullOrWhiteSpace(partial)) thinkingParts.Add(partial);
+                break;
+            }
+
+            var inner = content[bodyStart..close].Trim();
+            if (!string.IsNullOrWhiteSpace(inner)) thinkingParts.Add(inner);
+            i = close + "</think>".Length;
+        }
 
         var thinking = string.Join("\n\n", thinkingParts).Trim();
         var answer = string.Join("\n", answerParts).Trim();
 
         if (!string.IsNullOrEmpty(thinking) && !string.IsNullOrEmpty(answer))
             return (thinking, answer);
-
+        if (!string.IsNullOrEmpty(thinking))
+            return (thinking, ""); // only reasoning so far (mid-stream)
         return (null, content);
     }
 }
