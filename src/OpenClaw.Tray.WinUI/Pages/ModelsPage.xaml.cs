@@ -174,13 +174,17 @@ public sealed partial class ModelsPage : Page
         return null;
     }
 
-    /// <summary>发送一次定向 config.patch。raw 是补丁对象（合并语义）。</summary>
+    /// <summary>
+    /// 写一次定向合并补丁。**直接写 openclaw.json**（gateway file-watch + 后台异步热重载），
+    /// 跳过 config.patch RPC 的同步 ~4.5s reload，UI 瞬时返回。详见 <see cref="OpenClawConfigFile"/>。
+    /// client/baseHash 是历史遗留参数（config.patch 的乐观锁凭证），本地合并写文件时无意义，
+    /// 保留仅为不动调用点；ReadBaseHashAsync 现在也只多一次 config.get 读，可后续清理。
+    /// </summary>
     internal static async Task WritePatchAsync(IOperatorGatewayClient client, JsonNode patch, string? baseHash)
     {
-        object payload = baseHash != null
-            ? (object)new { raw = patch.ToJsonString(), baseHash }
-            : new { raw = patch.ToJsonString() };
-        await client.SendWizardRequestAsync("config.patch", payload);
+        _ = client;
+        _ = baseHash;
+        await OpenClawConfigFile.MergePatchAsync(patch);
     }
 
     /// <summary>构造嵌套补丁：{"a":{"b":{finalKey:finalValue}}}（parentPath = "a.b"）。</summary>
