@@ -38,12 +38,11 @@ internal static class McpConfig
     }
 
     /// <summary>写入一条 MCP 服务器到 mcp.servers。server 直接写入（只含实际字段，不塞 null）；
-    /// server=null 则整条删除（null 删键合法）。config.patch 走网关内联自带热重载，无需 commands.restart。</summary>
+    /// server=null 则整条删除（null 删键合法）。直接写 openclaw.json，gateway file-watch 后台热重载。</summary>
     public static async Task WriteAsync(IOperatorGatewayClient client, string name, JsonNode? server)
     {
-        var baseHash = await ModelsPage.ReadBaseHashAsync(client);
         var node = ModelsPage.BuildNestedPatch(ServersPath, name, server);
-        await ModelsPage.WritePatchAsync(client, node, baseHash);
+        await ModelsPage.WritePatchAsync(client, node);
     }
 
     /// <summary>一次性迁移：旧版误写到 plugins.entries.acpx.config.mcpServers 的条目挪到 mcp.servers，
@@ -86,8 +85,7 @@ internal static class McpConfig
                 ["entries"] = new JsonObject { ["acpx"] = null }
             },
         };
-        var baseHash = await ModelsPage.ReadBaseHashAsync(client);
-        await ModelsPage.WritePatchAsync(client, patch, baseHash);
+        await ModelsPage.WritePatchAsync(client, patch);
         return true;
     }
 }

@@ -150,40 +150,22 @@ public sealed partial class ModelsPage : Page
         }
     }
 
-    // ── 配置写入：定向 JSON 合并补丁（config.patch）──
-    // 此网关的 config.patch 是 RFC 7396 合并补丁：对象递归合并、标量/数组替换、
-    // **null 表示删除该键**、缺失的键保持不变。因此：
+    // ── 配置写入：直接写 openclaw.json（RFC 7396 合并补丁）──
+    // 补丁语义：对象递归合并、标量/数组替换、**null 删除该键**、缺失键不变。例如：
     //   - 添加 allowlist 项：{"agents":{"defaults":{"models":{"<key>":{}}}}}
     //   - 删除 allowlist 项：{"agents":{"defaults":{"models":{"<key>":null}}}}  ← 必须用 null
     //   - 「删掉 key 再写回整份配置」对删除无效（缺失键不会被删）。
-    // 每次操作一次 config.get（取 baseHash）+ 一次 config.patch，避免限流。
-
-    /// <summary>读取 config.get 的 baseHash（合并补丁必需的乐观锁凭证）。</summary>
-    internal static async Task<string?> ReadBaseHashAsync(IOperatorGatewayClient client)
-    {
-        var resp = await client.SendWizardRequestAsync("config.get");
-        if (resp.TryGetProperty("baseHash", out var bh) && bh.ValueKind == JsonValueKind.String)
-            return bh.GetString();
-        if (resp.TryGetProperty("hash", out var h) && h.ValueKind == JsonValueKind.String)
-            return h.GetString();
-        if (resp.TryGetProperty("raw", out var rawEl) && rawEl.ValueKind == JsonValueKind.String)
-        {
-            var bytes = System.Text.Encoding.UTF8.GetBytes(rawEl.GetString() ?? "");
-            return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));
-        }
-        return null;
-    }
+    // 直接读写文件 + 原子替换（见 OpenClawConfigFile），gateway file-watch 后台热重载，
+    // 不再走 config.patch RPC（无同步 reload、无需 baseHash 乐观锁）。
 
     /// <summary>
-    /// 写一次定向合并补丁。**直接写 openclaw.json**（gateway file-watch + 后台异步热重载），
-    /// 跳过 config.patch RPC 的同步 ~4.5s reload，UI 瞬时返回。详见 <see cref="OpenClawConfigFile"/>。
-    /// client/baseHash 是历史遗留参数（config.patch 的乐观锁凭证），本地合并写文件时无意义，
-    /// 保留仅为不动调用点；ReadBaseHashAsync 现在也只多一次 config.get 读，可后续清理。
+    /// 写一次定向合并补丁：**直接写 openclaw.json**（读→RFC 7396 合并→原子 temp+rename）。
+    /// gateway file-watch 检测后后台异步热重载，UI 瞬时返回。详见 <see cref="OpenClawConfigFile"/>。
+    /// client 是历史遗留参数（config.patch 时代需要），本地写文件无需，保留以不动调用点。
     /// </summary>
-    internal static async Task WritePatchAsync(IOperatorGatewayClient client, JsonNode patch, string? baseHash)
+    internal static async Task WritePatchAsync(IOperatorGatewayClient client, JsonNode patch)
     {
         _ = client;
-        _ = baseHash;
         await OpenClawConfigFile.MergePatchAsync(patch);
     }
 
@@ -196,12 +178,11 @@ public sealed partial class ModelsPage : Page
         return node;
     }
 
-    // ── 组合操作：单次 config.patch（省配额，避免限流）──
+    // ── 组合操作：单次合并补丁写回（直写文件，gateway 后台 reload）──
 
-    /// <summary>新增 provider：写 provider 配置 + 加 allowlist + 设默认模型，单次 config.patch。</summary>
+    /// <summary>新增 provider：写 provider 配置 + 加 allowlist + 设默认模型，单次合并补丁。</summary>
     internal static async Task AddProviderFullyAsync(IOperatorGatewayClient client, string id, string api, string baseUrl, string apiKey, string modelId)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var key = $"{id}/{modelId}";
         var patch = new JsonObject
         {
@@ -227,13 +208,12 @@ public sealed partial class ModelsPage : Page
                 }
             }
         };
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
-    /// <summary>切换模型：加新 model 到 allowlist + 可选设默认，单次 config.patch。</summary>
+    /// <summary>切换模型：加新 model 到 allowlist + 可选设默认，单次合并补丁。</summary>
     internal static async Task SwitchModelFullyAsync(IOperatorGatewayClient client, string newKey, bool makeDefault)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var defaults = new JsonObject
         {
             ["models"] = new JsonObject { [newKey] = new JsonObject() }
@@ -241,14 +221,13 @@ public sealed partial class ModelsPage : Page
         if (makeDefault)
             defaults["model"] = new JsonObject { ["primary"] = newKey };
         var patch = new JsonObject { ["agents"] = new JsonObject { ["defaults"] = defaults } };
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
-    // ── 单项操作（各一次 config.get + 一次 config.patch）──
+    // ── 单项操作（各一次合并补丁写回）──
 
     internal static async Task SetProviderConfigAsync(IOperatorGatewayClient client, string providerId, string api, string baseUrl, string apiKey, string modelId)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var provider = new JsonObject
         {
             ["api"] = api,
@@ -257,39 +236,35 @@ public sealed partial class ModelsPage : Page
             ["models"] = new JsonArray(new JsonObject { ["id"] = modelId, ["name"] = modelId }),
         };
         var patch = BuildNestedPatch("models.providers", providerId, provider);
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
     internal static async Task SetProviderApiKeyAsync(IOperatorGatewayClient client, string providerId, string apiKey)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var patch = BuildNestedPatch("models.providers", providerId, new JsonObject { ["apiKey"] = apiKey });
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
     internal static async Task AddToAllowlistAsync(IOperatorGatewayClient client, string key)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var patch = BuildNestedPatch("agents.defaults.models", key, new JsonObject());
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
     /// <summary>从 allowlist 删 key：合并补丁用 null 删除该键（缺失键不会被删）。</summary>
     internal static async Task RemoveFromAllowlistAsync(IOperatorGatewayClient client, string key)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var patch = BuildNestedPatch("agents.defaults.models", key, null);
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
     internal static async Task SetDefaultModelAsync(IOperatorGatewayClient client, string modelRef)
     {
-        var baseHash = await ReadBaseHashAsync(client);
         var patch = BuildNestedPatch("agents.defaults.model", "primary", modelRef);
-        await WritePatchAsync(client, patch, baseHash);
+        await WritePatchAsync(client, patch);
     }
 
-    /// <summary>把网关返回的配置错误转成友好提示（主要是 config.patch 限流）。</summary>
+    /// <summary>把配置写入/读取的错误转成友好提示。</summary>
     internal static string FriendlyConfigError(string msg)
     {
         if (msg.Contains("rate limit", StringComparison.OrdinalIgnoreCase) || msg.Contains("retry after", StringComparison.OrdinalIgnoreCase))
@@ -342,7 +317,7 @@ public sealed partial class ModelsPage : Page
                     StatusText.Text = $"模型 {dialog.SelectedModelId} 已存在。";
                     return;
                 }
-                // 加新模型到 allowlist + 可选设默认，单次 config.patch 写回（避免限流）
+                // 加新模型到 allowlist + 可选设默认，单次合并补丁写回
                 await SwitchModelFullyAsync(client, newKey, card.IsDefault);
                 await Task.Delay(1000);
                 await LoadAsync();
