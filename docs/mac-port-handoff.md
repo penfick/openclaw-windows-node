@@ -61,6 +61,12 @@
 
 ## 3. 配置写入黄金法则（全部是踩坑换来的，务必遵守）
 
+> ⚠️ **更新（2026-06）**：本节写于性能优化之前。现在 Windows 端**UI 的配置读写已改为直接读写
+> `~/.openclaw/openclaw.json` 文件**（网关 file-watch + 后台异步 reload，瞬时返回，绕开 config.patch
+> 的同步 ~4.5s reload 和 config.get 的 ~0.5-1.2s）。**Mac 端 UI 也应优先直读直写文件**。
+> 下面的 config.patch 法则仍有效（语义、`null` 删键、baseHash 都对），但现在只是**备选/强一致场景**用，
+> 不再是"唯一正确方式"。完整说明见 **[`mac-port-recent-updates.md`](./mac-port-recent-updates.md) 第 1 节**。
+
 ### 规则 1：用 `config.patch`，不要用 `config.set`
 - `config.set {path, value}` 会被网关拒：`invalid config.set params: must have required property 'raw'`。
 - 正确：`config.patch { raw: <JSON merge patch 字符串>, baseHash: <from config.get> }`。
