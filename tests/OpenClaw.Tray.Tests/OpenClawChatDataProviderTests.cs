@@ -26,10 +26,23 @@ public class OpenClawChatDataProviderTests
         public Func<string, Task>? AbortBehavior { get; set; }
         public SessionInfo[] Sessions { get; set; } = Array.Empty<SessionInfo>();
         public ModelsListInfo? CurrentModels { get; set; }
+        // Configurable commands.list result + a call counter for the
+        // request/response protocol API.
+        public CommandCatalog CommandCatalogResult { get; set; } = new CommandCatalog { IsSupported = true };
+        public Func<CommandCatalogQuery?, Task<CommandCatalog>>? ListCommandsBehavior { get; set; }
+        public int ListCommandsCallCount { get; private set; }
+        public CommandCatalogQuery? LastListCommandsQuery { get; private set; }
 
         public SessionInfo[] GetSessionList() => Sessions;
         public ModelsListInfo? GetCurrentModelsList() => CurrentModels;
         public void StartProactiveBootstrap() { }
+
+        public Task<CommandCatalog> ListCommandsAsync(CommandCatalogQuery? query = null)
+        {
+            ListCommandsCallCount++;
+            LastListCommandsQuery = query;
+            return ListCommandsBehavior?.Invoke(query) ?? Task.FromResult(CommandCatalogResult);
+        }
 
         public Task SendChatMessageAsync(string message, string? sessionKey, string? sessionId, IReadOnlyList<ChatAttachment>? attachments = null)
             => SendChatMessageForRunAsync(message, sessionKey, sessionId, attachments);
@@ -2002,6 +2015,274 @@ public class OpenClawChatDataProviderTests
         Assert.Equal(2, snapshots[^1].AvailableModels.Length);
         Assert.Equal("gpt-5.4", snapshots[^1].AvailableModels[0]);
         Assert.Equal("gpt-5.4-mirror", snapshots[^1].AvailableModels[1]);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_PopulatesCatalogInSnapshot()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[]
+            {
+                new GatewayCommand { Name = "clear", NativeName = "/clear", Category = "Session" },
+                new GatewayCommand { Name = "model", NativeName = "/model", Category = "Session", AcceptsArgs = true },
+            }
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        snapshots.Clear();
+
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        Assert.True(snap.CommandsSupported);
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Equal(2, snap.AvailableCommands!.Count);
+        Assert.Contains(snap.AvailableCommands, c => c.Name == "clear");
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_RequestsTextScopeAndExcludesNativeOnlyCommands()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        var mixedCatalog = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[]
+            {
+                new GatewayCommand { Name = "open-native-panel", NativeName = "open-native-panel", Scope = "native" },
+                new GatewayCommand { Name = "review", NativeName = "/review", Scope = "text" },
+                new GatewayCommand { Name = "model", NativeName = "/model", Scope = "both" },
+            }
+        };
+        bridge.ListCommandsBehavior = query => Task.FromResult(new CommandCatalog
+        {
+            IsSupported = mixedCatalog.IsSupported,
+            Commands = mixedCatalog.Commands.Where(c => query?.Matches(c) ?? true).ToArray(),
+        });
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        snapshots.Clear();
+
+        await provider.EnsureCommandCatalogAsync();
+
+        Assert.NotNull(bridge.LastListCommandsQuery);
+        Assert.Equal("text", bridge.LastListCommandsQuery!.Scope);
+        var commands = snapshots[^1].AvailableCommands!;
+        Assert.DoesNotContain(commands, c => c.Name == "open-native-panel");
+        Assert.Contains(commands, c => c.Name == "review");
+        Assert.Contains(commands, c => c.Name == "model");
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_Unsupported_FlipsSupportedFlag()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog { IsSupported = false };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        // The UI renders the "unsupported" state from this flag.
+        Assert.False(snap.CommandsSupported);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_Exception_PublishesUnsupportedFallback()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.ListCommandsBehavior = _ => Task.FromException<CommandCatalog>(
+            new InvalidOperationException("catalog unavailable"));
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        snapshots.Clear();
+
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        Assert.False(snap.CommandsSupported);
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Empty(snap.AvailableCommands!);
+
+        await provider.EnsureCommandCatalogAsync();
+        // The fallback is cached for this connection so reopening the menu does
+        // not retry immediately and put the composer back into "loading".
+        Assert.Equal(1, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_NotConnected_DoesNotFetch()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog { IsSupported = true };
+        await provider.LoadAsync();
+        // Provider starts Disconnected (FakeBridge default).
+
+        await provider.EnsureCommandCatalogAsync();
+
+        // The command catalog is a property of the live connection; no fetch
+        // should be issued while disconnected.
+        Assert.Equal(0, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task CommandCatalog_NullBeforeFetch_ThenEmptyNonNullWhenLoadedEmpty()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog { IsSupported = true };
+
+        // Before any commands.list fetch the catalog is null so the UI can
+        // distinguish "still loading" from "loaded but empty".
+        var initial = await provider.LoadAsync();
+        Assert.Null(initial.AvailableCommands);
+
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        Assert.True(snap.CommandsSupported);
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Empty(snap.AvailableCommands!);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_FetchesOnceThenReusesCache()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[] { new GatewayCommand { Name = "clear", NativeName = "/clear" } }
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+        await provider.EnsureCommandCatalogAsync();
+
+        // The catalog is cached after the first successful fetch; a second
+        // palette-open does not re-hit commands.list.
+        Assert.Equal(1, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_RefetchesAfterReconnect()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[] { new GatewayCommand { Name = "clear", NativeName = "/clear" } }
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+        Assert.Equal(1, bridge.ListCommandsCallCount);
+
+        // Leaving Connected clears the cached catalog; the next palette-open
+        // re-fetches it.
+        bridge.RaiseStatus(ConnectionStatus.Disconnected);
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+        Assert.Equal(2, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_DisconnectDuringFetch_DiscardsLateResult()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+
+        // Gate the fetch so we can disconnect while it is in flight.
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        bridge.ListCommandsBehavior = async _ =>
+        {
+            await release.Task;
+            return new CommandCatalog
+            {
+                IsSupported = true,
+                Commands = new[] { new GatewayCommand { Name = "stale", NativeName = "/stale" } }
+            };
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        var fetch = provider.EnsureCommandCatalogAsync();
+
+        // Disconnect while the fetch is still awaiting — this bumps the epoch.
+        bridge.RaiseStatus(ConnectionStatus.Disconnected);
+
+        // Now let the in-flight fetch complete; its result must be discarded.
+        release.SetResult(true);
+        await fetch;
+
+        var snapshots2 = new List<ChatDataSnapshot>();
+        provider.Changed += (_, e) => snapshots2.Add(e.Snapshot);
+        // Reconnect and fetch fresh — the stale "/stale" catalog must not appear.
+        bridge.ListCommandsBehavior = null;
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[] { new GatewayCommand { Name = "fresh", NativeName = "/fresh" } }
+        };
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots2[^1];
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Single(snap.AvailableCommands!);
+        Assert.Equal("fresh", snap.AvailableCommands![0].Name);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_DisconnectBeforeDelivery_DropsStaleCommandSnapshot()
+    {
+        var bridge = new FakeBridge
+        {
+            Sessions = new[] { MainSession() },
+            CurrentStatus = ConnectionStatus.Connected,
+            CommandCatalogResult = new CommandCatalog
+            {
+                IsSupported = true,
+                Commands = new[] { new GatewayCommand { Name = "stale", NativeName = "/stale" } }
+            }
+        };
+        // Manually-pumped post queue so we can interleave a disconnect between
+        // the commands.list snapshot's marshaled delivery being enqueued and run.
+        var queued = new List<Action>();
+        var provider = new OpenClawChatDataProvider(bridge, post: a => queued.Add(a));
+        var delivered = new List<ChatDataSnapshot>();
+        provider.Changed += (_, e) => delivered.Add(e.Snapshot);
+
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync(); // enqueues the command-catalog delivery
+
+        // Disconnect runs and is itself enqueued; drain the queue in order. The
+        // command-catalog delivery re-checks the epoch and, finding it bumped by
+        // the disconnect, drops itself — so the last delivered snapshot reflects
+        // the disconnect (no stale commands), not "connected + /stale".
+        bridge.RaiseStatus(ConnectionStatus.Disconnected);
+        foreach (var action in queued.ToArray())
+            action();
+
+        Assert.NotEmpty(delivered);
+        // The command-catalog delivery re-checks the epoch (bumped by the
+        // disconnect) and drops itself, so no delivered snapshot ever surfaces
+        // the now-stale command — regardless of marshaled delivery ordering.
+        Assert.DoesNotContain(delivered, s =>
+            s.AvailableCommands is { Count: > 0 } cmds && cmds.Any(c => c.Name == "stale"));
+        var last = delivered[^1];
+        Assert.True(last.AvailableCommands is null || last.AvailableCommands.Count == 0,
+            "A stale connected+commands snapshot must not be delivered after disconnect.");
+
+        await provider.DisposeAsync();
     }
 
     [Fact]
