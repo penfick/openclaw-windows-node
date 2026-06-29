@@ -71,6 +71,21 @@ internal static class OpenClawConfigFile
             ?? new JsonObject();
     }
 
+    /// <summary>
+    /// Read openclaw.json as a cloned <see cref="JsonElement"/> (usable after this returns — the
+    /// underlying document is disposed). Returned as the config root directly (no gateway
+    /// "config" wrapper). <see cref="default"/> if the file is missing. Use this to read config
+    /// for UI without a config.get RPC round-trip / gateway reload contention.
+    /// </summary>
+    public static async Task<JsonElement> ReadRootElementAsync(CancellationToken ct = default)
+    {
+        var path = ConfigPath;
+        if (!File.Exists(path)) return default;
+        await using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
+        return doc.RootElement.Clone();
+    }
+
     private static async Task WriteAtomicAsync(JsonObject root, CancellationToken ct)
     {
         var path = ConfigPath;

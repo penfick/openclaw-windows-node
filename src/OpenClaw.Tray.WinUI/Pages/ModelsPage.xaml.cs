@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using OpenClaw.Shared;
@@ -39,9 +40,9 @@ public sealed partial class ModelsPage : Page
         StatusText.Text = string.Empty;
         try
         {
-            var resp = await client.SendWizardRequestAsync("config.get");
-            var root = resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("config", out var cfgEl) && cfgEl.ValueKind == JsonValueKind.Object
-                ? cfgEl : resp;
+            // Read config directly from openclaw.json (instant) — skips the config.get RPC
+            // (~0.5-1.2s, with reload-contention spikes) so cards render immediately.
+            var root = await OpenClawConfigFile.ReadRootElementAsync();
 
             // 当前默认
             var primaryRef = ReadPrimary(root);
@@ -56,9 +57,10 @@ public sealed partial class ModelsPage : Page
                     providerInfo[p.Name] = p.Value;
             }
 
-            // 补全 provider 模型目录（从 models.list + config providers.models 双来源）
+            // provider 模型目录：先从 config 的 providers.<id>.models[] 快速填充（卡片显示用这个就够）。
+            // models.list 的完整目录（含 plugin catalog 注入的模型）在后台补充（见 SupplementProviderCatalogAsync），
+            // 不阻塞卡片渲染——models.list 缓存失效重枚举时可能 10s+。
             _providerCatalog.Clear();
-            // 来源 1：config 的 providers.<id>.models[]
             foreach (var (pid, pval) in providerInfo)
             {
                 var list = new List<string>();
@@ -73,29 +75,6 @@ public sealed partial class ModelsPage : Page
                 }
                 _providerCatalog[pid] = list;
             }
-            // 来源 2：models.list（含 plugin catalog 注入的模型）
-            try
-            {
-                var mlResp = await client.SendWizardRequestAsync("models.list", new { view = "all" });
-                var arr = mlResp.ValueKind == JsonValueKind.Array ? mlResp
-                    : (mlResp.TryGetProperty("models", out var mlArr) && mlArr.ValueKind == JsonValueKind.Array ? mlArr : default);
-                if (arr.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var m in arr.EnumerateArray())
-                    {
-                        var mid = m.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
-                        var mprov = m.TryGetProperty("provider", out var provEl) ? provEl.GetString() ?? "" : "";
-                        if (!string.IsNullOrEmpty(mid) && !string.IsNullOrEmpty(mprov))
-                        {
-                            if (!_providerCatalog.ContainsKey(mprov))
-                                _providerCatalog[mprov] = new List<string>();
-                            if (!_providerCatalog[mprov].Contains(mid))
-                                _providerCatalog[mprov].Add(mid);
-                        }
-                    }
-                }
-            }
-            catch { /* models.list 失败时用 config-only */ }
 
             // allowlist → 卡片
             var cards = new List<ModelCardData>();
@@ -144,10 +123,52 @@ public sealed partial class ModelsPage : Page
         finally
         {
             LoadingProgress.IsActive = false;
-            // 刷新网关 models.list（聊天选择器读它），让配置改动尽快反映，避免"重启才生效"。
-            // 注：新增 provider 的注册仍可能需要网关重启（provider 启动时加载）。
+            // 卡片已从 config 渲染完。后台补全 provider 模型目录（models.list view:all，给"添加模型"选择器），
+            // 缓存失效重枚举可能 10s+，放后台不阻塞页面。
+            _ = SupplementProviderCatalogAsync(client);
+            // 刷新网关 configured 模型列表（聊天选择器读它），让配置改动尽快反映。
             _ = CurrentApp.GatewayClient?.RequestModelsListAsync();
         }
+    }
+
+    /// <summary>
+    /// 后台拉 models.list 补全 _providerCatalog（给"添加模型"选择器用），在 UI 线程合并。
+    /// 卡片渲染不依赖它（卡片只用 config 的 allowlist），所以放后台不阻塞。
+    /// </summary>
+    private async Task SupplementProviderCatalogAsync(IOperatorGatewayClient client)
+    {
+        var dq = DispatcherQueue.GetForCurrentThread();
+        List<(string Prov, string Model)> collected;
+        try
+        {
+            var mlResp = await client.SendWizardRequestAsync("models.list", new { view = "all" });
+            var arr = mlResp.ValueKind == JsonValueKind.Array ? mlResp
+                : (mlResp.TryGetProperty("models", out var mlArr) && mlArr.ValueKind == JsonValueKind.Array ? mlArr : default);
+            if (arr.ValueKind != JsonValueKind.Array) return;
+            collected = new List<(string, string)>();
+            foreach (var m in arr.EnumerateArray())
+            {
+                var mid = m.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+                var mprov = m.TryGetProperty("provider", out var provEl) ? provEl.GetString() ?? "" : "";
+                if (!string.IsNullOrEmpty(mid) && !string.IsNullOrEmpty(mprov))
+                    collected.Add((mprov, mid));
+            }
+        }
+        catch { return; } // models.list 失败时用 config-only 目录
+
+        void Merge()
+        {
+            foreach (var (mprov, mid) in collected)
+            {
+                if (!_providerCatalog.ContainsKey(mprov))
+                    _providerCatalog[mprov] = new List<string>();
+                if (!_providerCatalog[mprov].Contains(mid))
+                    _providerCatalog[mprov].Add(mid);
+            }
+        }
+
+        if (dq != null) dq.TryEnqueue(Merge);
+        else Merge();
     }
 
     // ── 配置写入：直接写 openclaw.json（RFC 7396 合并补丁）──

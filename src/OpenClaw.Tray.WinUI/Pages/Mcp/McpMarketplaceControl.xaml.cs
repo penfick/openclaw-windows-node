@@ -44,13 +44,10 @@ public sealed partial class McpMarketplaceControl : UserControl
 
     private async Task LoadInstalledNamesAsync()
     {
-        var client = CurrentApp.GatewayClient;
-        if (client == null) return;
         try
         {
-            var resp = await client.SendWizardRequestAsync("config.get");
-            var root = resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("config", out var cfgEl) && cfgEl.ValueKind == JsonValueKind.Object
-                ? cfgEl : resp;
+            // 直读 openclaw.json（瞬时），不走 config.get RPC。
+            var root = await OpenClawConfigFile.ReadRootElementAsync();
             _installedNames.Clear();
             // native agent MCP 在 mcp.servers（openclaw mcp list 读的就是这里）
             var serversEl = McpConfig.Walk(root, McpConfig.ServersPath);

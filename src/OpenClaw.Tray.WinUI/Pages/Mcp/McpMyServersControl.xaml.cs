@@ -40,10 +40,8 @@ public sealed partial class McpMyServersControl : UserControl
         StatusText.Text = string.Empty;
         try
         {
-            var resp = await client.SendWizardRequestAsync("config.get");
-            var root = resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("config", out var cfgEl) && cfgEl.ValueKind == JsonValueKind.Object
-                ? cfgEl
-                : resp;
+            // 直读 openclaw.json（瞬时），不走 config.get RPC（避免 ~0.5-1.2s + reload 争用尖峰）。
+            var root = await OpenClawConfigFile.ReadRootElementAsync();
 
             // 一次性迁移：旧版误写到 acpx.config.mcpServers → 挪到 mcp.servers
             if (await TryMigrateLegacyAsync(client, root))
