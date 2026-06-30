@@ -38,7 +38,7 @@ public sealed class OpenClawChatRoot : Component
     private readonly Action<bool>? _onSpeakerMuteChanged;
     private readonly bool _initialMuted;
     private readonly bool _isCompact;
-    private Action<ChatAttachment>? _onFileAttached;
+    private Action<IReadOnlyList<ChatAttachment>>? _onFilesAttached;
     private Action<string?>? _setVoiceTranscript;
     private Action<float>? _setVoiceAudioLevel;
     private Action? _scrollToBottomToken;
@@ -56,12 +56,12 @@ public sealed class OpenClawChatRoot : Component
 
     /// <summary>
     /// Callback invoked by the host window/page after a file is selected.
-    /// Sets the pending attachment and triggers a re-render.
+    /// Appends pending attachments and triggers a re-render.
     /// </summary>
-    public Action<ChatAttachment>? OnFileAttached
+    public Action<IReadOnlyList<ChatAttachment>>? OnFilesAttached
     {
-        get => _onFileAttached;
-        set => _onFileAttached = value;
+        get => _onFilesAttached;
+        set => _onFilesAttached = value;
     }
 
     /// <summary>
@@ -109,7 +109,9 @@ public sealed class OpenClawChatRoot : Component
 
     public override Element Render()
     {
-        var pendingAttachment = UseState<ChatAttachment?>(null, threadSafe: true);
+        var pendingAttachments = UseState<IReadOnlyList<ChatAttachment>>(Array.Empty<ChatAttachment>(), threadSafe: true);
+        var pendingAttachmentsRef = UseRef<IReadOnlyList<ChatAttachment>>(pendingAttachments.Value);
+        pendingAttachmentsRef.Current = pendingAttachments.Value;
         var speakerMuted = UseState(_initialMuted, threadSafe: true);
         var voiceTranscript = UseState<string?>(null, threadSafe: true);
         var voiceAudioLevel = UseState(0f, threadSafe: true);
@@ -122,9 +124,21 @@ public sealed class OpenClawChatRoot : Component
         // Cleared automatically when the next snapshot arrives.
         var firstSendInFlight = UseState(false, threadSafe: true);
 
-        // Wire the OnFileAttached callback so the host window/page can set the
-        // pending attachment after the file picker completes.
-        _onFileAttached = att => pendingAttachment.Set(att);
+        void SetPendingAttachments(IReadOnlyList<ChatAttachment> attachments)
+        {
+            pendingAttachmentsRef.Current = attachments;
+            pendingAttachments.Set(attachments);
+        }
+
+        // Wire the attachment callback so the host window/page can append
+        // pending attachments after the file picker completes.
+        _onFilesAttached = attachments =>
+        {
+            if (attachments.Count == 0)
+                return;
+
+            SetPendingAttachments(pendingAttachmentsRef.Current.Concat(attachments).ToArray());
+        };
         _setVoiceTranscript = voiceTranscript.Set;
         _setVoiceAudioLevel = voiceAudioLevel.Set;
         _scrollToBottomToken = () => scrollToBottomToken.Set(scrollToBottomToken.Value + 1);
@@ -246,6 +260,7 @@ public sealed class OpenClawChatRoot : Component
                 Id = composeKey,
                 Title = lastState?.ThreadTitle ?? "OpenClaw Windows Tray",
                 Model = lastState?.Model,
+                ModelProvider = lastState?.ModelProvider,
                 Status = ChatThreadStatus.Running,
                 Activity = ChatActivity.Idle,
             };
@@ -452,7 +467,7 @@ public sealed class OpenClawChatRoot : Component
                     if (effectiveThread is { } t)
                     {
                         firstSendInFlight.Set(true);
-                        OnSend(t.Id, suggestion, null);
+                        OnSend(t.Id, suggestion, Array.Empty<ChatAttachment>());
                     }
                 }, suggestionsDisabled: firstSendInFlight.Value);
         }
@@ -476,7 +491,7 @@ public sealed class OpenClawChatRoot : Component
                     : null,
                 OnStopSpeaking: _onStopSpeaking,
                 ScrollToBottomToken: scrollToBottomToken.Value,
-                OnPermissionResponse: (rid, allow) => OnPermission(effectiveThread.Id!, rid, allow)));
+                OnPermissionResponse: (rid, action) => OnPermission(effectiveThread.Id!, rid, action)));
         }
 
         // Session list for the composer dropdown — grouped by agent, keyed by
@@ -533,12 +548,14 @@ public sealed class OpenClawChatRoot : Component
                 ChannelId: composerThread.Id!,
                 AvailableChannels: channelGroups,
                 AvailableModels: snapshot.AvailableModels,
-                CurrentModel: NormalizeModelRef(composerThread.Model, snapshot.AvailableModels),
+                CurrentModel: composerThread.Model,
+                CurrentModelProvider: composerThread.ModelProvider,
                 CurrentThinkingLevel: composerThread.ThinkingLevel,
-                OnSend: (msg, att) =>
+                ModelChoices: snapshot.ModelChoices,
+                OnSend: (msg, attachments) =>
                 {
-                    pendingAttachment.Set(null);
-                    OnSend(composerThread.Id!, msg, att);
+                    SetPendingAttachments(Array.Empty<ChatAttachment>());
+                    OnSend(composerThread.Id!, msg, attachments);
                 },
                 OnStop: () => OnStop(composerThread.Id!),
                 OnChannelChanged: id =>
@@ -546,13 +563,14 @@ public sealed class OpenClawChatRoot : Component
                     selectedIdState.Set(id);
                     selectedIdRef.Current = id;
                 },
-                OnModelChanged: model => RunFireAndForget(ct => _provider.SetModelAsync(composerThread.Id!, model, ct)),
+                OnModelChanged: model => ObserveFireAndForget(_provider.SetModelAsync(composerThread.Id!, model)),
+                OnModelCleared: () => ObserveFireAndForget(_provider.ClearModelAsync(composerThread.Id!)),
                 OnThinkingLevelChanged: level => RunFireAndForget(ct => _provider.SetThinkingLevelAsync(composerThread.Id!, level, ct)),
                 OnPermissionsChanged: allowAll => RunFireAndForget(ct => _provider.SetPermissionModeAsync(composerThread.Id!, allowAll, ct)),
                 OnVoiceRequest: _onVoiceRequest,
                 OnAttachClick: _onAttachClick,
-                PendingAttachment: pendingAttachment.Value,
-                OnAttachmentRemoved: () => pendingAttachment.Set(null),
+                PendingAttachments: pendingAttachments.Value,
+                OnAttachmentRemoved: attachment => SetPendingAttachments(RemoveAttachment(pendingAttachmentsRef.Current, attachment)),
                 IsSpeakerMuted: speakerMuted.Value,
                 OnSpeakerToggle: () =>
                 {
@@ -564,7 +582,7 @@ public sealed class OpenClawChatRoot : Component
                 VoiceTranscript: voiceTranscript.Value,
                 VoiceAudioLevel: voiceAudioLevel.Value,
                 RegisterVoiceStarter: starter => TriggerVoiceRecording = starter,
-                OnAttachmentPasted: att => pendingAttachment.Set(att),
+                OnAttachmentPasted: att => SetPendingAttachments(pendingAttachmentsRef.Current.Concat(new[] { att }).ToArray()),
                 ShowToolCalls: showToolCalls.Value,
                 OnShowToolCallsChanged: visible =>
                 {
@@ -573,7 +591,10 @@ public sealed class OpenClawChatRoot : Component
                     s_showToolCalls = visible;
                     ToolCallsVisibilityChanged?.Invoke(null, EventArgs.Empty);
                 },
-                IsCompact: _isCompact))
+                IsCompact: _isCompact,
+                AvailableCommands: snapshot.AvailableCommands,
+                CommandsSupported: snapshot.CommandsSupported,
+                OnCommandsRequested: () => RunFireAndForget(ct => _provider.EnsureCommandCatalogAsync(ct))))
             : (bodyIsSkeleton ? RenderSkeletonComposer() : Empty());
 
         var divider = Empty();
@@ -599,25 +620,6 @@ public sealed class OpenClawChatRoot : Component
             }
         }
         return false;
-    }
-
-    /// <summary>
-    /// Normalize a session's model ref to the full "{provider}/{id}" form used by
-    /// the model dropdown. Sessions report the bare id (e.g. "mimo-v2.5-pro" or
-    /// "moonshotai/kimi-k2.6"); the dropdown is keyed by full refs. Without this,
-    /// the ComboBox can't highlight the active model, and switching a slash-id
-    /// model would send a ref the gateway mis-parses.
-    /// </summary>
-    private static string NormalizeModelRef(string? model, string[] availableFullRefs)
-    {
-        if (string.IsNullOrEmpty(model)) return model ?? "";
-        if (Array.IndexOf(availableFullRefs, model) >= 0) return model;
-        foreach (var full in availableFullRefs)
-        {
-            if (full.EndsWith("/" + model, StringComparison.Ordinal))
-                return full;
-        }
-        return model;
     }
 
     /// <summary>
@@ -856,16 +858,33 @@ public sealed class OpenClawChatRoot : Component
         );
     }
 
-    private void OnSend(string threadId, string message, ChatAttachment? attachment)
+    private void OnSend(string threadId, string message, IReadOnlyList<ChatAttachment> attachments)
     {
         _scrollToBottomToken?.Invoke();
-        IReadOnlyList<ChatAttachment>? attachments = attachment is not null
-            ? new[] { attachment }
-            : null;
-        if (attachments is not null)
-            RunFireAndForget(ct => _provider.SendMessageAsync(threadId, message, ct, attachments));
+        if (attachments.Count > 0)
+            RunFireAndForget(ct => _provider.SendMessageAsync(threadId, message, ct, attachments.ToArray()));
         else
             RunFireAndForget(ct => _provider.SendMessageAsync(threadId, message, ct));
+    }
+
+    private static IReadOnlyList<ChatAttachment> RemoveAttachment(
+        IReadOnlyList<ChatAttachment> attachments,
+        ChatAttachment attachment)
+    {
+        var next = new List<ChatAttachment>(attachments.Count);
+        var removed = false;
+        foreach (var current in attachments)
+        {
+            if (!removed && ReferenceEquals(current, attachment))
+            {
+                removed = true;
+                continue;
+            }
+
+            next.Add(current);
+        }
+
+        return removed ? next.ToArray() : attachments;
     }
 
     private void OnStop(string threadId)
@@ -873,9 +892,9 @@ public sealed class OpenClawChatRoot : Component
         RunFireAndForget(ct => _provider.StopResponseAsync(threadId, ct));
     }
 
-    private void OnPermission(string threadId, string requestId, bool allow)
+    private void OnPermission(string threadId, string requestId, string action)
     {
-        RunFireAndForget(ct => _provider.RespondToPermissionAsync(threadId, requestId, allow, ct));
+        RunFireAndForget(ct => _provider.RespondToPermissionAsync(threadId, requestId, action, ct));
     }
 
     private static void RunFireAndForget(Func<CancellationToken, Task> op)
@@ -887,6 +906,19 @@ public sealed class OpenClawChatRoot : Component
             catch (OperationCanceledException) { /* expected */ }
             catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[chat] op failed: {ex}"); }
         });
+    }
+
+    private static void ObserveFireAndForget(Task task)
+    {
+        _ = ObserveAsync(task);
+
+        static async Task ObserveAsync(Task task)
+        {
+            try { await task; }
+            // slopwatch-ignore: SW003 Shutdown cancellation or disposal is expected and the caller already preserves the safe state.
+            catch (OperationCanceledException) { /* expected */ }
+            catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[chat] op failed: {ex}"); }
+        }
     }
 
     private static async Task LoadAsync(

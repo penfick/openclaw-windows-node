@@ -23,6 +23,10 @@ public class OpenClawGatewayClientTests
             string gatewayUrl = "ws://localhost:18789",
             string? identityPath = null)
         {
+            // Isolate test identities because other test classes can construct
+            // gateway clients concurrently under the same AppData root.
+            identityPath ??= CreateTempIdentityPath();
+
             _client = new OpenClawGatewayClient(
                 gatewayUrl,
                 "test-token",
@@ -34,7 +38,11 @@ public class OpenClawGatewayClientTests
 
         public GatewayClientTestHelper(IOpenClawLogger logger)
         {
-            _client = new OpenClawGatewayClient("ws://localhost:18789", "test-token", logger);
+            _client = new OpenClawGatewayClient(
+                "ws://localhost:18789",
+                "test-token",
+                logger,
+                identityPath: CreateTempIdentityPath());
         }
 
         public string ClassifyNotification(string text)
@@ -258,7 +266,7 @@ public class OpenClawGatewayClientTests
         public ModelsListInfo ParseModelsListPayload(string payloadJson)
         {
             ModelsListInfo? parsed = null;
-            EventHandler<ModelsListInfo> handler = (_, models) => parsed = models;
+            EventHandler<ModelsListInfo> handler = (_, info) => parsed = info;
             _client.ModelsListUpdated += handler;
 
             try
@@ -771,6 +779,131 @@ public class OpenClawGatewayClientTests
 
         Assert.Contains(logger.Logs, log => log == $"DEBUG: Chat event received: len={rawMessage.Length}");
         Assert.DoesNotContain(logger.Logs, log => log.Contains("super-secret", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ProcessRawMessage_SessionMessageWithStringContent_EmitsChatMessage()
+    {
+        var helper = new GatewayClientTestHelper();
+        ChatMessageInfo? received = null;
+        helper.Client.ChatMessageReceived += (_, message) => received = message;
+
+        helper.ProcessRawMessage("""
+        {
+          "type": "event",
+          "event": "session.message",
+          "payload": {
+            "sessionKey": "agent:main:whatsapp:direct:+15551234567",
+            "message": {
+              "role": "user",
+              "content": "testing from whatsapp",
+              "timestamp": 1781631273567
+            },
+            "state": "final"
+          }
+        }
+        """);
+
+        Assert.NotNull(received);
+        Assert.Equal("agent:main:whatsapp:direct:+15551234567", received!.SessionKey);
+        Assert.Equal("user", received.Role);
+        Assert.Equal("testing from whatsapp", received.Text);
+        Assert.Equal("final", received.State);
+        Assert.Equal(1781631273567, received.Ts);
+    }
+
+    [Fact]
+    public void ProcessRawMessage_SessionMessageWithContentBlocks_EmitsChatMessage()
+    {
+        var helper = new GatewayClientTestHelper();
+        ChatMessageInfo? received = null;
+        helper.Client.ChatMessageReceived += (_, message) => received = message;
+
+        helper.ProcessRawMessage("""
+        {
+          "type": "event",
+          "event": "session.message",
+          "payload": {
+            "sessionKey": "agent:main:whatsapp:direct:+15551234567",
+            "message": {
+              "role": "assistant",
+              "content": [
+                { "type": "text", "text": "hello from assistant" }
+              ],
+              "timestamp": 1781631280633
+            },
+            "state": "final"
+          }
+        }
+        """);
+
+        Assert.NotNull(received);
+        Assert.Equal("agent:main:whatsapp:direct:+15551234567", received!.SessionKey);
+        Assert.Equal("assistant", received.Role);
+        Assert.Equal("hello from assistant", received.Text);
+        Assert.Equal("final", received.State);
+        Assert.Equal(1781631280633, received.Ts);
+    }
+
+    [Fact]
+    public void ProcessRawMessage_SessionMessageWithMalformedMessage_DropsFrame()
+    {
+        var logger = new TestLogger();
+        var helper = new GatewayClientTestHelper(logger);
+        ChatMessageInfo? received = null;
+        helper.Client.ChatMessageReceived += (_, message) => received = message;
+
+        helper.ProcessRawMessage("""
+        {
+          "type": "event",
+          "event": "session.message",
+          "payload": {
+            "sessionKey": "agent:main:whatsapp:direct:+15551234567",
+            "message": "not-an-object",
+            "state": "final"
+          }
+        }
+        """);
+
+        Assert.Null(received);
+        Assert.Contains(logger.Logs, log => log.Contains("message payload was not an object", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("final", true)]
+    [InlineData("streaming", false)]
+    public void ProcessRawMessage_SessionMessageAssistantNotification_DependsOnFinalState(string state, bool expectNotification)
+    {
+        var helper = new GatewayClientTestHelper();
+        OpenClawNotification? notification = null;
+        helper.Client.NotificationReceived += (_, value) => notification = value;
+
+        helper.ProcessRawMessage($$"""
+        {
+          "type": "event",
+          "event": "session.message",
+          "payload": {
+            "sessionKey": "agent:main:whatsapp:direct:+15551234567",
+            "message": {
+              "role": "assistant",
+              "content": "assistant reply",
+              "timestamp": 1781631280633
+            },
+            "state": "{{state}}"
+          }
+        }
+        """);
+
+        if (expectNotification)
+        {
+            Assert.NotNull(notification);
+            Assert.Equal("assistant reply", notification!.Message);
+            Assert.True(notification.IsChat);
+        }
+        else
+        {
+            Assert.Null(notification);
+        }
     }
 
     [Fact]
@@ -1553,6 +1686,97 @@ public class OpenClawGatewayClientTests
     }
 
     [Fact]
+    public void ParseModelsList_PopulatesProviderRichMetadata()
+    {
+        var helper = new GatewayClientTestHelper();
+        var info = helper.ParseModelsListPayload("""
+            {
+              "models": [
+                {
+                  "id": "claude-opus-4.8",
+                  "name": "Claude Opus 4.8",
+                  "provider": "Anthropic",
+                  "contextWindow": 200000,
+                  "configured": true,
+                  "default": true
+                },
+                {
+                  "id": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro",
+                  "provider": "Google",
+                  "contextWindow": 1000000,
+                  "requiresAuth": true
+                },
+                {
+                  "id": "local-llama",
+                  "provider": "Ollama",
+                  "unavailable": true
+                }
+              ]
+            }
+            """);
+
+        Assert.Equal(3, info.Models.Count);
+
+        var opus = info.Models[0];
+        Assert.Equal("claude-opus-4.8", opus.Id);
+        Assert.Equal("Anthropic", opus.Provider);
+        Assert.Equal(200000, opus.ContextWindow);
+        Assert.True(opus.IsConfigured);
+        Assert.True(opus.IsDefault);
+        Assert.True(opus.IsAvailable);
+        Assert.False(opus.RequiresAuth);
+
+        var gemini = info.Models[1];
+        Assert.True(gemini.RequiresAuth);
+        Assert.False(gemini.IsDefault);
+        Assert.True(gemini.IsAvailable); // no availability signal → usable
+
+        var llama = info.Models[2];
+        Assert.False(llama.IsAvailable); // unavailable:true inverts to false
+        Assert.Equal("local-llama", llama.DisplayName); // name omitted → id
+    }
+
+    [Fact]
+    public void ParseModelsList_DefaultsAvailableTrue_WhenNoReadinessSignals()
+    {
+        var helper = new GatewayClientTestHelper();
+        var info = helper.ParseModelsListPayload("""
+            { "models": [ { "id": "gpt-5.5", "name": "GPT-5.5" } ] }
+            """);
+
+        var m = Assert.Single(info.Models);
+        Assert.True(m.IsAvailable);
+        Assert.False(m.RequiresAuth);
+        Assert.False(m.IsDefault);
+        Assert.False(m.IsConfigured);
+    }
+
+    [Fact]
+    public void ParseModelsList_AvailableFalse_MarksUnavailable()
+    {
+        var helper = new GatewayClientTestHelper();
+        var info = helper.ParseModelsListPayload("""
+            { "models": [ { "id": "x", "available": false } ] }
+            """);
+
+        Assert.False(Assert.Single(info.Models).IsAvailable);
+    }
+
+    [Fact]
+    public void ParseModelsList_AcceptsIsDefaultAndAuthNeededAliases()
+    {
+        var helper = new GatewayClientTestHelper();
+        var info = helper.ParseModelsListPayload("""
+            { "models": [ { "id": "x", "isDefault": true, "authNeeded": true } ] }
+            """);
+
+        var m = Assert.Single(info.Models);
+        Assert.True(m.IsDefault);
+        Assert.True(m.RequiresAuth);
+    }
+
+    [Fact]
     public void ParseNodeListPayload_SameOnlineStatus_SortsByLastSeenDescending()
     {
         var helper = new GatewayClientTestHelper();
@@ -1850,7 +2074,11 @@ public class OpenClawGatewayClientTests
     public async Task NodeRenameAsync_RejectsEmptyNodeId_WithoutHittingTransport()
     {
         var logger = new TestLogger();
-        var client = new OpenClawGatewayClient("http://test:8080", "my-token", logger);
+        var client = new OpenClawGatewayClient(
+            "http://test:8080",
+            "my-token",
+            logger,
+            identityPath: CreateTempIdentityPath());
 
         var result = await client.NodeRenameAsync("", "New Name");
 
@@ -1862,7 +2090,11 @@ public class OpenClawGatewayClientTests
     public async Task NodeRenameAsync_RejectsEmptyDisplayName_WithoutHittingTransport()
     {
         var logger = new TestLogger();
-        var client = new OpenClawGatewayClient("http://test:8080", "my-token", logger);
+        var client = new OpenClawGatewayClient(
+            "http://test:8080",
+            "my-token",
+            logger,
+            identityPath: CreateTempIdentityPath());
 
         var result = await client.NodeRenameAsync("node-1", "   ");
 
@@ -1874,7 +2106,11 @@ public class OpenClawGatewayClientTests
     public async Task NodeRenameAsync_ReturnsErrorWhenNotConnected()
     {
         var logger = new TestLogger();
-        var client = new OpenClawGatewayClient("http://test:8080", "my-token", logger);
+        var client = new OpenClawGatewayClient(
+            "http://test:8080",
+            "my-token",
+            logger,
+            identityPath: CreateTempIdentityPath());
 
         var result = await client.NodeRenameAsync("node-1", "Pretty Name");
 
@@ -1886,7 +2122,11 @@ public class OpenClawGatewayClientTests
     public async Task NodePairRemoveAsync_ReturnsFailureForEmptyNodeId()
     {
         var logger = new TestLogger();
-        var client = new OpenClawGatewayClient("http://test:8080", "my-token", logger);
+        var client = new OpenClawGatewayClient(
+            "http://test:8080",
+            "my-token",
+            logger,
+            identityPath: CreateTempIdentityPath());
 
         var result = await client.NodePairRemoveAsync("");
 
@@ -1898,7 +2138,11 @@ public class OpenClawGatewayClientTests
     public async Task NodePairRemoveAsync_ReturnsFailureWhenNotConnected()
     {
         var logger = new TestLogger();
-        var client = new OpenClawGatewayClient("http://test:8080", "my-token", logger);
+        var client = new OpenClawGatewayClient(
+            "http://test:8080",
+            "my-token",
+            logger,
+            identityPath: CreateTempIdentityPath());
 
         var result = await client.NodePairRemoveAsync("node-1");
 
@@ -1910,7 +2154,11 @@ public class OpenClawGatewayClientTests
     public void Constructor_InitializesWithProvidedValues()
     {
         var logger = new TestLogger();
-        var client = new OpenClawGatewayClient("http://test:8080", "my-token", logger);
+        var client = new OpenClawGatewayClient(
+            "http://test:8080",
+            "my-token",
+            logger,
+            identityPath: CreateTempIdentityPath());
         
         // Verify URL was normalized (http → ws) — field is now on base class WebSocketClientBase
         var field = typeof(OpenClawGatewayClient).BaseType?.GetField(
@@ -1924,7 +2172,10 @@ public class OpenClawGatewayClientTests
     public void Constructor_UsesNullLogger_WhenNotProvided()
     {
         // Verify construction without logger doesn't throw and still normalizes URL
-        var client = new OpenClawGatewayClient("https://test:8080", "my-token");
+        var client = new OpenClawGatewayClient(
+            "https://test:8080",
+            "my-token",
+            identityPath: CreateTempIdentityPath());
         
         var field = typeof(OpenClawGatewayClient).BaseType?.GetField(
             "_gatewayUrl",
@@ -1944,7 +2195,10 @@ public class OpenClawGatewayClientTests
     [InlineData("HTTPS://HOST.EXAMPLE.COM", "wss://HOST.EXAMPLE.COM")]
     public void Constructor_NormalizesHttpToWs(string inputUrl, string expectedWsUrl)
     {
-        var client = new OpenClawGatewayClient(inputUrl, "test-token");
+        var client = new OpenClawGatewayClient(
+            inputUrl,
+            "test-token",
+            identityPath: CreateTempIdentityPath());
 
         var field = typeof(OpenClawGatewayClient).BaseType?.GetField(
             "_gatewayUrl",

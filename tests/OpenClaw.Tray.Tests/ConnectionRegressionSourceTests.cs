@@ -55,6 +55,30 @@ public sealed class ConnectionRegressionSourceTests
         Assert.Contains("Node list refresh failed after local node trust request", managerSource);
     }
 
+    [Fact]
+    public void SetupCodeEntry_ClearsStaleSshTunnelFields()
+    {
+        var pageSource = ReadSource("src", "OpenClaw.Tray.WinUI", "Pages", "ConnectionPage.xaml.cs");
+
+        Assert.Contains("private void ClearAddGatewaySshFields()", pageSource);
+        Assert.Contains("ClearAddGatewaySshFields();\r\n        ShowAddPane(\"setup\");", pageSource);
+        Assert.Contains("AddSshExpander.IsExpanded = false;", pageSource);
+        Assert.Contains("AddSshUserBox.Text = \"\";", pageSource);
+        Assert.Contains("AddSshHostBox.Text = \"\";", pageSource);
+    }
+
+    [Fact]
+    public void NodeCapabilityPills_ExposeStateThroughReadableTextPeer()
+    {
+        var pageSource = ReadSource("src", "OpenClaw.Tray.WinUI", "Pages", "ConnectionPage.xaml.cs");
+
+        Assert.Contains("AutomationProperties.SetName(labelText", pageSource);
+        Assert.DoesNotContain(
+            "AutomationProperties.SetAccessibilityView(labelText, AccessibilityView.Raw);",
+            pageSource);
+        Assert.DoesNotContain("AutomationProperties.SetName(pill", pageSource);
+    }
+
     private static string ReadSource(params string[] relativePathParts)
     {
         var root = TestRepositoryPaths.GetRepositoryRoot();

@@ -6,6 +6,8 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using OpenClaw.Shared;
 using OpenClaw.Shared.Capabilities;
+using OpenClaw.Shared.Sessions;
+using OpenClaw.Shared.Mxc;
 using OpenClawTray.Dialogs;
 using OpenClawTray.Helpers;
 using OpenClawTray.Services;
@@ -22,6 +24,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -42,6 +45,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     };
 
     private TrayIcon? _trayIcon;
+    private TrayIconCoordinator? _trayIconCoordinator;
     private GatewayConnectionManager? _connectionManager;
     private GatewayRegistry? _gatewayRegistry;
     private GatewaySupervisor? _gatewaySupervisor;
@@ -59,6 +63,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     /// <summary>Auto-restarts the native-managed gateway when its process dies. Null until the connection manager is built.</summary>
     internal GatewaySupervisor? GatewaySupervisor => _gatewaySupervisor;
     internal SettingsManager Settings => _settings ?? throw new InvalidOperationException("Settings are not initialized.");
+    internal SettingsManager? SettingsOrNull => _settings;
+    internal string DataDirectoryPath => DataPath;
 
     /// <summary>The active hub window, exposed so pages can obtain an HWND for file pickers.</summary>
     internal Microsoft.UI.Xaml.Window? ActiveHubWindow => _hubWindow;
@@ -66,8 +72,23 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     internal VoiceService? VoiceService => _nodeService?.VoiceService ?? _standaloneVoiceService;
     /// <summary>The full device ID of the local node service (if running).</summary>
     internal string? NodeFullDeviceId => _nodeService?.FullDeviceId;
+    /// <summary>Live node service instance used by settings surfaces for MCP status.</summary>
+    internal NodeService? ActiveNodeService => _nodeService;
+
+    /// <summary>
+    /// Session key that the chat surface should select on its next mount.
+    /// Used when the user clicks a session from SessionsPage or a notification
+    /// while the HubWindow may not yet exist. Consumed (cleared) by ChatPage.
+    /// </summary>
+    public string? PendingChatSessionKey { get; set; }
 
     public OpenClawTray.Chat.OpenClawChatDataProvider? ChatProvider => _chatCoordinator?.Provider;
+    private volatile bool _hubNativeChatSurfaceActive;
+    private volatile bool _trayNativeChatSurfaceActive;
+    internal bool IsNativeChatSurfaceActive => _hubNativeChatSurfaceActive || _trayNativeChatSurfaceActive;
+
+    internal void SetHubNativeChatSurfaceActive(bool active) => _hubNativeChatSurfaceActive = active;
+    internal void SetTrayNativeChatSurfaceActive(bool active) => _trayNativeChatSurfaceActive = active;
 
     /// <summary>
     /// Raised after the tray-wide settings have been saved (either via the
@@ -93,9 +114,10 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             return;
         }
 
-        var includeBrowserProxyForward =
-            _settings.NodeBrowserProxyEnabled &&
-            SshTunnelCommandLine.CanForwardBrowserProxyPort(_settings.SshTunnelRemotePort, _settings.SshTunnelLocalPort);
+        var includeBrowserProxyForward = BrowserProxySshTunnelForwardPolicy.ShouldInclude(
+            _settings.NodeBrowserProxyEnabled,
+            _settings.SshTunnelRemotePort,
+            _settings.SshTunnelLocalPort);
         if (_settings.NodeBrowserProxyEnabled && !includeBrowserProxyForward)
         {
             Logger.Warn("SSH tunnel browser proxy forward disabled because the derived port would be invalid");
@@ -152,6 +174,9 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     internal DifyClient? Dify => _difyClient;
     private UpdateCoordinator? _updateCoordinator;
     private GatewayService? _gatewayService;
+    private PairingApprovalCoordinator? _pairingApprovalCoordinator;
+    private OpenClawTray.Dialogs.PairingApprovalDialog? _pairingApprovalDialog;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _pairingApprovalPollTimer;
     private CancellationTokenSource? _deepLinkCts;
     private bool _isExiting;
     
@@ -187,6 +212,20 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     private DiagnosticsClipboardService? _diagnosticsClipboard;
     private ToastService? _toastService;
     private AppNotificationService? _appNotificationService;
+    internal AppNotificationService? AppNotifications => _appNotificationService;
+    private string? _lastConnectionIssueNotificationKey;
+    private readonly Dictionary<string, string> _reportedChannelIssueSignatures = new(StringComparer.OrdinalIgnoreCase);
+    private string? _lastSandboxRiskNotificationKey;
+    private MxcAvailability? _sandboxRiskAvailabilityCache;
+    private bool _sandboxRiskProbeInFlight;
+    private int _sandboxRiskProbeGeneration;
+    private DateTimeOffset _lastSandboxRiskProbeStartedAt;
+
+    private const string ConnectionIssueNotificationId = "connection:issue";
+    private const string ConnectionIssueNotificationDedupeKey = "connection:issue";
+    private const string SandboxRiskNotificationId = "sandbox:risk";
+    private const string SandboxRiskNotificationDedupeKey = "sandbox:risk";
+    private static readonly TimeSpan SandboxRiskProbeRefreshInterval = TimeSpan.FromMinutes(5);
     
     // Node service (optional, enabled in settings)
     private NodeService? _nodeService;
@@ -494,6 +533,29 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         _diagnosticsClipboard = new DiagnosticsClipboardService(BuildCommandCenterState);
         _toastService = new ToastService(() => _settings);
         _appNotificationService = new AppNotificationService();
+        PublishSandboxRiskNotificationIfNeeded();
+
+        // Inbound pairing approvals: surface a focused dialog + awareness toast when another
+        // device/node requests pairing (Mac-parity). Getters are lazy so this can be created
+        // before the connection manager / node service exist.
+        _pairingApprovalCoordinator = new PairingApprovalCoordinator(
+            getClient: () => _connectionManager?.OperatorClient,
+            getOwnNodeIds: BuildOwnNodeIds,
+            isPromptEnabled: () => _settings?.ShowPairingApprovalDialog ?? true,
+            logger: new AppLogger());
+        _pairingApprovalCoordinator.ApprovalRequested += OnPairingApprovalRequested;
+        _pairingApprovalCoordinator.DecisionCompleted += OnPairingDecisionCompleted;
+        _gatewayService.PairListsChanged += OnPairListsChanged;
+
+        // Safety-net poll: the gateway broadcasts pair requests with dropIfSlow=true, so a busy
+        // socket can silently drop a "device wants to connect" event and the operator would never
+        // be prompted. A periodic reconcile recovers any missed request. RefreshFromGatewayAsync
+        // no-ops unless connected with approval scope, so this is idle-cheap.
+        _pairingApprovalPollTimer = _dispatcherQueue!.CreateTimer();
+        _pairingApprovalPollTimer.Interval = TimeSpan.FromSeconds(20);
+        _pairingApprovalPollTimer.IsRepeating = true;
+        _pairingApprovalPollTimer.Tick += (_, _) => _ = _pairingApprovalCoordinator?.RefreshFromGatewayAsync();
+        _pairingApprovalPollTimer.Start();
 
         DiagnosticsJsonlService.Write("app.start", new
         {
@@ -613,7 +675,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             credentialResolver, clientFactory, _gatewayRegistry, appLogger,
             identityStore: new DeviceIdentityFileStore(appLogger),
             nodeConnector: nodeConnector,
-            isNodeEnabled: ShouldInitializeNodeService,
+            isNodeEnabled: IsGatewayNodeEnabled,
             diagnostics: diagnostics,
             tunnelManager: _sshTunnelService);
         _connectionManager.OperatorClientChanged += OnOperatorClientChanged;
@@ -678,6 +740,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             !prewarmIsBootstrapToken)
         {
             _chatWindow = new ChatWindow(prewarmUrl, prewarmToken);
+            ApplyThemePreference(_chatWindow);
             // Window is created but hidden — WebView2 initializes in the background
         }
 
@@ -737,6 +800,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         // This prevents GC/threading issues when creating windows after idle
         _keepAliveWindow = new Window();
         _keepAliveWindow.Content = new Microsoft.UI.Xaml.Controls.Grid();
+        ApplyThemePreference(_keepAliveWindow);
         _keepAliveWindow.AppWindow.IsShownInSwitchers = false;
         
         // Move off-screen and set minimal size
@@ -753,8 +817,14 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         
         var iconPath = IconHelper.GetStatusIconPath(ConnectionStatus.Disconnected);
         _trayIcon = new TrayIcon(1, iconPath, BuildTrayTooltip());
+        _trayIconCoordinator = new TrayIconCoordinator(
+            _trayIcon,
+            hasThreadAccess: () => _dispatcherQueue == null || _dispatcherQueue.HasThreadAccess,
+            marshal: OnUiThread,
+            captureSnapshot: CaptureTraySnapshot,
+            isAlive: () => _trayIcon != null);
         _trayIcon.IsVisible = true;
-        ApplyTrayTooltip(BuildTrayTooltip());
+        _trayIconCoordinator.ApplyTrayTooltip(BuildTrayTooltip());
         _trayIcon.Selected += OnTrayIconSelected;
         _trayIcon.ContextMenu += OnTrayContextMenu;
     }
@@ -763,8 +833,26 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     {
         // Pre-create menu window once - reuse to avoid crash on window creation after idle
         _trayMenuWindow = new TrayMenuWindow();
+        ApplyThemePreference(_trayMenuWindow);
         _trayMenuWindow.MenuItemClicked += OnTrayMenuItemClicked;
         // Don't close - just hide
+    }
+
+    internal void ApplyThemePreferenceToOpenWindows()
+    {
+        ApplyThemePreference(_keepAliveWindow);
+        ApplyThemePreference(_hubWindow);
+        ApplyThemePreference(_trayMenuWindow);
+        ApplyThemePreference(_chatWindow);
+        ApplyThemePreference(_connectionStatusWindow);
+    }
+
+    private void ApplyThemePreference(Window? window)
+    {
+        if (_settings is null)
+            return;
+
+        ThemeHelper.ApplyTheme(window, _settings.AppTheme);
     }
 
     private void OnTrayIconSelected(TrayIcon sender, TrayIconEventArgs e)
@@ -801,6 +889,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         if (_chatWindow == null)
         {
             _chatWindow = new ChatWindow(url, token);
+            ApplyThemePreference(_chatWindow);
         }
 
         // Bug 2: cached ChatWindow may have been pre-warmed with empty/stale credentials
@@ -811,7 +900,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         // Toggle: if visible, hide; if hidden, show near tray
         if (_chatWindow.Visible)
         {
-            _chatWindow.Hide();
+            _chatWindow.HideNearTray();
         }
         else
         {
@@ -975,7 +1064,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         switch (action)
         {
             case "status": ShowStatusDetail(); break;
-            case "reconnect": _ = _connectionManager?.ReconnectAsync(); break;
+            case "reconnect": ReconnectWithSyncedBrowserProxyForward(); break;
             case "disconnect":
                 _ = _connectionManager?.DisconnectAsync();
                 LocalDisconnectCleanup();
@@ -983,6 +1072,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             case "connection": ShowHub("connection"); break;
             case "permissions": ShowHub("permissions"); break;
             case "dashboard": OpenDashboard(); break;
+            case "diagnostics": ShowHub("debug"); break;
             case "canvas": ShowCanvasWindow(); break;
             case "openchat": ShowHub("chat"); break;
             case "voice": ShowHub("voice"); break; // was: ShowVoiceOverlay()
@@ -1116,30 +1206,57 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         {
             if (action is "reset" or "compact" or "delete")
             {
-                var title = action switch
+                var kind = action switch
                 {
-                    "reset" => "Reset session?",
-                    "compact" => "Compact session log?",
-                    "delete" => "Delete session?",
-                    _ => "Confirm session action"
-                };
-                var body = action switch
-                {
-                    "reset" => $"Start a fresh session for '{sessionKey}'?",
-                    "compact" => $"Keep the latest log lines for '{sessionKey}' and archive the rest?",
-                    "delete" => $"Delete '{sessionKey}' and archive its transcript?",
-                    _ => "Continue?"
-                };
-                var button = action switch
-                {
-                    "reset" => "Reset",
-                    "compact" => "Compact",
-                    "delete" => "Delete",
-                    _ => "Continue"
+                    "reset" => SessionActionKind.Reset,
+                    "compact" => SessionActionKind.Compact,
+                    _ => SessionActionKind.Delete,
                 };
 
-                var confirmed = await ConfirmSessionActionAsync(title, body, button);
-                if (!confirmed) return;
+                var session = _appState?.Sessions?.FirstOrDefault(s => s.Key == sessionKey);
+                var mainState = SessionActionPlanner.ResolveMainState(
+                    sessionKey,
+                    rowIsMain: session?.IsMain,
+                    mainSessionKey: client.MainSessionKey,
+                    sessions: _appState?.Sessions);
+                var isMain = mainState == SessionMainState.Main;
+                var displayName = session?.DisplayName;
+
+                if (!SessionActionPlanner.IsAllowed(kind, mainState, out var blockedReason))
+                {
+                    _toastService!.ShowToast(new ToastContentBuilder()
+                        .AddText(LocalizationHelper.GetString("Toast_SessionActionFailed"))
+                        .AddText(blockedReason ?? string.Empty));
+                    return;
+                }
+
+                var prompt = SessionActionPlanner.BuildPrompt(kind, sessionKey, displayName, isMain);
+                if (prompt is not null)
+                {
+                    var localizedPrompt = SessionActionPromptLocalizer.Localize(prompt);
+                    var confirmed = await ConfirmSessionActionAsync(
+                        localizedPrompt.Title,
+                        localizedPrompt.Body,
+                        localizedPrompt.ConfirmLabel);
+                    if (!confirmed) return;
+                }
+            }
+
+            if (action == "delete")
+            {
+                var session = _appState?.Sessions?.FirstOrDefault(s => s.Key == sessionKey);
+                var mainState = SessionActionPlanner.ResolveMainState(
+                    sessionKey,
+                    rowIsMain: session?.IsMain,
+                    mainSessionKey: client.MainSessionKey,
+                    sessions: _appState?.Sessions);
+                if (!SessionActionPlanner.IsAllowed(SessionActionKind.Delete, mainState, out var blockedReason))
+                {
+                    _toastService!.ShowToast(new ToastContentBuilder()
+                        .AddText(LocalizationHelper.GetString("Toast_SessionActionFailed"))
+                        .AddText(blockedReason ?? string.Empty));
+                    return;
+                }
             }
 
             var sent = action switch
@@ -1192,7 +1309,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             Title = title,
             Content = body,
             PrimaryButtonText = actionLabel,
-            CloseButtonText = "Cancel",
+            CloseButtonText = LocalizationHelper.GetString("CancelButton.Content"),
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = root.XamlRoot
         };
@@ -1264,7 +1381,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         var snapshot = CaptureTrayMenuSnapshot();
         var callbacks = new TrayMenuCallbacks(
             DispatchAction: action => OnTrayMenuItemClicked(null, action),
-            SaveAndReconnect: () => { _settings?.Save(); _ = _connectionManager?.ReconnectAsync(); },
+            SaveAndReconnect: () => { _settings?.Save(); ReconnectWithSyncedBrowserProxyForward(); },
             TrackConnectionToggle: toggle => _connectionToggleRef = new WeakReference<ToggleSwitch>(toggle),
             IsConnectionToggleSuspended: () => _suspendConnectionToggleEvent);
         var builder = new TrayMenuStateBuilder(snapshot, _permToggleActions, callbacks);
@@ -1314,6 +1431,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             Settings = _settings,
             SetupMenuLabel = setupMenuLabel,
             ShowSetupMenuEntry = !hasSetupManagedLocalWslGateway,
+            LastUpdated = _appState?.LastCheckTime,
         };
     }
 
@@ -1479,22 +1597,21 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 Url = gatewayUrl,
                 IsLocal = LocalGatewayUrlClassifier.IsLocalGatewayUrl(gatewayUrl),
                 SshTunnel = _settings.UseSshTunnel
-                    ? new SshTunnelConfig(
+                    ? BrowserProxySshTunnelForwardPolicy.Apply(
+                        _settings,
+                        new SshTunnelConfig(
                         _settings.SshTunnelUser ?? "",
                         _settings.SshTunnelHost ?? "",
                         _settings.SshTunnelRemotePort,
                         _settings.SshTunnelLocalPort,
-                        _settings.NodeBrowserProxyEnabled &&
-                            SshTunnelCommandLine.CanForwardBrowserProxyPort(
-                                _settings.SshTunnelRemotePort, _settings.SshTunnelLocalPort),
-                        _settings.SshTunnelSshPort)
+                        SshPort: _settings.SshTunnelSshPort))
                     : null,
             };
             _gatewayRegistry.AddOrUpdate(record);
             _gatewayRegistry.SetActive(recordId);
         }
 
-        var migratedRecord = _gatewayRegistry.GetActive()!;
+        var migratedRecord = SyncGatewayBrowserProxyForward(_gatewayRegistry.GetActive()!);
 
         // Ensure identity directory exists for credential resolution
         var identityDir = _gatewayRegistry.GetIdentityDirectory(migratedRecord.Id);
@@ -1532,13 +1649,14 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         if (_connectionManager == null || _gatewayRegistry == null)
             return false;
 
+        record = SyncGatewayBrowserProxyForward(record);
         var resolver = new CredentialResolver(DeviceIdentityFileReader.Instance);
         var identityDir = _gatewayRegistry.GetIdentityDirectory(record.Id);
         var credential = ResolveStartupOperatorCredential(record, resolver, identityDir);
         if (credential == null)
         {
             var nodeCredential = ResolveStartupNodeCredential(record, resolver, identityDir);
-            if (nodeCredential != null && ShouldInitializeNodeService())
+            if (nodeCredential != null && IsGatewayNodeEnabled())
             {
                 Logger.Info(
                     $"Connecting node-only gateway during {context}: {record.Url} ({nodeCredential.Source})");
@@ -1559,7 +1677,37 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         ObserveBackgroundFault(
             _connectionManager.ConnectAsync(record.Id),
             $"[App] Startup gateway connect failed during {context}");
+        if (!IsGatewayNodeEnabled())
+            TryStartLocalMcpOnlyNode();
         return true;
+    }
+
+    private void ReconnectWithSyncedBrowserProxyForward()
+    {
+        SyncActiveGatewayBrowserProxyForward();
+        _ = _connectionManager?.ReconnectAsync();
+    }
+
+    private void SyncActiveGatewayBrowserProxyForward()
+    {
+        if (_gatewayRegistry?.GetActive() is { } active)
+            SyncGatewayBrowserProxyForward(active);
+    }
+
+    private GatewayRecord SyncGatewayBrowserProxyForward(GatewayRecord record)
+    {
+        if (_settings == null || _gatewayRegistry == null || record.SshTunnel == null)
+            return record;
+
+        var effectiveTunnel = BrowserProxySshTunnelForwardPolicy.Apply(_settings, record.SshTunnel);
+        if (Equals(effectiveTunnel, record.SshTunnel))
+            return record;
+
+        var updated = record with { SshTunnel = effectiveTunnel };
+        _gatewayRegistry.AddOrUpdate(updated);
+        _gatewayRegistry.Save();
+        Logger.Info($"[SETTINGS] Updated active gateway SSH browser-proxy forward flag to {effectiveTunnel.IncludeBrowserProxyForward}");
+        return updated;
     }
 
     private static void ObserveBackgroundFault(Task task, string message)
@@ -1677,6 +1825,10 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _settings.SshTunnelSshPort,
             _settings.SshTunnelRemotePort,
             _settings.SshTunnelLocalPort,
+            includeBrowserProxyForward: BrowserProxySshTunnelForwardPolicy.ShouldInclude(
+                _settings.NodeBrowserProxyEnabled,
+                _settings.SshTunnelRemotePort,
+                _settings.SshTunnelLocalPort),
             SettingsManager.SettingsDirectoryPath,
             logger);
 
@@ -1746,6 +1898,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         else
         {
             _chatCoordinator?.SetOperatorClient(null);
+            _pairingApprovalCoordinator?.Reset();
         }
 
         RaiseChatProviderChanged();
@@ -1787,6 +1940,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             if (_appState != null) _appState.Status = mapped;
             UpdateTrayIcon();
             SyncConnectionToggle(mapped);
+            UpdateConnectionIssueNotification(snap);
             if (mapped is ConnectionStatus.Connected or ConnectionStatus.Disconnected or ConnectionStatus.Error)
             {
                 // Dismiss the tray menu on state change — it will capture fresh data on next open
@@ -1815,11 +1969,16 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 new AppLogger(),
                 _dispatcherQueue,
                 DataPath,
-                () => _keepAliveWindow?.Content as FrameworkElement,
-                settings,
+                rootProvider: () => _keepAliveWindow?.Content as FrameworkElement,
+                chatProviderProvider: () => _chatCoordinator?.Provider,
+                inlineApprovalAvailable: _ => IsNativeChatSurfaceActive,
+                settings: settings,
                 enableMcpServer: settings.EnableMcpServer,
                 identityDataPath: IdentityDataPath,
-                sharedGatewayTokenResolver: () => _gatewayRegistry?.GetActive()?.SharedGatewayToken);
+                sharedGatewayTokenResolver: () => _gatewayRegistry?.GetActive()?.SharedGatewayToken,
+                browserControlPortResolver: () => _gatewayRegistry?.GetActive()?.BrowserControlPort,
+                activeGatewayTunnelResolver: () => _gatewayRegistry?.GetActive()?.SshTunnel,
+                activeGatewayUrlResolver: () => _gatewayRegistry?.GetActive()?.Url);
             _nodeService.StatusChanged += OnNodeStatusChanged;
             _nodeService.NotificationRequested += OnNodeNotificationRequested;
             _nodeService.ToastRequested += OnNodeToastRequested;
@@ -1827,6 +1986,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _nodeService.ChannelHealthUpdated += _gatewayService.OnChannelHealthUpdated;
             _nodeService.InvokeCompleted += OnNodeInvokeCompleted;
             _nodeService.GatewaySelfUpdated += _gatewayService.OnGatewaySelfUpdated;
+            _nodeService.LocalExecApprovalRequested += OnLocalExecApprovalRequested;
             _nodeService.LocalExecApprovalDecided += OnLocalExecApprovalDecided;
             return _nodeService;
         }
@@ -1848,236 +2008,10 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         return _settings?.EnableNodeMode == true || _settings?.EnableMcpServer == true;
     }
 
-    /// <summary>
-    /// Ensures a WSL keepalive process is running for the local gateway distro
-    /// so the WSL2 VM stays up even after the tray exits.
-    /// Best-effort, fire-and-forget.
-    /// </summary>
-    private async Task TryEnsureLocalGatewayKeepAliveAsync()
+    /// <summary>True when this PC should connect as a gateway node.</summary>
+    private bool IsGatewayNodeEnabled()
     {
-        try
-        {
-            if (_settings is null) return;
-
-            var activeRecord = _gatewayRegistry?.GetActive();
-            if (!WslKeepAlivePolicy.ShouldStart(activeRecord, _settings.GetEffectiveGatewayUrl()))
-            {
-                await StopStaleLocalGatewayKeepAliveAsync();
-                return;
-            }
-
-            var distroName = await ResolveLocalGatewayDistroNameAsync(activeRecord);
-            if (string.IsNullOrWhiteSpace(distroName)) return;
-
-            // Verify distro exists before spawning keepalive
-            var runner = new WslExeCommandRunner(new AppLogger(), defaultTimeout: TimeSpan.FromSeconds(4));
-            var distros = await runner.ListDistrosAsync();
-            if (!distros.Any(d => string.Equals(d.Name, distroName, StringComparison.OrdinalIgnoreCase)))
-            {
-                Logger.Warn($"[WslKeepAlive] Distro '{distroName}' not found; skipping keepalive.");
-                return;
-            }
-
-            // Spawn a detached wsl sleep process to keep the VM alive
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = ResolveWslExePath(),
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            psi.ArgumentList.Add("-d");
-            psi.ArgumentList.Add(distroName);
-            psi.ArgumentList.Add("--");
-            psi.ArgumentList.Add("sleep");
-            psi.ArgumentList.Add("infinity");
-
-            var proc = System.Diagnostics.Process.Start(psi);
-            if (proc is not null)
-            {
-                Logger.Info($"[WslKeepAlive] Started keepalive for {distroName} (PID {proc.Id}).");
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"[WslKeepAlive] Startup keepalive failed (non-fatal): {ex.Message}");
-        }
-    }
-
-    private async Task StopStaleLocalGatewayKeepAliveAsync()
-    {
-        try
-        {
-            var localDataDir = SetupExistingGatewayClassifier.ResolveLocalDataPath();
-            var markerDir = Path.Combine(localDataDir, "wsl-keepalive");
-            var markerDistroNames = ReadKeepAliveMarkerDistroNames(markerDir);
-            var setupStateDistroName = await ReadSetupStateDistroNameAsync(localDataDir);
-            var records = _gatewayRegistry?.GetAll() ?? [];
-
-            foreach (var distroName in WslKeepAlivePolicy.FindStaleSetupManagedDistroNames(
-                records,
-                markerDistroNames,
-                setupStateDistroName))
-            {
-                StopKeepAliveProcessesForDistro(distroName);
-                DeleteKeepAliveMarker(markerDir, distroName);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"[WslKeepAlive] Stale keepalive cleanup failed (non-fatal): {ex.Message}");
-        }
-    }
-
-    private static IReadOnlyList<string> ReadKeepAliveMarkerDistroNames(string markerDir)
-    {
-        if (!Directory.Exists(markerDir))
-            return [];
-
-        var distroNames = new List<string>();
-        foreach (var markerPath in Directory.EnumerateFiles(markerDir, "*.json"))
-        {
-            if (WslKeepAlivePolicy.TryGetMarkerDistroName(File.ReadAllText(markerPath), out var distroName))
-                distroNames.Add(distroName);
-        }
-
-        return distroNames;
-    }
-
-    private static async Task<string?> ReadSetupStateDistroNameAsync(string localDataDir)
-    {
-        var stateFile = Path.Combine(localDataDir, "setup-state.json");
-        if (!File.Exists(stateFile))
-            return null;
-
-        var json = await File.ReadAllTextAsync(stateFile);
-        using var doc = System.Text.Json.JsonDocument.Parse(json);
-        return doc.RootElement.TryGetProperty("DistroName", out var distroElement)
-            ? distroElement.GetString()
-            : null;
-    }
-
-    private static void StopKeepAliveProcessesForDistro(string distroName)
-    {
-        var procs = System.Diagnostics.Process.GetProcessesByName("wsl")
-            .Concat(System.Diagnostics.Process.GetProcessesByName("wsl.exe"));
-
-        foreach (var proc in procs)
-        {
-            try
-            {
-                if (WslKeepAlivePolicy.IsKeepaliveCommandLine(GetProcessCommandLine(proc.Id), distroName))
-                {
-                    proc.Kill(entireProcessTree: true);
-                    proc.WaitForExit(5000);
-                    Logger.Info($"[WslKeepAlive] Stopped stale keepalive for {distroName} (PID {proc.Id}).");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Process may have exited while being inspected — common race; log at Debug.
-                Logger.Debug($"[WslKeepAlive] Inspect/stop race for PID {proc.Id}: {ex.GetType().Name}: {ex.Message}");
-            }
-            finally
-            {
-                proc.Dispose();
-            }
-        }
-    }
-
-    private static void DeleteKeepAliveMarker(string markerDir, string distroName)
-    {
-        if (!Directory.Exists(markerDir))
-            return;
-
-        foreach (var markerPath in Directory.EnumerateFiles(markerDir, "*.json"))
-        {
-            try
-            {
-                if (WslKeepAlivePolicy.TryGetMarkerDistroName(File.ReadAllText(markerPath), out var markerDistro)
-                    && string.Equals(markerDistro, distroName, StringComparison.OrdinalIgnoreCase))
-                {
-                    File.Delete(markerPath);
-                    Logger.Info($"[WslKeepAlive] Deleted stale keepalive marker for {distroName}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Best-effort cleanup; stale/corrupt markers are not fatal. Log at Debug for diagnostics.
-                Logger.Debug($"[WslKeepAlive] Failed to process marker '{markerPath}': {ex.GetType().Name}: {ex.Message}");
-            }
-        }
-    }
-
-    private static string? GetProcessCommandLine(int pid)
-    {
-        try
-        {
-            var psi = new System.Diagnostics.ProcessStartInfo("powershell.exe",
-                $"-NoProfile -Command \"(Get-CimInstance Win32_Process -Filter 'ProcessId={pid}').CommandLine\"")
-            {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var p = System.Diagnostics.Process.Start(psi);
-            if (p == null) return null;
-            var output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit(5000);
-            return output.Trim();
-        }
-        catch (Exception ex)
-        {
-            Logger.Debug($"App: GetProcessCommandLine(pid={pid}) failed: {ex.GetType().Name}: {ex.Message}");
-            return null;
-        }
-    }
-
-    private static string ResolveWslExePath()
-    {
-        var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        if (string.IsNullOrWhiteSpace(windowsDir))
-            windowsDir = Environment.GetEnvironmentVariable("SystemRoot") ?? @"C:\Windows";
-
-        return Path.Combine(windowsDir, "System32", "wsl.exe");
-    }
-
-    /// <summary>
-    /// Resolves the WSL distro name to keep alive. Prefers the value persisted by
-    /// onboarding in <c>setup-state.json</c> so the keepalive always targets the distro
-    /// the user actually installed. In DEBUG / test builds, an
-    /// <c>OPENCLAW_WSL_DISTRO_NAME</c> environment override is honored to match
-    /// Resolves the local gateway distro name by reading setup-state.json.
-    /// Falls back to "OpenClawGateway" if not found.
-    /// </summary>
-    private async Task<string?> ResolveLocalGatewayDistroNameAsync(GatewayRecord? activeRecord)
-    {
-        string? setupStateDistroName = null;
-        try
-        {
-            var stateFile = Path.Combine(
-                SetupExistingGatewayClassifier.ResolveLocalDataPath(),
-                "setup-state.json");
-
-            if (File.Exists(stateFile))
-            {
-                var json = await File.ReadAllTextAsync(stateFile);
-                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("DistroName", out var dn) &&
-                    dn.GetString() is { Length: > 0 } distroName)
-                {
-                    setupStateDistroName = distroName;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"[WslKeepAlive] Failed to read setup-state.json: {ex.Message}");
-        }
-
-        return WslKeepAlivePolicy.ResolveDistroName(
-            activeRecord,
-            setupStateDistroName,
-            Environment.GetEnvironmentVariable("OPENCLAW_WSL_DISTRO_NAME"));
+        return _settings?.EnableNodeMode == true;
     }
 
     // The pre-unification ShouldInitializeNodeService(GatewayRecord, string) overload
@@ -2129,7 +2063,13 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     private void OnPairingStatusChanged(object? sender, OpenClaw.Shared.PairingStatusEventArgs args)
     {
         Logger.Info($"Pairing status: {args.Status}");
-        
+
+        // The local node's own device id may have just become known. Re-run the
+        // approval reconcile so the own-node filter drops any self pairing request
+        // rather than prompting the operator to approve their own machine.
+        OnUiThread(() => _pairingApprovalCoordinator?.OnPairListsUpdated(
+            _appState?.DevicePairList, _appState?.NodePairList));
+
         try
         {
             if (args.Status == OpenClaw.Shared.PairingStatus.Pending)
@@ -2145,6 +2085,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             else if (args.Status == OpenClaw.Shared.PairingStatus.Paired)
             {
                 RefreshGatewayNodes("node paired");
+                ClearPairingAppNotifications(args.DeviceId);
                 // Bug 3: idempotency guard — only show "Node paired" toast/activity once
                 // per device per session. WS reconnects re-fire Paired; suppress duplicates.
                 var deviceKey = args.DeviceId ?? string.Empty;
@@ -2152,6 +2093,17 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 {
                     _toastService!.MarkPairedToastShown(deviceKey);
                     AddRecentActivity("Node paired", category: "node", dashboardPath: "nodes", nodeId: args.DeviceId);
+                    AppNotificationPublisher.Show(
+                        _appNotificationService,
+                        LocalizationHelper.GetString("Toast_NodePaired"),
+                        LocalizationHelper.GetString("Toast_NodePairedDetail"),
+                        "node",
+                        "pairing",
+                        AppNotificationSeverity.Success,
+                        "node-paired:" + HashNotificationKey(deviceKey),
+                        "connection",
+                        LocalizationHelper.GetString("AppNotification_ActionOpenConnection"),
+                        id: BuildPairingPairedNotificationId(deviceKey));
                     _toastService!.ShowToast(new ToastContentBuilder()
                         .AddText(LocalizationHelper.GetString("Toast_NodePaired"))
                         .AddText(LocalizationHelper.GetString("Toast_NodePairedDetail")),
@@ -2165,6 +2117,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             }
             else if (args.Status == OpenClaw.Shared.PairingStatus.Rejected)
             {
+                _appNotificationService?.Dismiss(BuildPairingPendingNotificationId(args.DeviceId));
+                ShowPairingRejectedAppNotification(args.DeviceId, args.Message);
                 AddRecentActivity("Node pairing rejected", category: "node", dashboardPath: "nodes", nodeId: args.DeviceId, details: args.Message ?? LocalizationHelper.GetString("Toast_PairingRejectedDetail"));
                 _toastService!.ShowToast(new ToastContentBuilder()
                     .AddText(LocalizationHelper.GetString("Toast_PairingRejected"))
@@ -2203,6 +2157,21 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     public static string BuildPairingApprovalCommand(string deviceId) =>
         $"openclaw devices approve {deviceId}";
 
+    private static string BuildPairingPendingNotificationId(string deviceId) =>
+        $"node-pairing-pending:{deviceId.Trim().ToLowerInvariant()}";
+
+    private static string BuildPairingPairedNotificationId(string deviceId) =>
+        $"node-paired:{deviceId.Trim().ToLowerInvariant()}";
+
+    private static string BuildPairingRejectedNotificationId(string deviceId) =>
+        $"node-pairing-rejected:{deviceId.Trim().ToLowerInvariant()}";
+
+    private void ClearPairingAppNotifications(string deviceId)
+    {
+        _appNotificationService?.Dismiss(BuildPairingPendingNotificationId(deviceId));
+        _appNotificationService?.Dismiss(BuildPairingRejectedNotificationId(deviceId));
+    }
+
     private static string DeviceIdForLog(string? deviceId)
     {
         if (string.IsNullOrWhiteSpace(deviceId))
@@ -2221,6 +2190,17 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         var shortDeviceId = deviceId.Length > 16 ? deviceId[..16] : deviceId;
 
         AddRecentActivity("Node pairing pending", category: "node", dashboardPath: "nodes", nodeId: deviceId);
+        AppNotificationPublisher.Show(
+            _appNotificationService,
+            LocalizationHelper.GetString("Toast_PairingPending"),
+            string.Format(LocalizationHelper.GetString("Toast_PairingPendingDetail"), shortDeviceId),
+            "node",
+            "pairing",
+            AppNotificationSeverity.Warning,
+            $"node-pairing-pending:{deviceId}",
+            "connection",
+            LocalizationHelper.GetString("AppNotification_ActionOpenConnection"),
+            id: BuildPairingPendingNotificationId(deviceId));
         _toastService!.ShowToast(new ToastContentBuilder()
             .AddText(LocalizationHelper.GetString("Toast_PairingPending"))
             .AddText(string.Format(LocalizationHelper.GetString("Toast_PairingPendingDetail"), shortDeviceId))
@@ -2231,7 +2211,143 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             "node-pairing-pending",
             deviceId);
     }
-    
+
+    private void ShowPairingRejectedAppNotification(string deviceId, string? detail)
+    {
+        AppNotificationPublisher.Show(
+            _appNotificationService,
+            LocalizationHelper.GetString("Toast_PairingRejected"),
+            detail ?? LocalizationHelper.GetString("Toast_PairingRejectedDetail"),
+            "node",
+            "pairing",
+            AppNotificationSeverity.Error,
+            $"node-pairing-rejected:{deviceId}",
+            "connection",
+            LocalizationHelper.GetString("AppNotification_ActionOpenConnection"),
+            id: BuildPairingRejectedNotificationId(deviceId));
+    }
+
+    /// <summary>
+    /// Publishes an immediate connection-error banner using the single
+    /// connection-issue notification identity. Used for transient, page-driven
+    /// failures (e.g. a manual gateway switch that throws) where the snapshot
+    /// may be briefly silent. Because it reuses the connection-issue id/dedupe
+    /// key it occupies the same banner slot — it cannot produce a second bar —
+    /// and the snapshot-driven path will replace or dismiss it on the next tick.
+    /// </summary>
+    internal void ShowTransientConnectionError(string message)
+    {
+        var body = string.IsNullOrWhiteSpace(message)
+            ? LocalizationHelper.GetString("AppNotification_GatewayConnectionFailed_DefaultMessage")
+            : message;
+
+        // Keep the snapshot-driven publisher from immediately re-emitting a
+        // duplicate for the same underlying error.
+        _lastConnectionIssueNotificationKey = $"operator-error:{message}";
+
+        AppNotificationPublisher.Show(
+            _appNotificationService,
+            LocalizationHelper.GetString("AppNotification_GatewayConnectionFailed_Title"),
+            body,
+            "connection",
+            "lifecycle",
+            AppNotificationSeverity.Error,
+            ConnectionIssueNotificationDedupeKey,
+            "connection",
+            LocalizationHelper.GetString("AppNotification_ActionOpenConnection"),
+            id: ConnectionIssueNotificationId);
+    }
+
+    private void UpdateConnectionIssueNotification(GatewayConnectionSnapshot snapshot)
+    {
+        if (!TryBuildConnectionIssueNotification(snapshot, out var title, out var message, out var severity, out var category, out var key))
+        {
+            _lastConnectionIssueNotificationKey = null;
+            _appNotificationService?.Dismiss(ConnectionIssueNotificationId);
+            return;
+        }
+
+        if (string.Equals(_lastConnectionIssueNotificationKey, key, StringComparison.Ordinal))
+            return;
+
+        _lastConnectionIssueNotificationKey = key;
+        AppNotificationPublisher.Show(
+            _appNotificationService,
+            title,
+            message,
+            "connection",
+            category,
+            severity,
+            ConnectionIssueNotificationDedupeKey,
+            "connection",
+            LocalizationHelper.GetString("AppNotification_ActionOpenConnection"),
+            id: ConnectionIssueNotificationId);
+    }
+
+    private static bool TryBuildConnectionIssueNotification(
+        GatewayConnectionSnapshot snapshot,
+        out string title,
+        out string message,
+        out AppNotificationSeverity severity,
+        out string category,
+        out string key)
+    {
+        title = "";
+        message = "";
+        severity = AppNotificationSeverity.Warning;
+        category = "lifecycle";
+        key = "";
+
+        if (snapshot.OverallState == OverallConnectionState.Error)
+        {
+            title = LocalizationHelper.GetString("AppNotification_GatewayConnectionFailed_Title");
+            var rawError = snapshot.OperatorError;
+            message = string.IsNullOrWhiteSpace(rawError)
+                ? LocalizationHelper.GetString("AppNotification_GatewayConnectionFailed_DefaultMessage")
+                : rawError;
+            severity = AppNotificationSeverity.Error;
+            key = $"operator-error:{rawError ?? "default"}";
+            return true;
+        }
+
+        if (snapshot.OperatorPairingRequired)
+        {
+            title = LocalizationHelper.GetString("AppNotification_GatewayPairingRequired_Title");
+            message = string.IsNullOrWhiteSpace(snapshot.OperatorDeviceId)
+                ? LocalizationHelper.GetString("AppNotification_GatewayPairingRequired_GenericMessage")
+                : LocalizationHelper.Format(
+                    "AppNotification_GatewayPairingRequired_DeviceMessageFormat",
+                    DeviceIdForLog(snapshot.OperatorDeviceId));
+            category = "pairing";
+            key = $"operator-pairing:{snapshot.OperatorDeviceId ?? "unknown"}";
+            return true;
+        }
+
+        if (snapshot.OverallState == OverallConnectionState.Degraded)
+        {
+            if (snapshot.NodeState == RoleConnectionState.Error)
+            {
+                title = LocalizationHelper.GetString("AppNotification_WindowsNodeConnectionFailed_Title");
+                message = snapshot.NodeError ?? LocalizationHelper.GetString("AppNotification_WindowsNodeConnectionFailed_DefaultMessage");
+                severity = AppNotificationSeverity.Error;
+                category = "node";
+                key = $"node-error:{message}";
+                return true;
+            }
+
+            if (snapshot.NodeState == RoleConnectionState.RateLimited)
+            {
+                title = LocalizationHelper.GetString("AppNotification_WindowsNodeRateLimited_Title");
+                message = snapshot.NodeError ?? LocalizationHelper.GetString("AppNotification_WindowsNodeRateLimited_DefaultMessage");
+                category = "node";
+                key = $"node-rate-limited:{message}";
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void OnNodeNotificationRequested(object? sender, OpenClaw.Shared.Capabilities.SystemNotifyArgs args)
     {
         AddRecentActivity(args.Title, category: "node", dashboardPath: "nodes", details: args.Body);
@@ -2239,9 +2355,14 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         // Agent requested a notification via node.invoke system.notify
         try
         {
-            _toastService!.ShowToast(new ToastContentBuilder()
-                .AddText(args.Title)
-                .AddText(args.Body));
+            AppNotificationPublisher.Publish(
+                _appNotificationService,
+                _toastService,
+                new AppNotificationPublishRequest(
+                    AppNotificationMapper.FromNodeSystemNotification(args),
+                    new ToastContentBuilder()
+                        .AddText(args.Title)
+                        .AddText(args.Body)));
         }
         catch (Exception ex)
         {
@@ -2249,12 +2370,58 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         }
     }
 
-    private void OnNodeToastRequested(object? sender, Microsoft.Toolkit.Uwp.Notifications.ToastContentBuilder builder)
+    private void OnNodeToastRequested(object? sender, NodeToastRequestedEventArgs args)
         => OnUiThread(() =>
-            NonFatalAction.Run(() => _toastService!.ShowToast(builder), msg => Logger.Warn($"Failed to show node toast: {msg}")));
+            NonFatalAction.Run(
+                () => AppNotificationPublisher.Publish(
+                    _appNotificationService,
+                    _toastService,
+                    new AppNotificationPublishRequest(
+                        args.AppNotification,
+                        args.ToastBuilder,
+                        args.ToastTag,
+                        args.ToastDeviceId)),
+                msg => Logger.Warn($"Failed to show node toast: {msg}")));
+
+    private void OnLocalExecApprovalRequested(object? sender, ExecApprovalPromptRequestedEventArgs args)
+    {
+        if (string.IsNullOrWhiteSpace(args.Request.SessionKey))
+            return;
+
+        try
+        {
+            _appNotificationService?.Show(new AppNotification
+            {
+                Id = BuildLocalApprovalPendingNotificationId(args.Request),
+                Title = LocalizationHelper.GetString("AppNotification_ExecApprovalPending_Title"),
+                Message = BuildLocalApprovalPendingNotificationMessage(args.Request),
+                Source = "exec-approval",
+                Category = "node.invoke",
+                Severity = AppNotificationSeverity.Warning,
+                DedupeKey = BuildLocalApprovalPendingDedupeKey(args.Request),
+                ActionLabel = LocalizationHelper.GetString("AppNotification_ExecApprovalPending_OpenChatAction"),
+                ActionRoute = AppNotificationActionRoutes.Chat(args.Request.SessionKey!)
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Failed to post pending exec-approval app notification: {ex.Message}");
+        }
+    }
 
     private void OnLocalExecApprovalDecided(object? sender, ExecApprovalPromptDecidedEventArgs args)
     {
+        try { _appNotificationService?.Dismiss(BuildLocalApprovalPendingNotificationId(args.Request)); }
+        catch (Exception ex) { Logger.Debug($"Failed to dismiss pending exec-approval notification: {ex.Message}"); }
+
+        if (args.Source is ExecApprovalPromptDecisionSource.UserAllowOnce
+            or ExecApprovalPromptDecisionSource.UserAlwaysAllow)
+        {
+            try { _appNotificationService?.DismissByDedupeKey(BuildLocalDenyDedupeKey(args.Request)); }
+            catch (Exception ex) { Logger.Debug($"Failed to dismiss stale denied exec-approval notification: {ex.Message}"); }
+            return;
+        }
+
         if (args.Source is not (ExecApprovalPromptDecisionSource.UserDeny
             or ExecApprovalPromptDecisionSource.PolicyAutoDeny))
             return;
@@ -2275,6 +2442,77 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             Logger.Warn($"Failed to post local-deny app notification: {ex.Message}");
         }
     }
+
+    private static string BuildLocalApprovalPendingNotificationMessage(ExecApprovalPromptRequest request)
+    {
+        var session = FormatSessionKeyForNotification(request.SessionKey);
+        var command = string.IsNullOrWhiteSpace(request.Command)
+            ? LocalizationHelper.GetString("AppNotification_LocalCommandDenied_UnknownCommandSubject")
+            : CompactNotificationText(request.Command.Trim());
+        return LocalizationHelper.Format(
+            "AppNotification_ExecApprovalPending_MessageFormat",
+            session,
+            command);
+    }
+
+    private static string FormatSessionKeyForNotification(string? sessionKey)
+    {
+        if (string.IsNullOrWhiteSpace(sessionKey))
+            return LocalizationHelper.GetString("AppNotification_ExecApprovalPending_UnknownChatLabel");
+
+        var parts = sessionKey.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length >= 3 && string.Equals(parts[0], "agent", StringComparison.OrdinalIgnoreCase))
+        {
+            var agent = FormatSessionSegment(parts[1]);
+            var slot = FormatSessionSegment(parts[2]);
+            var main = LocalizationHelper.GetString("AppNotification_ExecApprovalPending_MainSessionLabel");
+            var isMainAgent = string.Equals(parts[1], "main", StringComparison.OrdinalIgnoreCase);
+            var isMainSlot = string.Equals(parts[2], "main", StringComparison.OrdinalIgnoreCase);
+            var isDefaultSlot = string.Equals(parts[2], "default", StringComparison.OrdinalIgnoreCase);
+
+            if (isMainAgent && isMainSlot)
+                return LocalizationHelper.GetString("AppNotification_ExecApprovalPending_MainChatLabel");
+
+            if (isMainSlot || isDefaultSlot)
+            {
+                return LocalizationHelper.Format(
+                    "AppNotification_ExecApprovalPending_AgentChatLabelFormat",
+                    isMainAgent ? main : agent);
+            }
+
+            return LocalizationHelper.Format(
+                "AppNotification_ExecApprovalPending_AgentSlotLabelFormat",
+                isMainAgent ? main : agent,
+                slot);
+        }
+
+        return CompactNotificationText(sessionKey);
+    }
+
+    private static string FormatSessionSegment(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return LocalizationHelper.GetString("AppNotification_ExecApprovalPending_UnknownChatLabel");
+
+        var words = value.Replace('-', ' ').Replace('_', ' ');
+        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(words.ToLower(CultureInfo.CurrentCulture));
+    }
+
+    private static string BuildLocalApprovalPendingNotificationId(ExecApprovalPromptRequest request) =>
+        "exec-approval-pending-" + HashNotificationKey(BuildLocalApprovalPendingDedupeKey(request));
+
+    private static string BuildLocalApprovalPendingDedupeKey(ExecApprovalPromptRequest request)
+    {
+        return string.Join("|",
+            "exec-approval-pending",
+            request.SessionKey ?? "",
+            request.CorrelationId ?? "",
+            request.Command ?? "",
+            request.Shell ?? "");
+    }
+
+    private static string HashNotificationKey(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
     private static string BuildLocalDenyNotificationMessage(ExecApprovalPromptRequest request)
     {
@@ -2385,8 +2623,8 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         if (status == ConnectionStatus.Connected)
         {
             _ = RunHealthCheckAsync();
-            // For local gateways, the NodeConnector is suppressed because NodeService
-            // owns the identity. Connect the NodeService directly after operator connects.
+            // Gateway-node mode connects the NodeService after operator auth; MCP-only
+            // mode keeps serving local tools and must not escalate into node pairing.
             _ = TryConnectLocalNodeServiceAsync();
         }
     }
@@ -2399,7 +2637,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     /// </summary>
     private async Task TryConnectLocalNodeServiceAsync()
     {
-        if (_connectionManager == null)
+        if (_connectionManager == null || !IsGatewayNodeEnabled())
             return;
 
         Logger.Info("[App] Auto-connecting local NodeService via EnsureNodeConnectedAsync");
@@ -2417,11 +2655,18 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     {
         UpdateTrayIcon();
 
-        // Store auth failure in AppState — HubWindow observes it via PropertyChanged
+        // Store auth failure in AppState — observed for tray tooltip / status.
         if (_appState != null)
         {
             _appState.AuthFailureMessage = message;
         }
+
+        // The user-facing banner is published by the single connection-issue
+        // notification (UpdateConnectionIssueNotification), driven off the
+        // snapshot's Error state + OperatorError (same string surfaced here).
+        // Publishing a second "authentication failed" banner here produced a
+        // duplicate top bar and forced the action button to degrade to
+        // "Show more", so it is intentionally not raised from this handler.
     }
 
     private void OnGatewaySessionCommandCompleted(object? sender, SessionCommandResult result)
@@ -2450,9 +2695,26 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                     dashboardPath: !string.IsNullOrWhiteSpace(result.Key) ? $"sessions/{result.Key}" : "sessions",
                     sessionKey: result.Key);
 
-                _toastService!.ShowToast(new ToastContentBuilder()
-                    .AddText(title)
-                    .AddText(message));
+                AppNotification? appNotification = result.Ok
+                    ? null
+                    : new AppNotification
+                    {
+                        Title = title,
+                        Message = message,
+                        Source = "session",
+                        Category = "status",
+                        Severity = AppNotificationSeverity.Error,
+                        DedupeKey = "session-command:" + HashNotificationKey($"{result.Method}|{key}|{message}")
+                    };
+
+                AppNotificationPublisher.Publish(
+                    _appNotificationService,
+                    _toastService,
+                    new AppNotificationPublishRequest(
+                        appNotification,
+                        new ToastContentBuilder()
+                            .AddText(title)
+                            .AddText(message)));
             }
             catch (Exception ex)
             {
@@ -2522,13 +2784,25 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
             if (notification.IsChat)
             {
-                builder.AddArgument("action", "open_chat")
-                       .AddButton(new ToastButton()
-                           .SetContent("Open Chat")
-                           .AddArgument("action", "open_chat"));
+                builder.AddArgument("action", "open_chat");
+                if (!string.IsNullOrEmpty(notification.SessionKey))
+                {
+                    builder.AddArgument("sessionKey", notification.SessionKey);
+                }
+                builder.AddButton(new ToastButton()
+                    .SetContent("Open Chat")
+                    .AddArgument("action", "open_chat")
+                    .AddArgument("sessionKey", notification.SessionKey ?? ""));
             }
 
-            _toastService!.ShowToast(builder);
+            AppNotificationPublisher.Publish(
+                _appNotificationService,
+                _toastService,
+                new AppNotificationPublishRequest(
+                    AppNotificationMapper.FromGatewayNotification(
+                        notification,
+                        LocalizationHelper.GetString("AppNotification_ExecApprovalPending_OpenChatAction")),
+                    builder));
         }
         catch (Exception ex)
         {
@@ -2553,10 +2827,215 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             case nameof(AppState.Nodes):
                 UpdateStatusDetailWindow();
                 break;
+            case nameof(AppState.Channels):
+                UpdateChannelIssueNotifications(_appState.Channels);
+                UpdateStatusDetailWindow();
+                break;
             case nameof(AppState.CurrentActivity):
                 UpdateTrayIcon();
                 break;
         }
+    }
+
+    private void UpdateChannelIssueNotifications(ChannelHealth[] channels)
+    {
+        var currentIssueNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var channel in channels)
+        {
+            if (!TryBuildChannelIssueNotification(channel, out var title, out var message, out var signature))
+                continue;
+
+            currentIssueNames.Add(channel.Name);
+            if (_reportedChannelIssueSignatures.TryGetValue(channel.Name, out var existingSignature) &&
+                string.Equals(existingSignature, signature, StringComparison.Ordinal))
+                continue;
+
+            _reportedChannelIssueSignatures[channel.Name] = signature;
+            AppNotificationPublisher.Show(
+                _appNotificationService,
+                title,
+                message,
+                "channels",
+                "status",
+                AppNotificationSeverity.Error,
+                $"channels:{channel.Name}:status-error",
+                "channels",
+                LocalizationHelper.GetString("AppNotification_ActionOpenChannels"),
+                id: BuildChannelIssueNotificationId(channel.Name));
+        }
+
+        foreach (var channelName in _reportedChannelIssueSignatures.Keys.Except(currentIssueNames).ToList())
+        {
+            _reportedChannelIssueSignatures.Remove(channelName);
+            _appNotificationService?.Dismiss(BuildChannelIssueNotificationId(channelName));
+        }
+    }
+
+    private static bool TryBuildChannelIssueNotification(
+        ChannelHealth channel,
+        out string title,
+        out string message,
+        out string signature)
+    {
+        title = "";
+        message = "";
+        signature = "";
+
+        if (string.IsNullOrWhiteSpace(channel.Name))
+            return false;
+
+        var status = channel.Status?.Trim() ?? "";
+        var hasExplicitError = !string.IsNullOrWhiteSpace(channel.Error);
+        var hasErrorStatus = !string.IsNullOrWhiteSpace(status) &&
+            !ChannelHealth.IsHealthyStatus(status) &&
+            !ChannelHealth.IsIntermediateStatus(status) &&
+            !status.Equals("not configured", StringComparison.OrdinalIgnoreCase) &&
+            !status.Equals("unknown", StringComparison.OrdinalIgnoreCase);
+
+        if (!hasExplicitError && !hasErrorStatus)
+            return false;
+
+        var displayName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(channel.Name);
+        title = LocalizationHelper.Format("AppNotification_ChannelNeedsAttention_TitleFormat", displayName);
+        message = hasExplicitError
+            ? channel.Error!.Trim()
+            : LocalizationHelper.Format("AppNotification_ChannelNeedsAttention_StatusMessageFormat", channel.Name, status);
+        signature = $"{status}|{message}";
+        return true;
+    }
+
+    private static string BuildChannelIssueNotificationId(string channelName) =>
+        $"channel-issue:{channelName.Trim().ToLowerInvariant()}";
+
+    private void PublishSandboxRiskNotificationIfNeeded()
+    {
+        if (_settings is null || _appNotificationService is null)
+            return;
+
+        if (!_settings.SystemRunSandboxEnabled)
+        {
+            _sandboxRiskProbeGeneration++;
+            _sandboxRiskProbeInFlight = false;
+            PublishSandboxRiskNotification(
+                "disabled",
+                LocalizationHelper.GetString("AppNotification_SandboxDisabled_Title"),
+                LocalizationHelper.GetString("AppNotification_SandboxDisabled_Message"));
+            return;
+        }
+
+        if (_sandboxRiskAvailabilityCache is { } cachedAvailability)
+            PublishSandboxRiskNotification(cachedAvailability);
+        else
+            ClearSandboxRiskNotification();
+
+        StartSandboxRiskProbeIfNeeded();
+    }
+
+    private void StartSandboxRiskProbeIfNeeded()
+    {
+        if (_settings is not { SystemRunSandboxEnabled: true })
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+        if (_sandboxRiskProbeInFlight)
+            return;
+
+        if (_sandboxRiskAvailabilityCache is { ProbeErrored: false } &&
+            now - _lastSandboxRiskProbeStartedAt < SandboxRiskProbeRefreshInterval)
+        {
+            return;
+        }
+
+        _sandboxRiskProbeInFlight = true;
+        _lastSandboxRiskProbeStartedAt = now;
+        var generation = ++_sandboxRiskProbeGeneration;
+
+        _ = Task.Run(() => MxcAvailability.Probe(new AppLogger()))
+            .ContinueWith(
+                task => OnUiThread(() => CompleteSandboxRiskProbe(generation, task)),
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+    }
+
+    private void CompleteSandboxRiskProbe(int generation, Task<MxcAvailability> task)
+    {
+        if (generation != _sandboxRiskProbeGeneration)
+            return;
+
+        _sandboxRiskProbeInFlight = false;
+
+        MxcAvailability availability;
+        if (task.Status == TaskStatus.RanToCompletion)
+        {
+            availability = task.Result;
+        }
+        else
+        {
+            var message = task.Exception?.GetBaseException().Message ?? LocalizationHelper.GetString("SandboxPage_ProbeErrorReason");
+            Logger.Warn($"Sandbox availability probe failed: {message}");
+            availability = new MxcAvailability(
+                false,
+                false,
+                false,
+                null,
+                new[] { message },
+                probeErrored: true);
+        }
+
+        _sandboxRiskAvailabilityCache = availability;
+        PublishSandboxRiskNotification(availability);
+    }
+
+    private void PublishSandboxRiskNotification(MxcAvailability availability)
+    {
+        if (availability.HasAnyBackend)
+        {
+            ClearSandboxRiskNotification();
+            return;
+        }
+
+        var reasonText = availability.UnsupportedReasons.Count > 0
+            ? string.Join("  ·  ", availability.UnsupportedReasons)
+            : LocalizationHelper.GetString("AppNotification_SandboxUnavailable_DefaultReason");
+        var blockHostFallback = _settings?.SystemRunBlockHostFallbackWhenMxcUnavailable == true;
+        var mode = blockHostFallback ? "blocked" : "host-fallback";
+        var title = blockHostFallback
+            ? LocalizationHelper.GetString("AppNotification_SandboxUnavailableBlocked_Title")
+            : LocalizationHelper.GetString("AppNotification_SandboxUnavailable_Title");
+        var message = blockHostFallback
+            ? LocalizationHelper.Format("AppNotification_SandboxUnavailableBlocked_MessageFormat", reasonText)
+            : LocalizationHelper.Format("AppNotification_SandboxUnavailable_MessageFormat", reasonText);
+
+        PublishSandboxRiskNotification(
+            $"unavailable:{mode}:{reasonText}",
+            title,
+            message);
+    }
+
+    private void PublishSandboxRiskNotification(string riskKey, string title, string message)
+    {
+        if (string.Equals(_lastSandboxRiskNotificationKey, riskKey, StringComparison.Ordinal))
+            return;
+
+        _lastSandboxRiskNotificationKey = riskKey;
+        AppNotificationPublisher.Show(
+            _appNotificationService,
+            title,
+            message,
+            "sandbox",
+            "system.run",
+            AppNotificationSeverity.Warning,
+            SandboxRiskNotificationDedupeKey,
+            "sandbox",
+            LocalizationHelper.GetString("AppNotification_ActionOpenSandbox"),
+            id: SandboxRiskNotificationId);
+    }
+
+    private void ClearSandboxRiskNotification()
+    {
+        _lastSandboxRiskNotificationKey = null;
+        _appNotificationService?.ClearSource("sandbox");
     }
 
 
@@ -2681,45 +3160,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     #region Tray Icon
 
-    private void UpdateTrayIcon()
-    {
-        if (_dispatcherQueue != null && !_dispatcherQueue.HasThreadAccess)
-        {
-            _dispatcherQueue.TryEnqueue(UpdateTrayIcon);
-            return;
-        }
-
-        if (_trayIcon == null) return;
-
-        // Tray icon is pinned to the app icon so it visually matches the agent
-        // avatar and chat-window title bar. Status is communicated via the
-        // tooltip text below rather than swapping the icon image.
-        var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "openclaw.ico");
-        var tooltip = BuildTrayTooltip();
-
-        try
-        {
-            _trayIcon.SetIcon(iconPath);
-            ApplyTrayTooltip(tooltip);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"Failed to update tray icon: {ex.Message}");
-        }
-    }
-
-    private void ApplyTrayTooltip(string tooltip)
-    {
-        if (_trayIcon == null)
-            return;
-
-        if (string.Equals(_trayIcon.Tooltip, tooltip, StringComparison.Ordinal))
-        {
-            _trayIcon.Tooltip = string.Empty;
-        }
-
-        _trayIcon.Tooltip = tooltip;
-    }
+    private void UpdateTrayIcon() => _trayIconCoordinator?.UpdateTrayIcon();
 
     private string BuildTrayTooltip() =>
         new TrayTooltipBuilder(CaptureTraySnapshot()).Build();
@@ -2798,6 +3239,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         if (_hubWindow == null || _hubWindow.IsClosed)
         {
             _hubWindow = new HubWindow();
+            ApplyThemePreference(_hubWindow);
             _hubWindow.AppModel = _appState;
             _hubWindow.BindAppNotifications(_appNotificationService!);
             _hubWindow.ApplyNavPaneState(_settings!);
@@ -2808,7 +3250,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _hubWindow.GatewayRegistry = _gatewayRegistry;
             _hubWindow.ConnectAction = () =>
             {
-                _ = _connectionManager?.ReconnectAsync();
+                ReconnectWithSyncedBrowserProxyForward();
             };
             _hubWindow.DisconnectAction = () =>
             {
@@ -2818,7 +3260,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             };
             _hubWindow.ReconnectAction = () =>
             {
-                _ = _connectionManager?.ReconnectAsync();
+                ReconnectWithSyncedBrowserProxyForward();
             };
             if (_nodeService != null)
             {
@@ -2844,7 +3286,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
         if (navigateTo != null)
         {
-            _hubWindow.NavigateTo(navigateTo, originTag);
+            _hubWindow.NavigateTo(navigateTo);
         }
         if (activate)
         {
@@ -2966,7 +3408,9 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         var currentSnapshot = _settings?.ToSettingsData()?.ToConnectionSnapshot();
         var impact = SettingsChangeClassifier.Classify(_previousSettingsSnapshot, currentSnapshot);
         _previousSettingsSnapshot = currentSnapshot;
+        SyncActiveGatewayBrowserProxyForward();
         Logger.Info($"[SETTINGS] Change impact: {impact}");
+        PublishSandboxRiskNotificationIfNeeded();
 
         switch (impact)
         {
@@ -2988,15 +3432,15 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                     _chatWindow = null;
                 }
 
-                _ = _connectionManager?.ReconnectAsync();
+                ReconnectWithSyncedBrowserProxyForward();
                 break;
 
             case SettingsChangeImpact.NodeReconnectRequired:
-                _ = _connectionManager?.ReconnectAsync();
+                ReconnectWithSyncedBrowserProxyForward();
                 break;
 
             case SettingsChangeImpact.CapabilityReload:
-                _ = _connectionManager?.ReconnectAsync();
+                ReconnectWithSyncedBrowserProxyForward();
                 break;
 
             case SettingsChangeImpact.UiOnly:
@@ -3017,7 +3461,6 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             WireAppCapabilityHandlers();
         }
 
-        // Non-connection settings always applied regardless of impact
         if (_settings!.GlobalHotkeyEnabled)
         {
             _globalHotkey ??= new GlobalHotkeyService();
@@ -3032,25 +3475,32 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _globalHotkey?.Unregister();
         }
 
-        AutoStartManager.SetAutoStart(_settings.AutoStart);
+        ObserveBackgroundFault(
+            AutoStartManager.SetAutoStartAsync(_settings.AutoStart),
+            "[App] Failed to apply auto-start setting");
 
-        // Notify ad-hoc listeners (e.g. ChatWindow may be alive but not
-        // owned by the hub) that settings have changed. Marshal onto the
-        // UI thread because IAppCommands.NotifySettingsSaved is a public
-        // entry point that may be invoked from background work; existing
-        // handlers (DebugPage, ChatWindow) update UI directly and would
-        // crash if dispatched from a non-UI thread (Hanselman v2 #7).
+        // Apply UI-only settings and notify ad-hoc listeners. This public
+        // entry point can be invoked from background work, while existing
+        // listeners update UI directly.
+        void ApplyUiSettingsAndNotify()
+        {
+            ApplyThemePreferenceToOpenWindows();
+            if (_hubWindow is { IsClosed: false })
+                _hubWindow.RefreshDiagnosticsNavVisibility();
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         if (_dispatcherQueue != null && !_dispatcherQueue.HasThreadAccess)
         {
-            _dispatcherQueue.TryEnqueue(() => SettingsChanged?.Invoke(this, EventArgs.Empty));
+            _dispatcherQueue.TryEnqueue(ApplyUiSettingsAndNotify);
         }
         else
         {
-            SettingsChanged?.Invoke(this, EventArgs.Empty);
+            ApplyUiSettingsAndNotify();
         }
     }
 
-    private void ShowWebChat()
+    private void ShowWebChat(string? sessionKey = null)
     {
         if (_settings == null) return;
         if (!TryResolveChatCredentials(out _, out _, out _, out var isBootstrapToken))
@@ -3067,6 +3517,25 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 "Chat",
                 "Gateway pairing is not complete");
             return;
+        }
+
+        // Stash the session key on both App (fallback when HubWindow doesn't exist)
+        // and HubWindow (existing path) so ChatPage can pick it up after navigation.
+        if (!string.IsNullOrEmpty(sessionKey))
+        {
+            PendingChatSessionKey = sessionKey;
+            if (_hubWindow != null)
+            {
+                _hubWindow.PendingChatSessionKey = sessionKey;
+            }
+        }
+        else
+        {
+            PendingChatSessionKey = null;
+            if (_hubWindow != null)
+            {
+                _hubWindow.PendingChatSessionKey = null;
+            }
         }
 
         ShowHub("chat");
@@ -3088,7 +3557,112 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _connectionManager!.Diagnostics,
             _gatewayRegistry,
             _connectionManager);
+        ApplyThemePreference(_connectionStatusWindow);
         _connectionStatusWindow.Activate();
+    }
+
+    // ─── Inbound pairing approvals ───────────────────────────────────────
+
+    /// <summary>Feeds fresh device/node pending pair-lists into the approval coordinator.</summary>
+    private void OnPairListsChanged(object? sender, EventArgs e)
+    {
+        _pairingApprovalCoordinator?.OnPairListsUpdated(_appState?.DevicePairList, _appState?.NodePairList);
+    }
+
+    /// <summary>
+    /// All identifiers the local Windows node may be known by in the gateway's pending node list,
+    /// so the approval coordinator never prompts the operator to approve their own machine. The node
+    /// advertises itself as <c>NodeId ?? FullDeviceId</c>; we offer both so the own-node filter is
+    /// robust to either identifier space.
+    /// </summary>
+    private IReadOnlyCollection<string> BuildOwnNodeIds()
+    {
+        var ids = new List<string>(2);
+        var fullDeviceId = _nodeService?.FullDeviceId;
+        if (!string.IsNullOrWhiteSpace(fullDeviceId)) ids.Add(fullDeviceId);
+        var nodeId = _nodeService?.NodeId;
+        if (!string.IsNullOrWhiteSpace(nodeId) && !ids.Contains(nodeId)) ids.Add(nodeId);
+        return ids;
+    }
+
+    /// <summary>A new inbound pairing request arrived — present the focused dialog and an awareness toast.</summary>
+    private void OnPairingApprovalRequested(object? sender, PendingApproval approval)
+    {
+        OnUiThread(() =>
+        {
+            // Only steal foreground when the dialog isn't already open. On a reconnect burst the
+            // gateway re-pushes every pending request at once; the first opens + foregrounds the
+            // dialog, the rest just enqueue into it without repeated focus-stealing.
+            var alreadyOpen = _pairingApprovalDialog is { IsClosed: false };
+            ShowPairingApprovalDialog(bringToFront: !alreadyOpen);
+
+            var name = string.IsNullOrWhiteSpace(approval.DisplayName)
+                ? approval.DeviceId
+                : approval.DisplayName!;
+            AddRecentActivity(
+                LocalizationHelper.GetString("Toast_PairingRequestTitle"),
+                category: "pairing",
+                dashboardPath: "connection",
+                details: name);
+
+            var bodyKey = approval.Kind == PairingApprovalKind.NodePair
+                ? "Toast_PairingRequestBodyNode"
+                : "Toast_PairingRequestBody";
+            _toastService?.ShowToast(new ToastContentBuilder()
+                .AddText(LocalizationHelper.GetString("Toast_PairingRequestTitle"))
+                .AddText(string.Format(LocalizationHelper.GetString(bodyKey), name))
+                .AddButton(new ToastButton()
+                    .SetContent(LocalizationHelper.GetString("Toast_PairingReview"))
+                    .AddArgument("action", "review_pairing")),
+                "pairing-request",
+                approval.DecisionId);
+        });
+    }
+
+    /// <summary>After a decision is confirmed by the gateway, surface a confirmation toast + activity entry.</summary>
+    private void OnPairingDecisionCompleted(object? sender, PairingDecisionResult result)
+    {
+        if (!result.Success) return; // defensive — the coordinator only raises this for confirmed decisions
+        OnUiThread(() =>
+        {
+            var name = string.IsNullOrWhiteSpace(result.Approval.DisplayName)
+                ? result.Approval.DeviceId
+                : result.Approval.DisplayName!;
+            var titleKey = result.Approved ? "Toast_PairingApprovedTitle" : "Toast_PairingRejectedTitle";
+            var bodyKey = result.Approved ? "Toast_PairingApprovedBody" : "Toast_PairingRejectedBody";
+            AddRecentActivity(
+                LocalizationHelper.GetString(titleKey),
+                category: "pairing",
+                dashboardPath: "connection",
+                details: name);
+            _toastService?.ShowToast(new ToastContentBuilder()
+                .AddText(LocalizationHelper.GetString(titleKey))
+                .AddText(string.Format(LocalizationHelper.GetString(bodyKey), name)),
+                "pairing-decided",
+                result.Approval.DecisionId);
+        });
+    }
+
+    /// <summary>Opens (or re-focuses) the inbound pairing approval dialog when there is something to decide.</summary>
+    private void ShowPairingApprovalDialog() => ShowPairingApprovalDialog(bringToFront: true);
+
+    private void ShowPairingApprovalDialog(bool bringToFront)
+    {
+        if (_pairingApprovalCoordinator == null) return;
+        if (_pairingApprovalCoordinator.Current.Count == 0)
+        {
+            ShowStatusDetail();
+            return;
+        }
+
+        if (_pairingApprovalDialog is { IsClosed: false } existing)
+        {
+            if (bringToFront) existing.ShowForeground();
+            return;
+        }
+
+        _pairingApprovalDialog = new OpenClawTray.Dialogs.PairingApprovalDialog(_pairingApprovalCoordinator);
+        _pairingApprovalDialog.ShowForeground();
     }
 
     private void RestartSshTunnel()
@@ -3123,7 +3697,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 return;
             }
 
-            _ = _connectionManager?.ReconnectAsync();
+            ReconnectWithSyncedBrowserProxyForward();
 
             UpdateStatusDetailWindow();
             _toastService!.ShowToast(new ToastContentBuilder()
@@ -3162,27 +3736,38 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     internal GatewayCommandCenterState BuildCommandCenterState() =>
         new CommandCenterStateBuilder(CaptureSnapshot()).Build();
 
-    private AppStateSnapshot CaptureSnapshot() => new AppStateSnapshot
+    internal IReadOnlyList<ConnectionDiagnosticEvent> GetConnectionDiagnosticEvents() =>
+        _connectionManager?.Diagnostics.GetRecent(200) ?? [];
+
+    private AppStateSnapshot CaptureSnapshot()
     {
-        Status = _appState!.Status,
-        LastCheckTime = _appState!.LastCheckTime,
-        Channels = _appState!.Channels,
-        Sessions = _appState!.Sessions,
-        Nodes = _appState!.Nodes,
-        Usage = _appState!.Usage,
-        UsageStatus = _appState!.UsageStatus,
-        UsageCost = _appState!.UsageCost,
-        GatewaySelf = _appState!.GatewaySelf,
-        AuthFailureMessage = _appState!.AuthFailureMessage,
-        LastUpdateInfo = _appState!.UpdateInfo,
-        Settings = _settings,
-        NodeService = _nodeService,
-        NodePairingApprovalKind = _connectionManager?.CurrentSnapshot.NodePairingApprovalKind
-            ?? PairingApprovalKind.Unknown,
-        NodePairingRequestId = _connectionManager?.CurrentSnapshot.NodePairingRequestId,
-        SshTunnelSnapshot = _sshTunnelService?.CreateSnapshot(),
-        HasGatewayClient = _connectionManager?.OperatorClient != null
-    };
+        var activeGateway = _gatewayRegistry?.GetActive();
+        return new AppStateSnapshot
+        {
+            Status = _appState!.Status,
+            LastCheckTime = _appState!.LastCheckTime,
+            Channels = _appState!.Channels,
+            Sessions = _appState!.Sessions,
+            Nodes = _appState!.Nodes,
+            Usage = _appState!.Usage,
+            UsageStatus = _appState!.UsageStatus,
+            UsageCost = _appState!.UsageCost,
+            GatewaySelf = _appState!.GatewaySelf,
+            AuthFailureMessage = _appState!.AuthFailureMessage,
+            LastUpdateInfo = _appState!.UpdateInfo,
+            Settings = _settings,
+            NodeService = _nodeService,
+            NodePairingApprovalKind = _connectionManager?.CurrentSnapshot.NodePairingApprovalKind
+                ?? PairingApprovalKind.Unknown,
+            NodePairingRequestId = _connectionManager?.CurrentSnapshot.NodePairingRequestId,
+            SshTunnelSnapshot = _sshTunnelService?.CreateSnapshot(),
+            HasGatewayClient = _connectionManager?.OperatorClient != null,
+            EffectiveGatewayUrl = activeGateway?.Url ?? _settings?.GatewayUrl,
+            EffectiveBrowserControlPort = activeGateway?.BrowserControlPort,
+            HasActiveGatewayRecord = activeGateway != null,
+            ActiveGatewaySshTunnel = activeGateway?.SshTunnel
+        };
+    }
 
     private void ShowNotificationHistory()
     {
@@ -3199,8 +3784,13 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     private async Task ShowOnboardingAsync()
     {
+        await EnsureSetupWindowAsync();
+    }
+
+    private async Task<(SetupWindow? Window, bool CreatedNew)> EnsureSetupWindowAsync()
+    {
         if (_settings == null)
-            return;
+            return (null, false);
 
         if (_setupWindow != null)
         {
@@ -3208,7 +3798,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             await existingSetupWindow.WaitForInitialContentReadyAsync();
             if (ReferenceEquals(_setupWindow, existingSetupWindow) && !existingSetupWindow.IsClosed)
                 existingSetupWindow.BringToFrontForSetupLaunch();
-            return;
+            return (existingSetupWindow, false);
         }
 
         try
@@ -3228,10 +3818,37 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 setupWindow.BringToFrontForSetupLaunch();
                 Logger.Info("Opened tray-hosted setup window");
             }
+            return (setupWindow, true);
         }
         catch (Exception ex)
         {
             Logger.Error($"Failed to open setup window: {ex}");
+            return (null, false);
+        }
+    }
+
+    private async Task ShowGatewayWizardAsync()
+    {
+        var (setupWindow, createdNew) = await EnsureSetupWindowAsync();
+        if (setupWindow == null)
+            return;
+
+        // Only steer a freshly created setup window to the gateway wizard. An
+        // already-open setup window may be mid-install on ProgressPage, whose
+        // Unloaded handler cancels the running setup pipeline — navigating it
+        // away would abort an in-progress install. In that case leave the
+        // existing window on its current page (already brought to the front).
+        if (!createdNew)
+        {
+            Logger.Info("Setup window already open; skipping direct gateway wizard navigation to avoid interrupting active setup");
+            return;
+        }
+
+        await setupWindow.WaitForInitialContentReadyAsync();
+        if (ReferenceEquals(_setupWindow, setupWindow) && !setupWindow.IsClosed)
+        {
+            if (!setupWindow.TryNavigateToWizard())
+                Logger.Warn("Setup window is not ready for direct gateway wizard navigation; leaving current setup page visible");
         }
     }
 
@@ -3262,7 +3879,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             {
                 try
                 {
-                    AutoStartManager.SetAutoStart(true);
+                    await AutoStartManager.SetAutoStartAsync(true);
                 }
                 catch (Exception ex)
                 {
@@ -3423,8 +4040,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     void IAppCommands.OpenDashboard(string? path) => OpenDashboard(path);
     void IAppCommands.Navigate(string pageTag) => ShowHub(pageTag);
-    void IAppCommands.Navigate(string pageTag, string? originTag) => ShowHub(pageTag, originTag: originTag);
-    void IAppCommands.Reconnect() => _ = _connectionManager?.ReconnectAsync();
+    void IAppCommands.Reconnect() => ReconnectWithSyncedBrowserProxyForward();
     void IAppCommands.Disconnect()
     {
         _ = _connectionManager?.DisconnectAsync();
@@ -3434,6 +4050,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     void IAppCommands.ShowChat() => ShowChatWindow();
     void IAppCommands.CheckForUpdates() => _ = _updateCoordinator!.CheckForUpdatesUserInitiatedAsync();
     void IAppCommands.ShowOnboarding() => _ = ShowOnboardingAsync();
+    void IAppCommands.ShowGatewayWizard() => _ = ShowGatewayWizardAsync();
     void IAppCommands.ShowConnectionStatus() => ShowConnectionStatusWindow();
     void IAppCommands.NotifySettingsSaved() => OnSettingsSaved(this, EventArgs.Empty);
 
@@ -3475,12 +4092,18 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         }
     }
 
-    private void ToggleAutoStart()
+    private void ToggleAutoStart() =>
+        AsyncEventHandlerGuard.Run(
+            ToggleAutoStartAsync,
+            new AppLogger(),
+            nameof(ToggleAutoStart));
+
+    private async Task ToggleAutoStartAsync()
     {
         if (_settings == null) return;
         _settings.AutoStart = !_settings.AutoStart;
         _settings.Save();
-        AutoStartManager.SetAutoStart(_settings.AutoStart);
+        await AutoStartManager.SetAutoStartAsync(_settings.AutoStart);
     }
 
     private void OpenLogFile()
@@ -3565,7 +4188,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     private void OnSettingsHotkeyPressed(object? sender, EventArgs e)
     {
-        OnUiThread(() => ShowHub("companion"));
+        OnUiThread(ShowSettings);
     }
 
     #endregion
@@ -3751,7 +4374,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             CopyActivitySummary = _diagnosticsClipboard!.CopyActivitySummary,
             CopyExtensibilitySummary = _diagnosticsClipboard!.CopyExtensibilitySummary,
             RestartSshTunnel = RestartSshTunnel,
-            OpenChat = ShowWebChat,
+            OpenChat = () => ShowWebChat(),
             OpenCommandCenter = ShowStatusDetail,
             OpenTrayMenu = ShowTrayMenuPopup,
             OpenActivityStream = ShowActivityStream,
@@ -3923,6 +4546,14 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _sshTunnelService = null;
         });
 
+        SafeShutdownStep("pairing approval", () =>
+        {
+            _pairingApprovalPollTimer?.Stop();
+            _pairingApprovalPollTimer = null;
+            _pairingApprovalDialog?.Close();
+            _pairingApprovalDialog = null;
+        });
+
         // Close windows explicitly for deterministic shutdown tracing.
         SafeShutdownStep("chat window", () => { _chatWindow?.ForceClose(); _chatWindow = null; });
         SafeShutdownStep("setup window", () => { _setupWindow?.Close(); _setupWindow = null; });
@@ -3936,6 +4567,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         {
             _trayIcon?.Dispose();
             _trayIcon = null;
+            _trayIconCoordinator = null;
         });
 
         SafeShutdownStep("single-instance mutex", () =>
@@ -4019,9 +4651,10 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             try
             {
                 _sshTunnelService ??= new SshTunnelService(new AppLogger());
-                var includeBrowserProxy =
-                    _settings.NodeBrowserProxyEnabled &&
-                    SshTunnelCommandLine.CanForwardBrowserProxyPort(_settings.SshTunnelRemotePort, _settings.SshTunnelLocalPort);
+                var includeBrowserProxy = BrowserProxySshTunnelForwardPolicy.ShouldInclude(
+                    _settings.NodeBrowserProxyEnabled,
+                    _settings.SshTunnelRemotePort,
+                    _settings.SshTunnelLocalPort);
                 _sshTunnelService.EnsureStarted(
                     _settings.SshTunnelUser,
                     _settings.SshTunnelHost,
@@ -4077,9 +4710,10 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         {
             try
             {
-                var restartBrowserProxy =
-                    _settings.NodeBrowserProxyEnabled &&
-                    SshTunnelCommandLine.CanForwardBrowserProxyPort(_settings.SshTunnelRemotePort, _settings.SshTunnelLocalPort);
+                var restartBrowserProxy = BrowserProxySshTunnelForwardPolicy.ShouldInclude(
+                    _settings.NodeBrowserProxyEnabled,
+                    _settings.SshTunnelRemotePort,
+                    _settings.SshTunnelLocalPort);
                 _sshTunnelService.EnsureStarted(
                     _settings.SshTunnelUser,
                     _settings.SshTunnelHost,

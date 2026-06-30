@@ -18,14 +18,19 @@ A comprehensive guide for building, running, and contributing to the OpenClaw Wi
 
 - **.NET 10 SDK** - [Download here](https://dotnet.microsoft.com/download)
 - **Windows 10/11** - WinUI 3 and Windows App SDK require Windows 10 version 1903 or later
+- **Node.js LTS with npm** - Required by the WinUI build to restore JavaScript build assets
+- **Windows 10 SDK** - Required for WinUI builds
 - **WebView2 Runtime** - Usually pre-installed on Windows 10+ ([Manual download](https://developer.microsoft.com/microsoft-edge/webview2/))
 - **Visual Studio 2022** (optional) - For easier development and debugging with WinUI 3 designer support
 
+Run `.\scripts\setup-dev.ps1` from the repository root to install or verify local prerequisites with winget. Agents can use `.\scripts\setup-dev.ps1 -RunValidation` to prepare the worktree and run the required closeout validation.
+
 ### For Testing
 
-- **A running OpenClaw gateway instance** - The gateway provides the backend for chat, sessions, and notifications
+- **A running OpenClaw gateway instance** - The gateway provides the backend for chat, sessions, and notifications when validating gateway-mediated flows
   - Default gateway URL: `ws://localhost:18789`
   - You'll need a valid authentication token from your OpenClaw instance
+- **Local MCP Server** - Windows node capabilities can also be validated without a gateway by enabling Local MCP Server in the tray Settings UI and using `winnode`
 
 ## Project Structure
 
@@ -423,6 +428,25 @@ In DEBUG builds, logs are also written to Visual Studio Output window via `Syste
 Sensitive data (authentication tokens) are never logged.
 
 ## Testing
+
+Required agent validation lives in [AGENTS.md](AGENTS.md). For changes touching
+tray UX, Settings, onboarding, chat/canvas, Command Center, Windows node
+capabilities, local MCP, gateway pairing/connection, permissions, or
+diagnostics, use the repo-local skill
+`.agents/skills/openclaw-proof-validation/SKILL.md`: run the build/tests,
+validate local MCP with `winnode --list-tools` plus the changed command, run
+rubber-duck review for non-trivial changes, then launch the tray from this
+worktree and drive the changed UI with computer-use / desktop automation as one
+batched closeout pass before PR publication. Mid-development rubber-duck,
+computer-use, or MCP validation is also appropriate when explicitly requested or
+needed to unblock the work; agents should ask whether to run computer-use or
+provide manual UI proof steps, while still enforcing required automated tests.
+
+PRs should include `## Validation` and `## Real behavior proof` sections. Paste concrete
+after-change output, visible UI evidence for visual changes, `winnode` output or
+raw MCP server JSON-RPC output for node commands, and gateway invoke output for
+gateway-mediated behavior when available; the default PR template includes these
+prompts.
 
 ### Running Unit Tests
 

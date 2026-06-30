@@ -209,6 +209,7 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
                 var prev = _stateMachine.Current.OverallState;
                 // Must go through Connecting → Error since AuthenticationFailed requires Connecting state
                 _stateMachine.TryTransition(ConnectionTrigger.ConnectRequested);
+                _stateMachine.SetOperatorCredentialSource(null);
                 _stateMachine.TryTransition(ConnectionTrigger.AuthenticationFailed, "No credential available");
                 EmitStateChanged(prev);
                 return;
@@ -217,6 +218,7 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
             // Transition to Connecting
             var prevState = _stateMachine.Current.OverallState;
             _stateMachine.TryTransition(ConnectionTrigger.ConnectRequested);
+            _stateMachine.SetOperatorCredentialSource(credential.Source);
             _diagnostics.RecordStateChange(prevState, _stateMachine.Current.OverallState);
             EmitStateChanged(prevState);
 
@@ -370,6 +372,9 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
             string.Equals(_activeGatewayRecordId, record.Id, StringComparison.Ordinal) &&
             string.Equals(_stateMachine.Current.GatewayUrl, record.Url, StringComparison.Ordinal) &&
             Equals(_activeSshTunnel, record.SshTunnel);
+        var operatorCredentialSource = preservesOperatorConnection
+            ? _stateMachine.Current.OperatorCredentialSource
+            : null;
         var gen = Interlocked.Read(ref _generation);
         if (!preservesOperatorConnection)
         {
@@ -393,6 +398,8 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
         };
 
         _diagnostics.RecordCredentialResolution(nodeCredential);
+        _stateMachine.SetOperatorCredentialSource(operatorCredentialSource);
+        _stateMachine.SetNodeCredentialSource(nodeCredential.Source);
         _diagnostics.Record("node", $"Starting node-only connection to {record.Url}",
             $"Credential source: {nodeCredential.Source}");
 
@@ -511,7 +518,7 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
         }
     }
 
-    public async Task<SetupCodeResult> ApplySetupCodeAsync(string setupCode)
+    public async Task<SetupCodeResult> ApplySetupCodeAsync(string setupCode, SshTunnelConfig? sshTunnel = null)
     {
         ThrowIfDisposed();
 
@@ -547,6 +554,7 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
             Url = gatewayUrl,
             SharedGatewayToken = existing?.SharedGatewayToken, // preserve existing shared token if any
             BootstrapToken = decoded.Token ?? existing?.BootstrapToken,
+            SshTunnel = sshTunnel ?? existing?.SshTunnel,
         };
         _registry.AddOrUpdate(record);
         _registry.SetActive(recordId);
@@ -1214,6 +1222,7 @@ public sealed class GatewayConnectionManager : IGatewayConnectionManager
         try
         {
             _stateMachine.SetNodeEnabled(true);
+            _stateMachine.SetNodeCredentialSource(nodeCredential.Source);
         }
         finally
         {

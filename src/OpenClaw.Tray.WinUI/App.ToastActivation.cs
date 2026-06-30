@@ -28,7 +28,7 @@ public partial class App
                 },
                 OpenDashboard = () => OpenDashboard(),
                 OpenSettings = ShowSettings,
-                OpenChat = ShowWebChat,
+                OpenChat = sessionKey => ShowWebChat(sessionKey),
                 OpenActivity = () => ShowHub("channels"),
                 CopyPairingCommand = command =>
                 {
@@ -36,7 +36,8 @@ public partial class App
                     _toastService!.ShowToast(new ToastContentBuilder()
                         .AddText(LocalizationHelper.GetString("Toast_PairingCommandCopied"))
                         .AddText(command));
-                }
+                },
+                ReviewPairing = ShowPairingApprovalDialog,
             }));
     }
 

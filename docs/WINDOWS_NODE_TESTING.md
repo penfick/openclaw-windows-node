@@ -14,6 +14,16 @@ The Windows Node feature allows the tray app to receive commands from the OpenCl
 
 ## What You Can Test Now
 
+### Agent-driven UI and MCP validation
+
+For changes touching tray UX, Settings, onboarding, chat/canvas, Command Center, Windows node capabilities, local MCP, gateway pairing/connection, permissions, or diagnostics, use `.agents/skills/openclaw-proof-validation/SKILL.md`.
+
+Short version: run required tests, collect a closeout proof pass with `.\run-app-local.ps1 -Isolated` when UI is involved, use computer-use or developer-provided screenshots/output for the active changed UI state, prove MCP with `winnode` or raw JSON-RPC, prove gateway paths when available, and include current-head concrete output under `## Real behavior proof`. Mid-development computer-use/MCP/rubber-duck validation is fine when explicitly requested or needed to unblock work.
+
+### New command MCP contract
+
+Every new Windows node call must be exposed through local MCP and `winnode`: register the capability, update `McpToolBridge.CommandDescriptions`, update `src/OpenClaw.WinNode.Cli/skill.md`, add focused tests, and prove discovery/invocation with `winnode` or raw MCP JSON-RPC.
+
 ### 1. Settings Toggle
 - Verify the toggle appears in Settings under "ADVANCED"
 - Verify it saves and persists across app restarts
@@ -106,6 +116,7 @@ When the node connects, it advertises these capabilities:
 - The bridge is local-only: it calls `http://127.0.0.1:<gateway-port+2>` from Windows. For a gateway on `ws://127.0.0.1:18789`, the browser-control host must listen on `127.0.0.1:18791`.
 - In managed SSH tunnel mode, keep Browser proxy bridge enabled so the tray forwards local gateway port + 2 to remote gateway port + 2. Settings shows a selectable preview of the exact `ssh -N -L ...` command.
 - If using a manual SSH tunnel, add both forwards, for example: `ssh -N -L 18789:127.0.0.1:18789 -L 18791:127.0.0.1:18791 <user>@<host>`. If the SSH daemon is not listening on port 22, include `-p <ssh-port>`. If local and remote gateway ports differ, forward `<local-gateway-port+2>` to `127.0.0.1:<remote-gateway-port+2>`.
+- Advanced split/remote topologies can pin the browser-control listener with the active gateway record's `BrowserControlPort` field in `%APPDATA%\OpenClawTray\gateways.json`. This value is a local TCP port on Windows and is scoped to that gateway record. Configure it only for a trusted browser-control forward, because `browser.proxy` sends the saved shared gateway token to the selected local listener for browser-control authentication. When a gateway uses SSH, tunnel-derived `localPort + 2` browser-control routing is used only when that gateway's managed tunnel has `IncludeBrowserProxyForward` enabled; otherwise set `BrowserControlPort` to a trusted manual forward.
 - A local SSH forward is not enough if the remote browser-control host is not running. Command Center port diagnostics should show whether the local gateway and browser-control ports are listening and which process owns them.
 - If Command Center shows the browser-control port listening but `browser.proxy` returns an auth error, verify the Windows Settings gateway token matches the browser-control host token/password. QR/bootstrap pairing can connect the node without saving a shared gateway token, but browser-control auth may still require one.
 - A local smoke can verify the host dependency without proving gateway invoke auth: start the upstream browser-control host with a temporary no-secret config, confirm `http://127.0.0.1:<gateway-port+2>/` and `/tabs` return HTTP 200, then stop the captured host process. The full parity smoke is not complete until `openclaw nodes invoke --command browser.proxy` succeeds through the active gateway.
@@ -121,35 +132,59 @@ When the node connects, it advertises these capabilities:
 ### Local sandbox validation
 - Sandbox integration tests are intended for local Windows development machines and may skip when the required local sandbox prerequisites are unavailable.
 - Build the tray app before running local sandbox validation so the required sandbox helper binaries are present in the app output.
+- For MXC-related merge validation, prefer the formal script below because it sets the required gates and fails if MXC is skipped.
+
+  ```powershell
+  .\scripts\validate-mxc-e2e.ps1
+  ```
+
+### Full Gateway `system.run` MXC runtime proof
+- The focused E2E below provisions a fresh WSL Gateway, starts an isolated tray instance, sets a local exec approval rule through MCP, invokes `system.run` through the real Gateway `node.invoke` path, and verifies tray MXC diagnostics show contained `mxc-direct-appc` execution for both allowed execution and denied writes to the tray data directory.
+- Run it when validating the Gateway/Windows node runtime path, not just direct MCP or shared library behavior.
+- GitHub-hosted Actions runners do not provide a working MXC/AppContainer runtime. The regular cloud E2E matrix should report these MXC proofs as skipped while still running the rest of setup-connect. Run the proof on a local MXC-enabled Windows machine. Only set `OPENCLAW_RUN_MXC_E2E=1` in GitHub Actions when using an MXC-enabled self-hosted runner.
+- Use `.\scripts\validate-mxc-e2e.ps1` for normal local validation. It sets `OPENCLAW_RUN_E2E` and `OPENCLAW_RUN_MXC_E2E`, runs the real Gateway MXC proofs, and fails if the MXC proof skips. `-AllowSkip` is only for documenting a non-MXC host, not for merge validation of MXC-related work.
+- When reproducing this manually against an existing Gateway, make sure `gateway.nodes.allowCommands` includes `system.run`, `system.run.prepare`, and `system.which`, then approve any `pending-reapproval` request with `openclaw nodes approve <pendingRequestId>`. The node can advertise `system.run` while the Gateway still blocks it until both gates are updated.
 
   ```powershell
   .\build.ps1
-  $env:OPENCLAW_RUN_INTEGRATION='1'
-  dotnet test .\tests\OpenClaw.Shared.Tests\OpenClaw.Shared.Tests.csproj --filter "FullyQualifiedName~Mxc"
+  $env:OPENCLAW_REPO_ROOT = (Get-Location).Path
+  $env:OPENCLAW_RUN_E2E = "1"
+  dotnet test .\tests\OpenClaw.E2ETests\OpenClaw.E2ETests.csproj `
+    --no-restore `
+    --filter "FullyQualifiedName~RealGateway_SystemRun_ExecutesThroughWindowsNodeMxcSandbox" `
+    --logger "console;verbosity=normal" `
+    -r win-x64
   ```
+
+- Expected proof markers:
+  - Gateway response contains `OPENCLAW_GATEWAY_SYSTEM_RUN_MXC_OK` with `exitCode=0`.
+  - The denied-write proof targets a fresh file under the isolated tray data directory, returns non-zero, and leaves that file absent.
+  - `openclaw-tray.log` contains `[mxc] system.run sandbox request` with `executor=mxc-direct-appc`, `contained=True`, and `shell=cmd`.
+  - `openclaw-tray.log` contains `[mxc] system.run sandbox result` with `containment=mxc` for both the successful execution and the denied write.
+- E2E artifacts are written under `TestResults\E2E\<run-id>` and skip known secret-bearing files such as gateway records and settings.
 
 ## Remaining Work (Roadmap)
 
 1. ~~**system.run + exec approvals**~~ ✅ Implemented
-   - `system.run` with PowerShell/cmd support
-   - `system.run.prepare` pre-flight command
-   - `system.which` command lookup
-   - `system.execApprovals` allowlist flow with base-hash optimistic concurrency for remote edits
-   - `system.run` environment override sanitizer blocks path/toolchain injection and secret-looking variables
+    - `system.run` with PowerShell/cmd support
+    - `system.run.prepare` pre-flight command
+    - `system.which` command lookup
+    - `system.execApprovals` allowlist flow with base-hash optimistic concurrency for remote edits
+    - `system.run` environment override sanitizer blocks path/toolchain injection and secret-looking variables
 2. ~~**screen.record**~~ ✅ Implemented
-   - Graphics Capture video recording (MP4/base64)
+    - Graphics Capture video recording (MP4/base64)
 3. ~~**camera.clip**~~ ✅ Implemented
-   - Short webcam video capture (MediaCapture + encoding)
+    - Short webcam video capture (MediaCapture + encoding)
 4. ~~**A2UI pushJSONL alias + device status**~~ ✅ Implemented
-   - Legacy `canvas.a2ui.pushJSONL`
-   - Safe `device.info` / `device.status`
+    - Legacy `canvas.a2ui.pushJSONL`
+    - Safe `device.info` / `device.status`
 5. ~~**Command Center diagnostics**~~ ✅ Implemented
-   - Channel/node/usage/pairing/allowlist diagnostics and recent invoke timeline
+    - Channel/node/usage/pairing/allowlist diagnostics and recent invoke timeline
 6. **Packaging & consent prompts**
-   - MSIX packaging with camera/screen capabilities for system prompts
+    - MSIX packaging with camera/screen capabilities for system prompts
 7. **Test matrix & polish**
-   - Canvas/screen/camera regression tests
-   - Handle timeouts/disconnects, reduce verbose logging
+    - Canvas/screen/camera regression tests
+    - Handle timeouts/disconnects, reduce verbose logging
 
 ## Files Involved
 

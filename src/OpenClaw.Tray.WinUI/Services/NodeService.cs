@@ -5,11 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.UI.Dispatching;
+using OpenClaw.Connection;
 using OpenClaw.Shared;
 using OpenClaw.Shared.Capabilities;
 using OpenClaw.Shared.ExecApprovals;
 using OpenClaw.Shared.Mcp;
 using OpenClaw.Shared.Mxc;
+using OpenClawTray.Chat;
 using OpenClawTray.A2UI.Actions;
 using OpenClawTray.A2UI.Rendering;
 using OpenClawTray.Helpers;
@@ -26,6 +28,8 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     private readonly IOpenClawLogger _logger;
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly Func<FrameworkElement?> _rootProvider;
+    private readonly Func<OpenClawChatDataProvider?> _chatProviderProvider;
+    private readonly Func<string, bool> _inlineApprovalAvailable;
     private readonly SettingsManager? _settings;
     private readonly SemaphoreSlim _consentLock = new(1, 1);
     private readonly object _disposeLock = new();
@@ -95,6 +99,9 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     // single shared location, role distinction inside).
     private readonly string _identityDataPath;
     private readonly Func<string?>? _sharedGatewayTokenResolver;
+    private readonly Func<int?>? _browserControlPortResolver;
+    private readonly Func<SshTunnelConfig?>? _activeGatewayTunnelResolver;
+    private readonly Func<string?>? _activeGatewayUrlResolver;
     private string? _token;
 
     // Authoritative capability list — populated by RegisterCapabilities and
@@ -163,7 +170,8 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     public event EventHandler<NodeInvokeCompletedEventArgs>? InvokeCompleted;
     public event EventHandler<GatewaySelfInfo>? GatewaySelfUpdated;
     public event EventHandler<RecordingStateEventArgs>? RecordingStateChanged;
-    public event EventHandler<ToastContentBuilder>? ToastRequested;
+    public event EventHandler<NodeToastRequestedEventArgs>? ToastRequested;
+    public event EventHandler<ExecApprovalPromptRequestedEventArgs>? LocalExecApprovalRequested;
     public event EventHandler<ExecApprovalPromptDecidedEventArgs>? LocalExecApprovalDecided;
     
     public bool IsScreenRecording { get; private set; }
@@ -189,17 +197,27 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         DispatcherQueue dispatcherQueue,
         string dataPath,
         Func<FrameworkElement?>? rootProvider = null,
+        Func<OpenClawChatDataProvider?>? chatProviderProvider = null,
+        Func<string, bool>? inlineApprovalAvailable = null,
         SettingsManager? settings = null,
         bool enableMcpServer = false,
         string? identityDataPath = null,
-        Func<string?>? sharedGatewayTokenResolver = null)
+        Func<string?>? sharedGatewayTokenResolver = null,
+        Func<int?>? browserControlPortResolver = null,
+        Func<SshTunnelConfig?>? activeGatewayTunnelResolver = null,
+        Func<string?>? activeGatewayUrlResolver = null)
     {
         _logger = logger;
         _dispatcherQueue = dispatcherQueue;
         _dataPath = dataPath;
         _identityDataPath = string.IsNullOrWhiteSpace(identityDataPath) ? dataPath : identityDataPath;
         _sharedGatewayTokenResolver = sharedGatewayTokenResolver;
+        _browserControlPortResolver = browserControlPortResolver;
+        _activeGatewayTunnelResolver = activeGatewayTunnelResolver;
+        _activeGatewayUrlResolver = activeGatewayUrlResolver;
         _rootProvider = rootProvider ?? (() => null);
+        _chatProviderProvider = chatProviderProvider ?? (() => null);
+        _inlineApprovalAvailable = inlineApprovalAvailable ?? (_ => false);
         _settings = settings;
         _enableMcpServer = enableMcpServer;
         _screenCaptureService = new ScreenCaptureService(logger);
@@ -293,7 +311,13 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         _systemCapability.PolicyAutoDecided += OnLocalExecApprovalDecided;
         _systemCapability.SetCommandRunner(BuildSystemRunRunner());
         _systemCapability.SetApprovalPolicy(new ExecApprovalPolicy(_dataPath, _logger));
-        var execPrompt = new ExecApprovalPromptService(_dispatcherQueue, _rootProvider, _logger);
+        var execPrompt = new ExecApprovalPromptService(
+            _dispatcherQueue,
+            _rootProvider,
+            _logger,
+            _chatProviderProvider,
+            _inlineApprovalAvailable);
+        execPrompt.InlineApprovalRequested += OnLocalExecApprovalRequested;
         execPrompt.Decided += OnLocalExecApprovalDecided;
         _systemCapability.SetPromptHandler(execPrompt);
         Register(_systemCapability);
@@ -343,6 +367,7 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
             _textToSpeechService ??= new TextToSpeechService(_logger, settings);
             _ttsCapability = new TtsCapability(_logger);
             _ttsCapability.SpeakRequested += OnTtsSpeakAsync;
+            _ttsCapability.StatusRequested += OnTtsStatusAsync;
             Register(_ttsCapability);
         }
 
@@ -379,13 +404,27 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
                 sharedGatewayToken,
                 hasGatewayClient: _nodeClient != null))
         {
+            // Tunnel state is resolved from the active GatewayRecord when a resolver is wired
+            // (the normal app path), so a tunnel->direct gateway switch can't leave stale global
+            // SettingsManager.UseSshTunnel routing browser.proxy (and the shared token) to the
+            // old tunnel-local+2 endpoint. See BrowserProxyTunnelState for the exact contract.
+            var tunnelState = BrowserProxyTunnelState.Resolve(
+                activeResolverSupplied: _activeGatewayTunnelResolver != null,
+                activeTunnel: _activeGatewayTunnelResolver?.Invoke(),
+                activeGatewayUrl: _activeGatewayUrlResolver?.Invoke(),
+                settingsUseSshTunnel: _settings?.UseSshTunnel == true,
+                settingsLocalPort: _settings?.SshTunnelLocalPort,
+                settingsRemotePort: _settings?.SshTunnelRemotePort,
+                settingsGatewayUrl: _settings?.GatewayUrl);
             _browserProxyCapability = new BrowserProxyCapability(
                 _logger,
                 _nodeClient!.GatewayUrl,
                 sharedGatewayToken,
-                sshRemoteGatewayPort: _settings?.UseSshTunnel == true
-                    ? _settings.SshTunnelRemotePort
-                    : null);
+                sshRemoteGatewayPort: tunnelState.RemotePort,
+                controlPortOverride: _browserControlPortResolver?.Invoke(),
+                useSshTunnel: tunnelState.Enabled,
+                sshTunnelLocalPort: tunnelState.LocalPort,
+                allowGatewayPortFallback: tunnelState.AllowGatewayPortFallback);
             Register(_browserProxyCapability);
         }
 
@@ -529,16 +568,30 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     /// Build the <see cref="ICommandRunner"/> for system.run. Returns an
     /// <see cref="MxcCommandRunner"/> wrapping <see cref="DirectAppContainerExecutor"/>.
     /// The runner honors <see cref="SettingsData.SystemRunSandboxEnabled"/>
-    /// and, per issue #494, falls back to <see cref="LocalCommandRunner"/>
-    /// at runtime when MXC isn't available on this host.
+    /// by attempting MXC containment when available, preserving compatibility
+    /// host fallback when MXC is unavailable unless strict fallback blocking is
+    /// enabled, and rejecting unsupported sandbox request features while
+    /// sandboxing remains enabled.
     /// </summary>
     private ICommandRunner BuildSystemRunRunner()
     {
-        var availability = _mxcAvailability ??= MxcAvailability.Probe(_logger);
         var hostRunner = new LocalCommandRunner(_logger);
-        var executor = new DirectAppContainerExecutor(availability, _logger);
+        var executor = new DirectAppContainerExecutor(GetOrProbeMxcAvailability, _logger);
 
-        if (availability.HasAnyBackend)
+        // Do NOT probe synchronously here: this runs while _capabilitiesLock is held
+        // (RegisterCapabilities), and a blocking wxc-exec --probe (~15s) would stall
+        // capability registration / reconnect. Log from a non-blocking peek; the
+        // first real probe happens lazily on the first system.run via the
+        // availability gate / executor provider below (off any of our locks).
+        var peeked = PeekMxcAvailability();
+        if (peeked is null)
+        {
+            _logger.Info(
+                $"[mxc] system.run runner = MxcCommandRunner " +
+                $"(executor={executor.Name}; MXC availability probe deferred to first use; " +
+                $"sandboxEnabled={(_settings?.SystemRunSandboxEnabled ?? true)})");
+        }
+        else if (peeked.HasAnyBackend)
         {
             _logger.Info(
                 $"[mxc] system.run runner = MxcCommandRunner " +
@@ -547,11 +600,15 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         else
         {
             // MXC unavailable on this host. The runner's top-level
-            // !_isSandboxAvailable() guard will route to the host fallback
-            // for every call; the executor is constructed only to satisfy
-            // the constructor contract and is never invoked.
-            var reason = string.Join("; ", availability.UnsupportedReasons);
-            _logger.Info($"[mxc] system.run runner = MxcCommandRunner (MXC unavailable, commands will run uncontained: {reason})");
+            // !_isSandboxAvailable() guard will either block or use the
+            // compatibility host fallback, depending on settings. The executor is
+            // constructed only to satisfy the constructor contract and is never
+            // invoked.
+            var reason = string.Join("; ", peeked.UnsupportedReasons);
+            var unavailableMode = (_settings?.SystemRunBlockHostFallbackWhenMxcUnavailable ?? false)
+                ? "commands will be blocked by strict fallback settings"
+                : "commands will run through host fallback";
+            _logger.Info($"[mxc] system.run runner = MxcCommandRunner (MXC unavailable, {unavailableMode}: {reason})");
         }
 
         var settingsDirectory = SettingsManager.SettingsDirectoryPath;
@@ -560,10 +617,11 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
             hostRunner,
             () => SnapshotSettings(),
             () => settingsDirectory,
-            // Re-probe on demand if the cache was invalidated by a prior
-            // SandboxUnavailableException (see invalidateAvailability below).
-            () => (_mxcAvailability ??= MxcAvailability.Probe(_logger)).HasAnyBackend,
-            invalidateAvailability: () => _mxcAvailability = null,
+            // Re-probe on demand when sandbox availability is checked: returns the
+            // cached definitive verdict, or re-probes (single-flight) after a
+            // transient error / a prior SandboxUnavailableException-driven invalidation.
+            () => GetOrProbeMxcAvailability().HasAnyBackend,
+            invalidateAvailability: InvalidateMxcAvailability,
             _logger);
     }
 
@@ -578,12 +636,14 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
             return new SettingsData
             {
                 SystemRunSandboxEnabled = true,
+                SystemRunBlockHostFallbackWhenMxcUnavailable = false,
                 SystemRunAllowOutbound = false,
             };
 
         return new SettingsData
         {
             SystemRunSandboxEnabled = _settings.SystemRunSandboxEnabled,
+            SystemRunBlockHostFallbackWhenMxcUnavailable = _settings.SystemRunBlockHostFallbackWhenMxcUnavailable,
             SystemRunAllowOutbound = _settings.SystemRunAllowOutbound,
             // Sandbox page fields — read by MxcPolicyBuilder.ForSystemRun.
             SandboxClipboard = _settings.SandboxClipboard,
@@ -602,6 +662,103 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     }
 
     private MxcAvailability? _mxcAvailability;
+    private DateTime _mxcNextProbeAllowedAtUtc;
+    private Task<MxcAvailability>? _mxcProbeInFlight;
+    private readonly object _mxcAvailabilityLock = new();
+
+    /// <summary>
+    /// Minimum interval before re-probing after a transient probe error. Bounds the
+    /// cost of re-spawning <c>wxc-exec --probe</c> while a probe error persists,
+    /// while still letting a momentary glitch self-heal quickly.
+    /// </summary>
+    private static readonly TimeSpan MxcProbeRetryInterval = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Return the current MXC availability, probing if needed. Definitive verdicts
+    /// (supported / host-unsupported) are cached for the process lifetime; a transient
+    /// probe error (<see cref="MxcAvailability.ProbeErrored"/>) is NOT cached
+    /// permanently — once the retry window opens we re-probe so a momentary glitch
+    /// doesn't pin the whole process to uncontained execution.
+    /// </summary>
+    /// <remarks>
+    /// The blocking probe (<c>wxc-exec --probe</c>, up to ~15s) is NEVER run while
+    /// holding <see cref="_mxcAvailabilityLock"/>: concurrent callers share a single
+    /// in-flight probe (single-flight) and wait on it OUTSIDE the lock, so a slow
+    /// probe can't serialize unrelated callers or stall lock users. The retry window
+    /// opens only AFTER a probe completes, so a 15s timeout can't immediately permit a
+    /// back-to-back re-probe.
+    /// </remarks>
+    private MxcAvailability GetOrProbeMxcAvailability()
+    {
+        Task<MxcAvailability> probe;
+        lock (_mxcAvailabilityLock)
+        {
+            // Definitive verdict — cached for the process lifetime.
+            if (_mxcAvailability is { ProbeErrored: false } definitive)
+                return definitive;
+
+            // Transient error — keep serving it (routes to uncontained) until the
+            // retry window opens, so we don't re-probe on every command.
+            if (_mxcAvailability is { ProbeErrored: true } errored
+                && _mxcProbeInFlight is null
+                && DateTime.UtcNow < _mxcNextProbeAllowedAtUtc)
+                return errored;
+
+            // Start a probe if none is running, otherwise join the in-flight one.
+            probe = _mxcProbeInFlight ??= Task.Run(ProbeAndStoreMxcAvailability);
+        }
+
+        // Wait OUTSIDE the lock so other callers / lock users aren't blocked.
+        return probe.GetAwaiter().GetResult();
+    }
+
+    private MxcAvailability ProbeAndStoreMxcAvailability()
+    {
+        MxcAvailability result;
+        try
+        {
+            result = MxcAvailability.Probe(_logger);
+        }
+        catch (Exception ex)
+        {
+            // Probe() is designed not to throw, but never let an unexpected fault
+            // poison the single-flight slot or leak out of the shared task.
+            _logger.Warn($"[mxc] availability probe threw unexpectedly: {ex.GetType().Name}: {ex.Message}");
+            result = new MxcAvailability(
+                false, false, false, null,
+                new[] { "MXC availability probe failed unexpectedly." }, probeErrored: true);
+        }
+
+        lock (_mxcAvailabilityLock)
+        {
+            _mxcAvailability = result;
+            // Open the retry window only AFTER completion so a slow (timeout) probe
+            // doesn't immediately allow a back-to-back re-probe.
+            _mxcNextProbeAllowedAtUtc = DateTime.UtcNow + MxcProbeRetryInterval;
+            _mxcProbeInFlight = null;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Non-blocking read of the cached MXC availability for diagnostics/logging.
+    /// Returns null when nothing has been probed yet. Never spawns or waits on a
+    /// probe, so it is safe to call while holding other locks (e.g. _capabilitiesLock).
+    /// </summary>
+    private MxcAvailability? PeekMxcAvailability()
+    {
+        lock (_mxcAvailabilityLock)
+            return _mxcAvailability;
+    }
+
+    private void InvalidateMxcAvailability()
+    {
+        lock (_mxcAvailabilityLock)
+        {
+            _mxcAvailability = null;
+            _mxcNextProbeAllowedAtUtc = default;
+        }
+    }
 
     private void StartMcpServer()
     {
@@ -878,6 +1035,14 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
             LocalExecApprovalDecided?.Invoke(this, args);
         });
     }
+
+    private void OnLocalExecApprovalRequested(object? sender, ExecApprovalPromptRequestedEventArgs args)
+    {
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            LocalExecApprovalRequested?.Invoke(this, args);
+        });
+    }
     
     #endregion
     
@@ -897,7 +1062,7 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
                 if (_canvasWindow == null || _canvasWindow.IsClosed)
                 {
                     _canvasWindow = new CanvasWindow();
-                    _canvasWindow.SetTrustedGatewayOrigin(GatewayUrl, _token);
+                    _canvasWindow.SetTrustedGatewayOrigin(GatewayUrl, _token, GetConfiguredGatewayUrl());
                 }
 
                 // Configure window
@@ -970,24 +1135,11 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     }
     
     /// <summary>
-    /// Service a <c>canvas.navigate</c> request by launching the URL in the
-    /// OS default browser. Always — even if a WebView2 canvas window is open.
-    /// Rationale: "open this link" on Windows means the default browser, and
-    /// the embedded WebView2 canvas runs URL-rewriting (gateway-origin pinning,
-    /// CSP, etc.) that mangles arbitrary external URLs. Agents that want to
-    /// load a page inside an embedded surface should use <c>canvas.present</c>.
-    ///
-    /// Open canvas windows are NOT closed after navigate. A2UI surfaces are
-    /// control panels / dashboards / launchers, not browser frames; clicking a
-    /// link inside one shouldn't dismiss it any more than clicking a link in
-    /// the Start Menu would. Agents that want explicit teardown should call
-    /// <c>canvas.hide</c> or emit <c>deleteSurface</c>.
-    ///
-    /// CanvasCapability has already validated the URL with HttpUrlValidator;
-    /// we re-validate here as defense-in-depth so the OS-level shell-execute
-    /// can never see an unvetted string.
+    /// Service a <c>canvas.navigate</c> request inside the WebView canvas.
+    /// CanvasCapability has already validated the URL; re-validate here before
+    /// handing it to WebView2.
     /// </summary>
-    private Task<string> OnCanvasNavigate(string url)
+    private async Task<string> OnCanvasNavigate(string url)
     {
         if (!HttpUrlValidator.TryParse(url, out var canonical, out var validationError))
         {
@@ -995,37 +1147,40 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
             throw new InvalidOperationException($"Invalid url: {validationError}");
         }
 
-        var initialRisk = HttpUrlRiskEvaluator.Evaluate(canonical!);
-
-        // Move the entire decision off the request thread so the agent's
-        // response latency carries no signal about the user's decision (see
-        // long comment retained below). DNS resolution + prompt + launch all
-        // run from the worker.
-        _ = Task.Run(async () =>
+        var risk = await EnrichWithDnsRiskAsync(HttpUrlRiskEvaluator.Evaluate(canonical!)).ConfigureAwait(false);
+        if (risk.RequiresConfirmation)
         {
+            _logger.Warn($"Canvas navigate unsupported in canvas: {OpenClaw.Shared.UrlLogSanitizer.Sanitize(risk.CanonicalOrigin)}");
+            return "unsupported_in_canvas";
+        }
+
+        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
+        if (!_dispatcherQueue.TryEnqueue(() =>
+        {
+            if (cts.IsCancellationRequested) return;
             try
             {
-                // Best-effort triage: resolve DNS now so a hostname pointing at
-                // an internal IP raises the prompt. This is NOT a pin on the
-                // launched request — the OS browser performs its own DNS
-                // resolution when handed the URL, so the actual trust boundary
-                // is the user's browser zone/proxy config. A second resolve
-                // immediately before ShellExecute would not change that.
-                var pinnedRisk = await EnrichWithDnsRiskAsync(initialRisk).ConfigureAwait(false);
-                if (await ShouldLaunchAfterPromptAsync(pinnedRisk).ConfigureAwait(false))
-                    LaunchInDefaultBrowser(canonical!);
+                CloseA2UICanvasWindow();
+                EnsureCanvasWindow();
+                if (_canvasWindow == null)
+                    throw new InvalidOperationException("Canvas window unavailable");
+
+                _canvasWindow.Navigate(canonical!);
+                _canvasWindow.BringToFront(false);
+                _logger.Info($"Canvas navigate -> canvas: {OpenClaw.Shared.UrlLogSanitizer.Sanitize(canonical)}");
+                tcs.TrySetResult("canvas");
             }
             catch (Exception ex)
             {
-                _logger.Error("Canvas navigate (deferred) failed", ex);
+                tcs.TrySetException(ex);
             }
-        });
+        }))
+        {
+            tcs.TrySetException(new InvalidOperationException("Failed to dispatch canvas.navigate to UI thread"));
+        }
 
-        // The agent gets the same response shape and the same response time
-        // whether or not a confirmation prompt is needed. If we awaited the
-        // prompt here, response latency would leak the user's decision time
-        // (or even the existence of a prompt).
-        return Task.FromResult("browser");
+        return await WaitWithTimeout(tcs.Task, cts, "canvas.navigate");
     }
 
     /// <summary>
@@ -1099,7 +1254,7 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
                 if (decision.Kind == UrlNavigationApprovalDecisionKind.Deny)
                 {
                     _navigationDenyCooldown[pinnedRisk.HostKey] = DateTimeOffset.UtcNow + NavigationDenyCooldownDuration;
-                    _logger.Warn($"Canvas navigate denied: {OpenClaw.Shared.UrlLogSanitizer.Sanitize(pinnedRisk.CanonicalOrigin)} ({decision.Reason ?? "user denied"}); already reported success to agent");
+                    _logger.Warn($"Canvas navigate denied before WebView navigation: {OpenClaw.Shared.UrlLogSanitizer.Sanitize(pinnedRisk.CanonicalOrigin)} ({decision.Reason ?? "user denied"})");
                     return false;
                 }
                 // AllowHost (session-allowlist) is currently unreachable from
@@ -1403,10 +1558,12 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         if (_canvasWindow == null || _canvasWindow.IsClosed)
         {
             _canvasWindow = new CanvasWindow();
-            _canvasWindow.SetTrustedGatewayOrigin(GatewayUrl, _token);
+            _canvasWindow.SetTrustedGatewayOrigin(GatewayUrl, _token, GetConfiguredGatewayUrl());
         }
         _canvasWindow?.Activate();
     }
+
+    private string? GetConfiguredGatewayUrl() => _activeGatewayUrlResolver?.Invoke();
 
     // Mutable context shared with GatewayActionTransport. SessionKey is updated
     // from push props (when the agent supplies one); host/instance stay tied to
@@ -1554,6 +1711,31 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
     #endregion
     
     #region Screen Capability Handlers
+
+    private void RequestNodeToast(
+        string title,
+        string message,
+        string dedupeKey,
+        AppNotificationSeverity severity = AppNotificationSeverity.Informational,
+        string category = "node.invoke",
+        bool mirrorInApp = false)
+    {
+        var appNotification = mirrorInApp
+            ? AppNotificationMapper.FromNodeActivity(
+                title,
+                message,
+                category,
+                severity,
+                dedupeKey)
+            : null;
+        ToastRequested?.Invoke(
+            this,
+            new NodeToastRequestedEventArgs(
+                new ToastContentBuilder()
+                    .AddText(title)
+                    .AddText(message),
+                appNotification));
+    }
     
     private async Task<ScreenCaptureResult> OnScreenCapture(ScreenCaptureArgs args)
     {
@@ -1567,9 +1749,10 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         if ((now - _lastScreenCaptureNotification).TotalSeconds > 10)
         {
             _lastScreenCaptureNotification = now;
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_ScreenCaptured"))
-                .AddText(LocalizationHelper.GetString("Toast_ScreenCapturedDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_ScreenCaptured"),
+                LocalizationHelper.GetString("Toast_ScreenCapturedDetail"),
+                "node:screen-captured");
         }
         
         return await _screenCaptureService.CaptureAsync(args);
@@ -1588,20 +1771,26 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         SetRecordingState(RecordingType.Screen, true, args.DurationMs);
         try
         {
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_ScreenRecordingStarted"))
-                .AddText(LocalizationHelper.GetString("Toast_ScreenRecordingStartedDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_ScreenRecordingStarted"),
+                LocalizationHelper.GetString("Toast_ScreenRecordingStartedDetail"),
+                "node:screen-recording-started");
             var result = await _screenRecordingService.RecordAsync(args);
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_ScreenRecordingComplete"))
-                .AddText(LocalizationHelper.GetString("Toast_ScreenRecordingCompleteDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_ScreenRecordingComplete"),
+                LocalizationHelper.GetString("Toast_ScreenRecordingCompleteDetail"),
+                "node:screen-recording-complete",
+                AppNotificationSeverity.Success);
             return result;
         }
         catch (Exception ex) when (ex is not InvalidOperationException)
         {
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_ScreenRecordingFailed"))
-                .AddText(LocalizationHelper.GetString("Toast_ScreenRecordingFailedDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_ScreenRecordingFailed"),
+                LocalizationHelper.GetString("Toast_ScreenRecordingFailedDetail"),
+                "node:screen-recording-failed",
+                AppNotificationSeverity.Error,
+                mirrorInApp: true);
             throw;
         }
         finally
@@ -1637,9 +1826,12 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         }
         catch (UnauthorizedAccessException ex)
         {
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_CameraBlocked"))
-                .AddText(LocalizationHelper.GetString("Toast_CameraBlockedDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_CameraBlocked"),
+                LocalizationHelper.GetString("Toast_CameraBlockedDetail"),
+                "node:camera-blocked",
+                AppNotificationSeverity.Error,
+                mirrorInApp: true);
             throw new InvalidOperationException(
                 "Camera access blocked. Enable camera access for desktop apps in Windows Privacy settings.",
                 ex);
@@ -1659,20 +1851,26 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
         SetRecordingState(RecordingType.Camera, true, args.DurationMs);
         try
         {
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_CameraRecordingStarted"))
-                .AddText(LocalizationHelper.GetString("Toast_CameraRecordingStartedDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_CameraRecordingStarted"),
+                LocalizationHelper.GetString("Toast_CameraRecordingStartedDetail"),
+                "node:camera-recording-started");
             var result = await _cameraCaptureService.ClipAsync(args);
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_CameraRecordingComplete"))
-                .AddText(LocalizationHelper.GetString("Toast_CameraRecordingCompleteDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_CameraRecordingComplete"),
+                LocalizationHelper.GetString("Toast_CameraRecordingCompleteDetail"),
+                "node:camera-recording-complete",
+                AppNotificationSeverity.Success);
             return result;
         }
         catch (UnauthorizedAccessException ex)
         {
-            ToastRequested?.Invoke(this, new ToastContentBuilder()
-                .AddText(LocalizationHelper.GetString("Toast_CameraBlocked"))
-                .AddText(LocalizationHelper.GetString("Toast_CameraBlockedDetail")));
+            RequestNodeToast(
+                LocalizationHelper.GetString("Toast_CameraBlocked"),
+                LocalizationHelper.GetString("Toast_CameraBlockedDetail"),
+                "node:camera-blocked",
+                AppNotificationSeverity.Error,
+                mirrorInApp: true);
             throw new InvalidOperationException(
                 "Camera access blocked. Enable camera access for desktop apps in Windows Privacy settings.",
                 ex);
@@ -1710,6 +1908,14 @@ public sealed class NodeService : IDisposable, IAsyncDisposable
             throw new InvalidOperationException("Text-to-speech service not available");
 
         return _textToSpeechService.SpeakAsync(args, cancellationToken);
+    }
+
+    private Task<TtsStatusResult> OnTtsStatusAsync(CancellationToken cancellationToken)
+    {
+        if (_textToSpeechService == null)
+            throw new InvalidOperationException("Text-to-speech service not available");
+
+        return Task.FromResult(_textToSpeechService.GetStatus());
     }
 
     // ============================================================

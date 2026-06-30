@@ -20,9 +20,11 @@
     <!-- Compile only the model-layer files directly so the tests can remain
          pure net10.0 while the tray app owns the native WinUI surface. -->
     <Compile Include="..\..\src\OpenClaw.Chat\ChatModels.cs" Link="Chat\ChatModels.cs" />
+    <Compile Include="..\..\src\OpenClaw.Chat\ChatModelChoice.cs" Link="Chat\ChatModelChoice.cs" />
     <Compile Include="..\..\src\OpenClaw.Chat\ChatTimelineReducer.cs" Link="Chat\ChatTimelineReducer.cs" />
     <Using Include="System.Text.Json.Nodes" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <PackageReference Include="Zeroconf" Version="3.6.11" />
   </ItemGroup>
 
@@ -42,29 +44,47 @@
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\ConfigEditorModel.cs" Link="Services\ConfigEditorModel.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\JsonDiffFormatter.cs" Link="Services\JsonDiffFormatter.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\AppState.cs" Link="Services\AppState.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\AssistantBridgeService.cs" Link="Services\AssistantBridgeService.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\Logger.cs" Link="Services\Logger.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\DiagnosticsJsonlService.cs" Link="Services\DiagnosticsJsonlService.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\DiagnosticsExportSanitizer.cs" Link="Services\DiagnosticsExportSanitizer.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\DiagnosticsLogTailReader.cs" Link="Services\DiagnosticsLogTailReader.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\DiagnosticsBundleBuilder.cs" Link="Services\DiagnosticsBundleBuilder.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\SettingsManager.cs" Link="Services\SettingsManager.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\OnboardingChatBootstrapper.cs" Link="Services\OnboardingChatBootstrapper.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\StartupSetupState.cs" Link="Services\StartupSetupState.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\SetupExistingGatewayClassifier.cs" Link="Services\SetupExistingGatewayClassifier.cs" />
-    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\GatewayHostAccess.cs" Link="Services\GatewayHostAccess.cs" />
-    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\GatewayTerminalLauncher.cs" Link="Services\GatewayTerminalLauncher.cs" />
-    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\WslGatewayController.cs" Link="Services\WslGatewayController.cs" />
-    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\WslCommandRunner.cs" Link="Services\WslCommandRunner.cs" />
+    <!-- GatewayHostAccess, GatewayTerminalLauncher, WslGatewayController and WslCommandRunner
+         now live in OpenClaw.Connection (referenced above), so they no longer need linking. -->
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\WslKeepAlivePolicy.cs" Link="Services\WslKeepAlivePolicy.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\GatewayConnectorInterfaces.cs" Link="Services\GatewayConnectorInterfaces.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\ActivityStreamService.cs" Link="Services\ActivityStreamService.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\AsyncListLoadingState.cs" Link="Services\AsyncListLoadingState.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\CronRunHistoryDisplay.cs" Link="Services\CronRunHistoryDisplay.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\GatewayNavVisibilityDebouncePolicy.cs" Link="Services\GatewayNavVisibilityDebouncePolicy.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\NodeInvokeActivityFormatter.cs" Link="Services\NodeInvokeActivityFormatter.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\NodeCapabilityGating.cs" Link="Services\NodeCapabilityGating.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\BrowserProxyTunnelState.cs" Link="Services\BrowserProxyTunnelState.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\CommandCenterTopologyTunnelResolver.cs" Link="Services\CommandCenterTopologyTunnelResolver.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\CommandCenterTunnelInfoBuilder.cs" Link="Services\CommandCenterTunnelInfoBuilder.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\PortDiagnosticsService.cs" Link="Services\PortDiagnosticsService.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\PairingApprovalCoordinator.cs" Link="Services\PairingApprovalCoordinator.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\ToastActivationRouter.cs" Link="Services\ToastActivationRouter.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\AppNotificationService.cs" Link="Services\AppNotificationService.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\AppNotificationMapper.cs" Link="Services\AppNotificationMapper.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\AppNotificationPublisher.cs" Link="Services\AppNotificationPublisher.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\ConnectionStatusPresenter.cs" Link="Services\ConnectionStatusPresenter.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\UsageCostApplicationPolicy.cs" Link="Services\UsageCostApplicationPolicy.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Helpers\CanvasGatewayUrlRewriter.cs" Link="Helpers\CanvasGatewayUrlRewriter.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Helpers\DiagnosticsGate.cs" Link="Helpers\DiagnosticsGate.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Helpers\TrayTooltipFormatter.cs" Link="Helpers\TrayTooltipFormatter.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Helpers\GatewayDashboardUrlBuilder.cs" Link="Helpers\GatewayDashboardUrlBuilder.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Helpers\CommandCenterTextHelper.cs" Link="Helpers\CommandCenterTextHelper.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Helpers\Win32FilePickerHelper.cs" Link="Helpers\Win32FilePickerHelper.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\TrayStateSnapshot.cs" Link="Services\TrayStateSnapshot.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\TrayTooltipBuilder.cs" Link="Services\TrayTooltipBuilder.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\TrayMenuSnapshot.cs" Link="Services\TrayMenuSnapshot.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\TrayDashboardSummary.cs" Link="Services\TrayDashboardSummary.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\TextToSpeech\ElevenLabsTextToSpeechClient.cs" Link="Services\TextToSpeech\ElevenLabsTextToSpeechClient.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\GatewayDiscoveryService.cs" Link="Services\GatewayDiscoveryService.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\A2UI\Actions\AgentMessageFormatter.cs" Link="A2UI\Actions\AgentMessageFormatter.cs" />
@@ -77,6 +97,8 @@
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Pages\ConnectionPagePlan.cs" Link="Imported\ConnectionPagePlan.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Pages\ConnectionPageRowState.cs" Link="Imported\ConnectionPageRowState.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Pages\ChatPagePanelStates.cs" Link="Imported\ChatPagePanelStates.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Pages\ExecPolicyRuleList.cs" Link="Pages\ExecPolicyRuleList.cs" />
+    <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Pages\WorkspaceFilesModel.cs" Link="Imported\WorkspaceFilesModel.cs" />
     <Compile Include="..\..\src\OpenClaw.Tray.WinUI\Services\ConnectionManagerWindowsNodeConnector.cs" Link="Services\ConnectionManagerWindowsNodeConnector.cs" />
     <!-- Pulled in for console-log tail tests. Pure logic, no WinUI deps. -->
     <Compile Include="..\..\src\OpenClaw.SetupEngine.UI\WizardConsoleTail.cs" Link="WizardConsoleTail.cs" />

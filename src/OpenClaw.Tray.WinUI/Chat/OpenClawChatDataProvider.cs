@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using OpenClaw.Chat;
 using OpenClaw.Shared;
@@ -22,6 +23,11 @@ internal static class LocalizationHelper
     public static string GetString(string resourceKey) => resourceKey switch
     {
         "Chat_TruncationMarkerFormat" => " … [{0} bytes truncated]",
+        "Chat_Permission_Allow" => "Allow once",
+        "Chat_Permission_AllowAlways" => "Always allow",
+        "Chat_Permission_Deny" => "Deny once",
+        "Chat_Permission_CommandApprovalTitle" => "Command approval requested",
+        "Chat_Permission_ResultSubmittedFormat" => "Approval {0} submitted for {1}.",
         _ => resourceKey
     };
 }
@@ -62,6 +68,12 @@ internal static class LocalizationHelper
 public sealed class OpenClawChatDataProvider : IChatDataProvider
 {
     private const long ResetTimestampToleranceMs = 1000;
+    private static readonly JsonSerializerOptions CacheJsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     /// <summary>
     /// Process-wide cache mapping an attachment's filename to its raw image
     /// bytes. Populated by <see cref="SendMessageAsync"/> for image
@@ -81,7 +93,9 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     private readonly string _attachmentMetaCacheFilePath;
     private System.Threading.Timer? _toolMetaSaveTimer; // debounce cache writes
     private long _toolMetaSaveVersion;
+    private bool _toolMetaCacheDirty;
     private readonly Dictionary<string, ChatTimelineState> _timelines = new();
+    private readonly Dictionary<string, LocalInlineApproval> _localInlineApprovals = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _activeRunIds = new();   // sessionKey → runId
     private readonly Dictionary<string, int> _pendingAbortCounts = new(); // threads → count of pending aborts waiting for lifecycle.start
     private readonly HashSet<string> _abortedRunIds = new();             // runIds whose events should be suppressed
@@ -95,6 +109,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     private readonly Dictionary<string, string> _sessionIds = new();      // sessionKey → immutable sessionId
     private readonly HashSet<string> _historyLoaded = new();              // sessionKey
     private readonly HashSet<string> _historyInFlight = new();            // sessionKey
+    private readonly Dictionary<string, Task> _pendingModelPatches = new(); // sessionKey -> in-flight model set/clear
     private readonly Dictionary<string, long> _resetVersions = new(); // sessionKey -> reset generation
     private readonly Dictionary<string, long> _resetCutoffUtcMs = new(); // sessionKey -> local reset time
     private readonly HashSet<string> _resetAwaitingUserMessage = new(); // threads reset and waiting for first post-reset turn
@@ -126,6 +141,12 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     private const int MaxHistoryRetries = 3;
     private static readonly TimeSpan LocalEchoSuppressionWindow = TimeSpan.FromSeconds(30);
     private readonly record struct LocalSentText(string Text, DateTimeOffset SentAt);
+    private sealed record LocalInlineApproval(
+        string ThreadId,
+        string RequestId,
+        string Detail,
+        TaskCompletionSource<ExecApprovalPromptDecision> Response);
+    private static readonly TimeSpan LocalInlineApprovalTimeout = TimeSpan.FromSeconds(30);
     // Per-thread, per-entry metadata: timestamp + model snapshot at the
     // moment the entry was created. Built up as events are applied so the
     // timeline renderer can show a "<sender> · <local time> · <model>" footer
@@ -142,6 +163,18 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     // false on disconnect alongside `_status`.
     private bool _sessionsListReceived;
     private string[] _availableModels = Array.Empty<string>();
+    private IReadOnlyList<ChatModelChoice> _modelChoices = Array.Empty<ChatModelChoice>();
+    // Gateway command catalog (commands.list), fetched on demand via the typed
+    // protocol API. Null until the first fetch completes so the UI can
+    // distinguish "still loading" from "loaded but empty". When the gateway
+    // reports the method unsupported the catalog carries IsSupported=false.
+    private CommandCatalog? _commandCatalog;
+    // Guards against overlapping in-flight commands.list fetches.
+    private bool _commandsFetchInFlight;
+    // Bumped on every transition out of Connected so a commands.list fetch that
+    // was already in flight at disconnect time is discarded on completion rather
+    // than resurrecting a catalog for a stale connection.
+    private int _commandsEpoch;
     private ConnectionStatus _status;
     private bool _disposed;
 
@@ -191,11 +224,17 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         // that completed before the provider was constructed will have its
         // models.list snapshot cached on the bridge).
         if (bridge.GetCurrentModelsList() is { } seedModels)
-            _availableModels = ExtractModelNames(seedModels);
+        {
+            _modelChoices = ChatModelChoice.FromModelsList(seedModels);
+            _availableModels = ModelIdsFromChoices(_modelChoices);
+        }
         // Fall back to last-known models so the composer shows a real model
         // name while reconnecting instead of the generic "model" placeholder.
         else if (_lastChatState?.AvailableModels is { Length: > 0 } cached)
+        {
             _availableModels = cached;
+            _modelChoices = ChoicesFromIds(cached);
+        }
 
         _bridge.StatusChanged += OnStatusChanged;
         _bridge.SessionsUpdated += OnSessionsUpdated;
@@ -224,6 +263,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         {
             _sessions = sessions;
             EnsureTimelinesForSessionsLocked();
+            RememberLastSessionStateLocked();
             return Task.FromResult(BuildSnapshotLocked());
         }
     }
@@ -316,6 +356,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         // 2. Send to gateway.
         try
         {
+            await AwaitPendingModelPatchAsync(threadId, cancellationToken);
             var sendResult = await _bridge.SendChatMessageForRunAsync(trimmed, threadId, sessionId, attachments);
             bool sendStillCurrent;
             lock (_gate)
@@ -901,7 +942,81 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     public async Task SetModelAsync(string threadId, string model, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await _bridge.PatchSessionModelAsync(threadId, model);
+        // The gateway's sessions.patch schema treats `model` as a non-empty
+        // string; a blank value here is a no-op rather than a clear. Use
+        // ClearModelAsync to revert a session to the gateway default.
+        if (string.IsNullOrWhiteSpace(model)) return;
+        await TrackModelPatchAsync(threadId, () => _bridge.PatchSessionModelAsync(threadId, model));
+    }
+
+    public async Task ClearModelAsync(string threadId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Tri-state clear: removes the session's model override (explicit null)
+        // so it tracks the gateway/agent default again.
+        await TrackModelPatchAsync(threadId, () => _bridge.ClearSessionModelAsync(threadId));
+    }
+
+    private async Task TrackModelPatchAsync(string threadId, Func<Task> patchOperation)
+    {
+        var startSignal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task? previous;
+        Task pending;
+        lock (_gate)
+        {
+            _pendingModelPatches.TryGetValue(threadId, out previous);
+            pending = RunModelPatchAsync(previous, patchOperation, startSignal.Task);
+            _pendingModelPatches[threadId] = pending;
+        }
+
+        startSignal.SetResult();
+        try
+        {
+            await pending;
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                if (_pendingModelPatches.TryGetValue(threadId, out var current)
+                    && ReferenceEquals(current, pending))
+                    _pendingModelPatches.Remove(threadId);
+            }
+        }
+    }
+
+    private static async Task RunModelPatchAsync(Task? previous, Func<Task> patchOperation, Task startSignal)
+    {
+        await startSignal;
+        if (previous is not null)
+        {
+            try { await previous; }
+            catch (Exception ex)
+            {
+                Logger.Debug($"ChatDataProvider: continuing model patch after previous patch failed: {ex.Message}");
+            }
+        }
+
+        await patchOperation();
+    }
+
+    private async Task AwaitPendingModelPatchAsync(string threadId, CancellationToken cancellationToken)
+    {
+        Task? pending;
+        lock (_gate)
+        {
+            _pendingModelPatches.TryGetValue(threadId, out pending);
+        }
+
+        if (pending is not null)
+        {
+            try { await pending.WaitAsync(cancellationToken); }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                Logger.Debug($"ChatDataProvider: continuing send after model patch failed: {ex.Message}");
+            }
+        }
     }
 
     public async Task SetThinkingLevelAsync(string threadId, string thinkingLevel, CancellationToken cancellationToken = default)
@@ -910,16 +1025,128 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         await _bridge.PatchSessionThinkingLevelAsync(threadId, thinkingLevel);
     }
 
+    public async Task EnsureCommandCatalogAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        int epoch;
+        lock (_gate)
+        {
+            // Only fetch while connected — the command catalog is a property of
+            // the live gateway connection. A not-connected caller would just
+            // land in the catch below.
+            if (_status != ConnectionStatus.Connected)
+                return;
+            // Already loaded (or a fetch is running) → reuse the cached catalog
+            // rather than hammering commands.list every time the palette opens.
+            // A reconnect clears _commandCatalog (see OnStatusChanged), so a
+            // fresh fetch happens after reconnect.
+            if (_commandsFetchInFlight || _commandCatalog is not null)
+                return;
+            _commandsFetchInFlight = true;
+            // Capture the connection epoch BEFORE the await. If a disconnect (or
+            // reconnect) happens while ListCommandsAsync is in flight,
+            // OnStatusChanged bumps the epoch; the late result is then discarded
+            // rather than resurrecting a stale catalog for the new connection.
+            epoch = _commandsEpoch;
+        }
+
+        CommandCatalog catalog;
+        try
+        {
+            // Chat composer slash completion can only insert text-invokable
+            // commands. Request the protocol's text scope so native-only
+            // commands never surface in the composer catalog.
+            catalog = await _bridge.ListCommandsAsync(new CommandCatalogQuery { Scope = "text" }).ConfigureAwait(false)
+                      ?? new CommandCatalog { IsSupported = true };
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"[ChatProvider] EnsureCommandCatalogAsync failed: {ex.Message}");
+            var shouldPublishFallback = false;
+            lock (_gate)
+            {
+                // Only publish a fallback if no status change superseded this
+                // fetch. A failure must still move the UI out of its "loading"
+                // state; otherwise slash-leading text would keep trapping Enter
+                // until reconnect. Treat the catalog as temporarily unavailable
+                // for this connection and let reconnect clear/refetch it.
+                if (epoch == _commandsEpoch && _status == ConnectionStatus.Connected)
+                {
+                    _commandsFetchInFlight = false;
+                    _commandCatalog = new CommandCatalog { IsSupported = false };
+                    shouldPublishFallback = true;
+                }
+            }
+            if (shouldPublishFallback)
+                PublishCommandCatalogIfFresh(epoch);
+            return;
+        }
+
+        lock (_gate)
+        {
+            // Drop the result if the connection changed during the await.
+            if (epoch != _commandsEpoch || _status != ConnectionStatus.Connected)
+                return;
+            _commandsFetchInFlight = false;
+            _commandCatalog = catalog;
+        }
+        Logger.Info($"[ChatProvider] commands.list: supported={catalog.IsSupported} count={catalog.Commands.Count}");
+        // Re-validate freshness at UI-thread delivery time rather than
+        // publishing a snapshot captured under the lock above. This closes the
+        // window where a disconnect occurring between snapshot build and
+        // Publish could let a stale "connected + commands" snapshot arrive after
+        // the disconnect snapshot.
+        PublishCommandCatalogIfFresh(epoch);
+    }
+
+    /// <summary>
+    /// Publishes a freshly-built snapshot on the UI thread, but only if the
+    /// connection <paramref name="epoch"/> captured for this commands.list fetch
+    /// is still current when delivery runs. If a disconnect/reconnect superseded
+    /// the fetch in the meantime, the stale publish is dropped (the status
+    /// handler's own publish carries the authoritative state).
+    /// </summary>
+    private void PublishCommandCatalogIfFresh(int epoch)
+    {
+        void Deliver()
+        {
+            ChatDataSnapshot snapshot;
+            lock (_gate)
+            {
+                if (epoch != _commandsEpoch) return;
+                snapshot = BuildSnapshotLocked();
+            }
+            Changed?.Invoke(this, new ChatDataChangedEventArgs(snapshot));
+        }
+
+        if (_post is null)
+            Deliver();
+        else
+            _post(Deliver);
+    }
+
     public Task SetPermissionModeAsync(string threadId, bool allowAll, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }
 
-    public async Task RespondToPermissionAsync(string threadId, string requestId, bool allow, CancellationToken cancellationToken = default)
+    public Task RespondToPermissionAsync(string threadId, string requestId, bool allow, CancellationToken cancellationToken = default) =>
+        RespondToPermissionAsync(
+            threadId,
+            requestId,
+            allow ? ChatPermissionActionKeys.AllowOnce : ChatPermissionActionKeys.Deny,
+            cancellationToken);
+
+    public async Task RespondToPermissionAsync(string threadId, string requestId, string action, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(threadId) || string.IsNullOrEmpty(requestId))
+            return;
+
+        var decision = NormalizeApprovalAction(action);
+        if (TryResolveLocalInlineApproval(threadId, requestId, decision))
             return;
 
         // Use the operator-approvals gateway RPC (``exec.approval.resolve``)
@@ -931,8 +1158,6 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         // sits in the input queue until the run times out, by which point the
         // approval has already expired and the approve/deny is a no-op. The
         // RPC bypasses the chat queue and resolves the approval immediately.
-        var decision = allow ? "allow-once" : "deny";
-
         Logger.Info($"[Approval] user response requestId={requestId} decision={decision} thread='{threadId}'");
 
         try
@@ -950,8 +1175,170 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         }
 
         ClearPendingPermissionAndPublish(threadId, expectedRequestId: requestId,
-            decision: allow ? ChatPermissionDecision.Allowed : ChatPermissionDecision.Denied);
+            decision: ChatDecisionForApprovalAction(decision));
     }
+
+    internal async Task<ExecApprovalPromptDecision?> RequestLocalExecApprovalAsync(
+        ExecApprovalPromptRequest request,
+        CancellationToken cancellationToken = default,
+        TimeSpan? approvalTimeout = null)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(request.SessionKey) || _disposed)
+            return null;
+
+        var threadId = request.SessionKey!;
+        var requestId = !string.IsNullOrWhiteSpace(request.CorrelationId)
+            ? $"local-{request.CorrelationId}"
+            : $"local-{Guid.NewGuid():N}";
+        var response = new TaskCompletionSource<ExecApprovalPromptDecision>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var detail = request.Command ?? string.Empty;
+        var inline = new LocalInlineApproval(threadId, requestId, detail, response);
+
+        ChatDataSnapshot snapshot;
+        lock (_gate)
+        {
+            if (_disposed)
+                return null;
+
+            _localInlineApprovals[requestId] = inline;
+            var meta = BuildLiveMetaLocked(threadId);
+            snapshot = ApplyEventLocked(
+                threadId,
+                new ChatPermissionRequestEvent(
+                    requestId,
+                    LocalizationHelper.GetString("Chat_Permission_CommandApprovalTitle"),
+                    request.Shell ?? "exec",
+                    detail,
+                    ChatPermissionActionKeys.ExecApprovalDefaults),
+                meta);
+        }
+        Publish(snapshot);
+
+        using var registration = cancellationToken.Register(() =>
+            TryResolveLocalInlineApproval(threadId, requestId, ChatPermissionActionKeys.Deny));
+
+        _ = ExpireLocalInlineApprovalAfterDelayAsync(threadId, requestId, approvalTimeout ?? LocalInlineApprovalTimeout);
+
+        return await response.Task.ConfigureAwait(false);
+    }
+
+    private async Task ExpireLocalInlineApprovalAfterDelayAsync(string threadId, string requestId, TimeSpan delay)
+    {
+        try
+        {
+            await Task.Delay(delay).ConfigureAwait(false);
+            TryExpireLocalInlineApproval(threadId, requestId);
+        }
+        catch (Exception ex)
+        {
+            Logger.Debug($"[Approval] inline approval timeout task failed: {ex.Message}");
+        }
+    }
+
+    private bool TryExpireLocalInlineApproval(string threadId, string requestId)
+    {
+        LocalInlineApproval inline;
+        ChatDataSnapshot snapshot;
+        lock (_gate)
+        {
+            if (!_localInlineApprovals.TryGetValue(requestId, out var found) ||
+                !string.Equals(found.ThreadId, threadId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            inline = found;
+            _localInlineApprovals.Remove(requestId);
+            var current = GetOrCreateTimelineLocked(threadId);
+            _timelines[threadId] = ChatTimelineReducer.ResolvePermission(
+                current,
+                requestId,
+                ChatPermissionDecision.Expired);
+            snapshot = BuildSnapshotLocked();
+        }
+
+        Publish(snapshot);
+        inline.Response.TrySetResult(ExecApprovalPromptDecision.TimedOut());
+        return true;
+    }
+
+    private bool TryResolveLocalInlineApproval(string threadId, string requestId, string decision)
+    {
+        LocalInlineApproval inline;
+        ChatDataSnapshot snapshot;
+        lock (_gate)
+        {
+            if (!_localInlineApprovals.TryGetValue(requestId, out var found) ||
+                !string.Equals(found.ThreadId, threadId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            inline = found;
+            _localInlineApprovals.Remove(requestId);
+            var current = GetOrCreateTimelineLocked(threadId);
+            _timelines[threadId] = ChatTimelineReducer.ResolvePermission(
+                current,
+                requestId,
+                ChatDecisionForApprovalAction(decision));
+            var meta = BuildLiveMetaLocked(threadId);
+            snapshot = ApplyEventLocked(
+                threadId,
+                new ChatStatusEvent(FormatApprovalResult(decision, inline.Detail, requestId), ApprovalToneForDecision(decision)),
+                meta);
+        }
+
+        Publish(snapshot);
+        inline.Response.TrySetResult(DecisionForApprovalAction(decision));
+        return true;
+    }
+
+    private static ExecApprovalPromptDecision DecisionForApprovalAction(string decision) =>
+        string.Equals(decision, ChatPermissionActionKeys.AllowAlways, StringComparison.OrdinalIgnoreCase)
+            ? ExecApprovalPromptDecision.AlwaysAllow()
+            : string.Equals(decision, ChatPermissionActionKeys.AllowOnce, StringComparison.OrdinalIgnoreCase)
+                ? ExecApprovalPromptDecision.AllowOnce()
+                : ExecApprovalPromptDecision.Deny();
+
+    private static string FormatApprovalResult(string decision, string detail, string requestId)
+        => string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            LocalizationHelper.GetString("Chat_Permission_ResultSubmittedFormat"),
+            LabelForApprovalAction(decision),
+            string.IsNullOrWhiteSpace(detail) ? requestId : detail);
+
+    private static string LabelForApprovalAction(string decision)
+    {
+        if (string.Equals(decision, ChatPermissionActionKeys.AllowAlways, StringComparison.OrdinalIgnoreCase))
+            return LocalizationHelper.GetString("Chat_Permission_AllowAlways");
+        if (string.Equals(decision, ChatPermissionActionKeys.AllowOnce, StringComparison.OrdinalIgnoreCase))
+            return LocalizationHelper.GetString("Chat_Permission_Allow");
+        return LocalizationHelper.GetString("Chat_Permission_Deny");
+    }
+
+    private static ChatTone ApprovalToneForDecision(string decision)
+        => string.Equals(decision, ChatPermissionActionKeys.Deny, StringComparison.OrdinalIgnoreCase)
+            ? ChatTone.Warning
+            : ChatTone.Success;
+
+    private string NormalizeApprovalAction(string? action)
+    {
+        if (string.Equals(action, ChatPermissionActionKeys.AllowAlways, StringComparison.OrdinalIgnoreCase))
+            return ChatPermissionActionKeys.AllowAlways;
+        if (string.Equals(action, ChatPermissionActionKeys.AllowOnce, StringComparison.OrdinalIgnoreCase))
+            return ChatPermissionActionKeys.AllowOnce;
+        if (!string.Equals(action, ChatPermissionActionKeys.Deny, StringComparison.OrdinalIgnoreCase))
+            Logger.Warn($"[Approval] unknown action '{action ?? "<null>"}'; defaulting to deny");
+        return ChatPermissionActionKeys.Deny;
+    }
+
+    private static ChatPermissionDecision ChatDecisionForApprovalAction(string action)
+        => string.Equals(action, ChatPermissionActionKeys.AllowAlways, StringComparison.OrdinalIgnoreCase)
+            ? ChatPermissionDecision.AllowedAlways
+            : string.Equals(action, ChatPermissionActionKeys.Deny, StringComparison.OrdinalIgnoreCase)
+                ? ChatPermissionDecision.Denied
+                : ChatPermissionDecision.Allowed;
 
     // expectedRequestId: when non-null, the clear is a no-op unless the
     // currently-pending banner's RequestId matches. This protects against
@@ -995,6 +1382,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         _disposed = true;
         System.Threading.Timer? timerToDispose;
         System.Threading.Timer? chatStateTimerToDispose;
+        List<LocalInlineApproval> pendingLocalApprovals;
         lock (_gate)
         {
             timerToDispose = _toolMetaSaveTimer;
@@ -1002,7 +1390,11 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             _toolMetaSaveVersion++;
             chatStateTimerToDispose = _lastChatStateSaveTimer;
             _lastChatStateSaveTimer = null;
+            pendingLocalApprovals = _localInlineApprovals.Values.ToList();
+            _localInlineApprovals.Clear();
         }
+        foreach (var approval in pendingLocalApprovals)
+            approval.Response.TrySetResult(ExecApprovalPromptDecision.Deny());
         timerToDispose?.Dispose();
         chatStateTimerToDispose?.Dispose();
         SaveToolMetaCache();
@@ -1056,6 +1448,18 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             // until the next sessions.list arrives.
             if (status != ConnectionStatus.Connected)
                 _sessionsListReceived = false;
+
+            // Drop the cached command catalog whenever we leave Connected so a
+            // reconnect re-fetches commands.list (the catalog can change across
+            // gateways / agent reconfigurations). Bumping the epoch invalidates
+            // any commands.list fetch still in flight so its late result is
+            // discarded instead of resurrecting a stale catalog.
+            if (status != ConnectionStatus.Connected)
+            {
+                _commandsEpoch++;
+                _commandCatalog = null;
+                _commandsFetchInFlight = false;
+            }
 
             // Reset the approval-dedupe LRU on every transition out of
             // Connected. IDs from a prior session must not block a fresh
@@ -1140,6 +1544,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             SeedSessionIdsFromSessionsLocked(_sessions);
             _sessionsListReceived = true;
             EnsureTimelinesForSessionsLocked();
+            RememberLastSessionStateLocked();
             foreach (var s in _sessions)
             {
                 if (string.IsNullOrEmpty(s.Key)) continue;
@@ -1205,35 +1610,44 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         ChatDataSnapshot snapshot;
         lock (_gate)
         {
-            _availableModels = ExtractModelNames(info);
+            _modelChoices = ChatModelChoice.FromModelsList(info);
+            _availableModels = ModelIdsFromChoices(_modelChoices);
             snapshot = BuildSnapshotLocked();
         }
         Logger.Info($"[ChatBridge] OnModelsListUpdated: count={_availableModels.Length}");
         Publish(snapshot);
     }
 
-    private static string[] ExtractModelNames(ModelsListInfo info)
+    // Wire ids (e.g. "claude-opus-4.5") in gateway order, used by the composer
+    // to match against SessionInfo.Model. Kept as a parallel string[] for
+    // back-compat with callers/persistence that only need the id list.
+    private static string[] ModelIdsFromChoices(IReadOnlyList<ChatModelChoice> choices)
     {
-        if (info?.Models is null || info.Models.Count == 0) return Array.Empty<string>();
-        // Build the full wire ref "{provider}/{id}" (e.g. "nvidia/moonshotai/kimi-k2.6").
-        // Sending the bare id alone breaks for ids that themselves contain a '/': the
-        // gateway splits the ref on the FIRST '/', so "moonshotai/kimi-k2.6" gets
-        // mis-parsed as provider="moonshotai" → "model not allowed". The full ref is
-        // always correct; ids without a '/' resolve fine either way.
+        if (choices.Count == 0) return Array.Empty<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var list = new List<string>(info.Models.Count);
-        foreach (var m in info.Models)
+        var ids = new List<string>(choices.Count);
+        foreach (var choice in choices)
         {
-            if (m.HasConfiguredFlag && !m.IsConfigured) continue;
-            var id = m.Id;
-            if (string.IsNullOrEmpty(id)) continue;
-            var provider = m.Provider;
-            var fullRef = !string.IsNullOrEmpty(provider) && !id.StartsWith(provider + "/", StringComparison.Ordinal)
-                ? $"{provider}/{id}"
-                : id;
-            if (seen.Add(fullRef)) list.Add(fullRef);
+            if (seen.Add(choice.Id))
+                ids.Add(choice.Id);
         }
-        return list.ToArray();
+        return ids.ToArray();
+    }
+
+    // Rehydrate minimal choices from a cached id list (reconnect / pre-connect
+    // path) when richer gateway metadata isn't available yet.
+    private static IReadOnlyList<ChatModelChoice> ChoicesFromIds(string[] ids)
+    {
+        if (ids.Length == 0) return Array.Empty<ChatModelChoice>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var list = new List<ChatModelChoice>(ids.Length);
+        foreach (var id in ids)
+        {
+            if (string.IsNullOrEmpty(id)) continue;
+            if (!seen.Add(id)) continue;
+            list.Add(new ChatModelChoice(id, id));
+        }
+        return list;
     }
 
     private void OnChatMessageReceived(object? sender, ChatMessageInfo message)
@@ -1312,6 +1726,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         if (roleLower == "user")
         {
             // Approval slash-commands ("/approve <slug> allow-once",
+            // "/approve <slug> allow-always",
             // "/deny <slug>") are transport, not user prose. If WE sent
             // it (matched + consumed from _localSentTexts) suppress the
             // echo entirely — RespondToPermissionAsync already cleared
@@ -1583,6 +1998,9 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                     var evtSlug = evt.Data.TryGetProperty("approvalSlug", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.String
                         ? (s.GetString() ?? "")
                         : "";
+                    var evtDecision = evt.Data.TryGetProperty("decision", out var d) && d.ValueKind == System.Text.Json.JsonValueKind.String
+                        ? (d.GetString() ?? "")
+                        : "";
 
                     string? pendingId;
                     lock (_gate)
@@ -1602,11 +2020,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                         // RPC response on the same WebSocket — if Expired wins
                         // here, ResolvePermission's no-overwrite guard then
                         // blocks the user's Allow/Denied stamp from landing.
-                        // Phase already passed IsTerminalApprovalPhase; map
-                        // resolved → Allowed, denied → Denied, and treat the
-                        // remaining non-decided terminal phases (aborted,
-                        // canceled, expired, timeout, error) as Expired.
-                        var resolvedDecision = MapTerminalPhaseToDecision(phase);
+                        // Phase already passed IsTerminalApprovalPhase; use
+                        // the exact decision when present so allow-always is
+                        // preserved, then fall back to phase mapping.
+                        var resolvedDecision = MapTerminalPhaseToDecision(phase, evtDecision);
                         ClearPendingPermissionAndPublish(threadId, expectedRequestId: pendingId, decision: resolvedDecision);
                     }
                     else
@@ -1941,10 +2358,16 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     // Allowed. ``denied`` maps to Denied. Every other terminal phase (aborted,
     // canceled/cancelled, expired, timeout, error) collapses to Expired — the
     // "decided elsewhere or never decided" badge.
-    private static ChatPermissionDecision MapTerminalPhaseToDecision(string phase)
+    private static ChatPermissionDecision MapTerminalPhaseToDecision(string phase, string? decision = null)
     {
         if (string.Equals(phase, "resolved", System.StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(decision, ChatPermissionActionKeys.AllowAlways, System.StringComparison.OrdinalIgnoreCase))
+                return ChatPermissionDecision.AllowedAlways;
+            if (string.Equals(decision, ChatPermissionActionKeys.Deny, System.StringComparison.OrdinalIgnoreCase))
+                return ChatPermissionDecision.Denied;
             return ChatPermissionDecision.Allowed;
+        }
         if (string.Equals(phase, "denied", System.StringComparison.OrdinalIgnoreCase))
             return ChatPermissionDecision.Denied;
         return ChatPermissionDecision.Expired;
@@ -2163,7 +2586,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             detail = string.IsNullOrEmpty(detail) ? message : message + "\n\n" + detail;
 
         Logger.Info($"[Approval] emitting ChatPermissionRequestEvent requestId={requestId} kind='{permissionKind}' tool='{toolName}' detail.len={detail.Length}");
-        return new ChatPermissionRequestEvent(requestId, permissionKind, toolName, detail);
+        return new ChatPermissionRequestEvent(requestId, permissionKind, toolName, detail, ChatPermissionActionKeys.ExecApprovalDefaults);
     }
 
     private static ChatEvent? MapAssistantEvent(AgentEventInfo evt)
@@ -2574,7 +2997,8 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     /// </remarks>
     /// <summary>
     /// True when text is one of the approval slash-commands we send on the
-    /// user's behalf (<c>/approve &lt;slug&gt; allow-once</c> or
+    /// user's behalf (<c>/approve &lt;slug&gt; allow-once</c>,
+    /// <c>/approve &lt;slug&gt; allow-always</c>, or
     /// <c>/deny &lt;slug&gt;</c>). Matches the exact dashboard grammar
     /// — not just the prefix — so legitimate user prose like
     /// "/approve the design changes" still renders as a normal bubble.
@@ -2593,7 +3017,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
     }
 
     private static readonly System.Text.RegularExpressions.Regex s_approvalSlashCommandRegex =
-        new(@"^/(?:approve\s+[A-Za-z0-9_-]{4,64}(?:\s+allow-once)?|deny\s+[A-Za-z0-9_-]{4,64})\s*$",
+        new(@"^/(?:approve\s+[A-Za-z0-9_-]{4,64}(?:\s+(?:allow-once|allow-always))?|deny\s+[A-Za-z0-9_-]{4,64})\s*$",
             System.Text.RegularExpressions.RegexOptions.Compiled);
 
     internal static bool LooksLikeSystemControlNote(string text)
@@ -3108,7 +3532,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         saveAttachmentMeta = _attachmentMetaCache.Remove(threadId) || saveAttachmentMeta;
 
         if (saveToolMeta)
+        {
+            _toolMetaCacheDirty = true;
             _toolMetaSaveVersion++;
+        }
 
         if (_activeRunIds.TryGetValue(threadId, out var activeRunId) && !string.IsNullOrEmpty(activeRunId))
             AddResetIgnoredRunIdLocked(threadId, activeRunId);
@@ -3675,8 +4102,25 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 Id = ck,
                 Title = _lastChatState?.ThreadTitle ?? "OpenClaw Windows Tray",
                 Model = _lastChatState?.Model,
+                ModelProvider = _lastChatState?.ModelProvider,
                 Status = ChatThreadStatus.Running,
                 Activity = ChatActivity.Idle,
+            });
+        }
+
+        foreach (var approval in _localInlineApprovals.Values)
+        {
+            if (threadList.Any(s => string.Equals(s.Id, approval.ThreadId, StringComparison.Ordinal)))
+                continue;
+
+            threadList.Add(new ChatThread
+            {
+                Id = approval.ThreadId,
+                Title = _lastChatState?.ThreadTitle ?? "OpenClaw Windows Tray",
+                Status = ChatThreadStatus.Running,
+                Activity = ChatActivity.AwaitingPermission,
+                Model = _lastChatState?.Model,
+                ModelProvider = _lastChatState?.ModelProvider,
             });
         }
 
@@ -3713,7 +4157,13 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             DefaultThreadId: defaultThreadId,
             ConnectionStatus: connectionLabel,
             AvailableModels: _availableModels,
-            ComposeTarget: composeTarget);
+            ComposeTarget: composeTarget,
+            ModelChoices: _modelChoices,
+            // Null until the first commands.list fetch completes so the UI can
+            // distinguish "loading" from "loaded but empty". IsSupported=false
+            // surfaces the unsupported state.
+            AvailableCommands: _commandCatalog?.Commands,
+            CommandsSupported: _commandCatalog?.IsSupported ?? true);
     }
 
     private string? ResolveDefaultThreadIdLocked()
@@ -3737,6 +4187,23 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         return null;
     }
 
+    private void RememberLastSessionStateLocked()
+    {
+        if (_sessions.Length == 0) return;
+        var session = _sessions.FirstOrDefault(s => s.IsMain && !string.IsNullOrEmpty(s.Key))
+            ?? _sessions.FirstOrDefault(s => !string.IsNullOrEmpty(s.Key));
+        if (session is null) return;
+
+        _lastChatState = new LastChatState
+        {
+            DefaultThreadId = session.Key,
+            ThreadTitle = BuildSessionTitle(session),
+            Model = session.Model,
+            ModelProvider = session.Provider,
+            AvailableModels = _availableModels,
+        };
+    }
+
     private static ChatThread ToThread(SessionInfo s)
     {
         var title = BuildSessionTitle(s);
@@ -3748,11 +4215,11 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             Status = ChatThreadStatus.Running,
             Activity = string.IsNullOrEmpty(s.CurrentActivity) ? ChatActivity.Idle : ChatActivity.Working,
             Workspace = s.Channel,
-            // Rebuild the full "provider/model" ref. Sessions store the bare model id
-            // plus a separate modelProvider; without joining them, a bare id that exists
-            // under multiple providers (e.g. "moonshotai/kimi-k2.6" under both nvidia and
-            // a custom provider) is ambiguous and the dropdown highlights the wrong one.
-            Model = BuildFullModelRef(s.Model, s.ModelProvider),
+            // Pass Model + ModelProvider as separate fields (the composer joins them).
+            // Source the provider from SessionInfo.ModelProvider (the LLM provider for the
+            // model), NOT SessionInfo.Provider (which is the channel/origin provider).
+            Model = s.Model,
+            ModelProvider = s.ModelProvider,
             ThinkingLevel = s.ThinkingLevel,
             InputTokens = s.InputTokens,
             OutputTokens = s.OutputTokens,
@@ -3761,15 +4228,6 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             CreatedAt = s.StartedAt is { } st ? ToOffset(st) : null,
             UpdatedAt = s.UpdatedAt is { } ut ? ToOffset(ut) : null,
         };
-    }
-
-    /// <summary>Join a session's bare model id with its modelProvider into the full
-    /// "provider/model" wire ref. No-op when provider is absent or already prefixed.</summary>
-    private static string? BuildFullModelRef(string? model, string? provider)
-    {
-        if (string.IsNullOrEmpty(model)) return model;
-        if (string.IsNullOrEmpty(provider)) return model;
-        return model.StartsWith(provider + "/", StringComparison.Ordinal) ? model : $"{provider}/{model}";
     }
 
     /// <summary>
@@ -3853,6 +4311,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         public string? DefaultThreadId { get; set; }
         public string? ThreadTitle { get; set; }
         public string? Model { get; set; }
+        public string? ModelProvider { get; set; }
         public string[]? AvailableModels { get; set; }
     }
 
@@ -3882,12 +4341,14 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             : snapshot.Threads.Length > 0 ? snapshot.Threads[0] : null;
 
         if (defaultThread is null && snapshot.AvailableModels.Length == 0) return;
+        var previous = _lastChatState;
 
         var state = new LastChatState
         {
-            DefaultThreadId = snapshot.DefaultThreadId,
-            ThreadTitle = defaultThread?.Title,
-            Model = defaultThread?.Model,
+            DefaultThreadId = snapshot.DefaultThreadId ?? previous?.DefaultThreadId,
+            ThreadTitle = defaultThread?.Title ?? previous?.ThreadTitle,
+            Model = defaultThread?.Model ?? previous?.Model,
+            ModelProvider = defaultThread?.ModelProvider ?? previous?.ModelProvider,
             AvailableModels = snapshot.AvailableModels,
         };
 
@@ -4037,6 +4498,14 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 return new();
             var json = File.ReadAllText(cacheFilePath);
             var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<CachedToolMeta>>>(json);
+            if (dict is not null)
+            {
+                foreach (var entry in dict.Values.SelectMany(entries => entries))
+                {
+                    entry.ToolName = NormalizeCachedDisplayText(entry.ToolName);
+                    entry.Label = NormalizeCachedDisplayText(entry.Label);
+                }
+            }
             return dict ?? new();
         }
         catch (Exception ex)
@@ -4054,6 +4523,15 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 return new();
             var json = File.ReadAllText(cacheFilePath);
             var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<CachedAttachmentMeta>>>(json);
+            if (dict is not null)
+            {
+                foreach (var entry in dict.Values.SelectMany(entries => entries))
+                {
+                    entry.Text = NormalizeCachedDisplayText(entry.Text);
+                    foreach (var attachment in entry.Attachments)
+                        attachment.FileName = NormalizeCachedDisplayText(attachment.FileName);
+                }
+            }
             return dict ?? new();
         }
         catch (Exception ex)
@@ -4075,10 +4553,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                     kv => kv.Value.Select(e => new CachedAttachmentMeta
                     {
                         Ts = e.Ts,
-                        Text = e.Text,
+                        Text = NormalizeCachedDisplayText(e.Text),
                         Attachments = e.Attachments.Select(a => new CachedAttachmentItem
                         {
-                            FileName = a.FileName,
+                            FileName = NormalizeCachedDisplayText(a.FileName),
                             IsImage = a.IsImage
                         }).ToList()
                     }).ToList(),
@@ -4095,8 +4573,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 foreach (var k in toRemove) snapshot.Remove(k);
             }
 
-            var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
-                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var json = System.Text.Json.JsonSerializer.Serialize(snapshot, CacheJsonOptions);
 
             lock (_attachmentMetaSaveGate)
             {
@@ -4144,7 +4621,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             .Where(a => !string.IsNullOrWhiteSpace(a.FileName))
             .Select(a => new CachedAttachmentItem
             {
-                FileName = a.FileName,
+                FileName = NormalizeCachedDisplayText(a.FileName),
                 IsImage = string.Equals(a.Type, "image", StringComparison.OrdinalIgnoreCase)
             })
             .ToList();
@@ -4172,7 +4649,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             list.Add(new CachedAttachmentMeta
             {
                 Ts = tsMs,
-                Text = TruncateForChatEntry(EscapeUntrustedAttachmentMarkerLines(text)),
+                Text = NormalizeCachedDisplayText(TruncateForChatEntry(EscapeUntrustedAttachmentMarkerLines(text))),
                 Attachments = items
             });
 
@@ -4205,10 +4682,10 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         entries.Select(e => new CachedAttachmentMeta
         {
             Ts = e.Ts,
-            Text = e.Text,
+            Text = NormalizeCachedDisplayText(e.Text),
             Attachments = e.Attachments.Select(a => new CachedAttachmentItem
             {
-                FileName = a.FileName,
+                FileName = NormalizeCachedDisplayText(a.FileName),
                 IsImage = a.IsImage
             }).ToList()
         }).ToList();
@@ -4304,14 +4781,16 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             {
                 if (expectedVersion is long version && (version != _toolMetaSaveVersion || _disposed))
                     return;
+                if (!_toolMetaCacheDirty)
+                    return;
 
                 snapshot = _toolMetaCache.ToDictionary(
                     kv => kv.Key,
                     kv => kv.Value.Select(e => new CachedToolMeta
                     {
                         Ts = e.Ts,
-                        ToolName = e.ToolName,
-                        Label = e.Label
+                        ToolName = NormalizeCachedDisplayText(e.ToolName),
+                        Label = NormalizeCachedDisplayText(e.Label)
                     }).ToList(),
                     StringComparer.Ordinal);
             }
@@ -4327,8 +4806,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 foreach (var k in toRemove) snapshot.Remove(k);
             }
 
-            var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
-                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var json = System.Text.Json.JsonSerializer.Serialize(snapshot, CacheJsonOptions);
 
             lock (_toolMetaSaveGate)
             {
@@ -4350,6 +4828,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
                 {
                     File.WriteAllText(tempPath, json);
                     File.Move(tempPath, _toolMetaCacheFilePath, overwrite: true);
+                    MarkToolMetaCacheSaved(expectedVersion);
                 }
                 finally
                 {
@@ -4396,7 +4875,12 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             if (list.Count > 0 && list[^1].Ts == tsMs && list[^1].ToolName == toolName)
                 return;
 
-            list.Add(new CachedToolMeta { Ts = tsMs, ToolName = toolName, Label = label });
+            list.Add(new CachedToolMeta
+            {
+                Ts = tsMs,
+                ToolName = NormalizeCachedDisplayText(toolName),
+                Label = NormalizeCachedDisplayText(label)
+            });
 
             // Cap per-session entries
             if (list.Count > MaxToolEntriesPerSession)
@@ -4404,6 +4888,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
 
             // Debounce save — reset the timer on each cache addition so we only
             // write once after 500ms of quiescence, avoiding concurrent file writes.
+            _toolMetaCacheDirty = true;
             saveVersion = ++_toolMetaSaveVersion;
             timerToDispose = _toolMetaSaveTimer;
             _toolMetaSaveTimer = new System.Threading.Timer(_ => SaveToolMetaCache(saveVersion), null, 500, Timeout.Infinite);
@@ -4459,7 +4944,30 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         if (historyTsMs > 0 && candidate.Ts > 0 && candidate.Ts > historyTsMs + 300_000)
             return null; // cached entry is >5 min after this history entry — not a match
 
-        return cache.Dequeue();
+        var match = cache.Dequeue();
+        match.ToolName = NormalizeCachedDisplayText(match.ToolName);
+        match.Label = NormalizeCachedDisplayText(match.Label);
+        return match;
+    }
+
+    private static string NormalizeCachedDisplayText(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        return value
+            .Replace("\r\n", " ", StringComparison.Ordinal)
+            .Replace('\r', ' ')
+            .Replace('\n', ' ');
+    }
+
+    private void MarkToolMetaCacheSaved(long? savedVersion)
+    {
+        lock (_gate)
+        {
+            if (savedVersion is null || savedVersion == _toolMetaSaveVersion)
+                _toolMetaCacheDirty = false;
+        }
     }
 
     /// <summary>

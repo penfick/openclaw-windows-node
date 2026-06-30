@@ -18,10 +18,15 @@ public class SettingsManager
     private readonly string _settingsDirectory;
     private readonly string _settingsFilePath;
     private const string ProtectedSecretPrefix = "dpapi:";
+    private const int CurrentSettingsSchemaVersion = 1;
     private static readonly byte[] ProtectedSecretEntropy = Encoding.UTF8.GetBytes("OpenClawTray.Settings.v1");
+    public const string AppThemeSystem = "System";
+    public const string AppThemeLight = "Light";
+    public const string AppThemeDark = "Dark";
 
     public static string SettingsDirectoryPath => GetDefaultSettingsDirectory();
     public static string SettingsPath => Path.Combine(SettingsDirectoryPath, "settings.json");
+    public string SettingsDirectory => _settingsDirectory;
 
     /// <summary>Raised after settings are persisted to disk.</summary>
     public event EventHandler? Saved;
@@ -37,6 +42,8 @@ public class SettingsManager
     public int SshTunnelSshPort { get => IsValidPort(_data.SshTunnelSshPort) ? _data.SshTunnelSshPort : 22; set => _data = _data with { SshTunnelSshPort = value }; }
     public int SshTunnelRemotePort { get => _data.SshTunnelRemotePort <= 0 ? 18789 : _data.SshTunnelRemotePort; set => _data = _data with { SshTunnelRemotePort = value }; }
     public int SshTunnelLocalPort { get => _data.SshTunnelLocalPort <= 0 ? 18789 : _data.SshTunnelLocalPort; set => _data = _data with { SshTunnelLocalPort = value }; }
+    /// <inheritdoc cref="SettingsData.BrowserControlPort"/>
+    public int? BrowserControlPort { get => _data.BrowserControlPort; set => _data = _data with { BrowserControlPort = value }; }
     public string? LegacyToken { get; private set; }
     public string? LegacyBootstrapToken { get; private set; }
     public bool HasLegacyGatewayCredentials =>
@@ -82,9 +89,14 @@ public class SettingsManager
     /// Default false (native).
     /// </summary>
     public bool UseLegacyWebChat { get => _data.UseLegacyWebChat; set => _data = _data with { UseLegacyWebChat = value }; }
+    public string AppTheme { get => NormalizeAppTheme(_data.AppTheme); set => _data = _data with { AppTheme = NormalizeAppTheme(value) }; }
+    public bool? ShowDiagnosticsOverride { get => _data.ShowDiagnostics; set => _data = _data with { ShowDiagnostics = value }; }
+    public bool ShowDiagnosticsEffective => _data.ShowDiagnostics ?? OpenClawTray.Helpers.DiagnosticsGate.BuildDefault;
 
     // Node mode(gateway WebSocket connection — separate from MCP)
     public bool EnableNodeMode { get => _data.EnableNodeMode; set => _data = _data with { EnableNodeMode = value }; }
+    /// <summary>Master switch for the focused inbound-pairing approval dialog + awareness toast.</summary>
+    public bool ShowPairingApprovalDialog { get => _data.ShowPairingApprovalDialog; set => _data = _data with { ShowPairingApprovalDialog = value }; }
     public bool NodeCanvasEnabled { get => _data.NodeCanvasEnabled; set => _data = _data with { NodeCanvasEnabled = value }; }
     public bool NodeScreenEnabled { get => _data.NodeScreenEnabled; set => _data = _data with { NodeScreenEnabled = value }; }
     public bool NodeCameraEnabled { get => _data.NodeCameraEnabled; set => _data = _data with { NodeCameraEnabled = value }; }
@@ -138,8 +150,10 @@ public class SettingsManager
     public string? PreferredGatewayId { get => _data.PreferredGatewayId; set => _data = _data with { PreferredGatewayId = value }; }
 
     // ── MXC sandbox ─────────────────────────────────────────────────────
-    /// <summary>Master switch for system.run containment. When true (default), system.run runs sandboxed and is denied if MXC is unavailable. When false, system.run runs on host like before.</summary>
+    /// <summary>Master switch for system.run containment. When true (default), system.run uses MXC when available and falls back to host execution when unavailable unless strict fallback blocking is enabled. When false, system.run runs on host like before.</summary>
     public bool SystemRunSandboxEnabled { get => _data.SystemRunSandboxEnabled; set => _data = _data with { SystemRunSandboxEnabled = value }; }
+    /// <summary>When true, sandbox-enabled system.run blocks instead of using the compatibility host fallback if MXC is unavailable. Default false.</summary>
+    public bool SystemRunBlockHostFallbackWhenMxcUnavailable { get => _data.SystemRunBlockHostFallbackWhenMxcUnavailable; set => _data = _data with { SystemRunBlockHostFallbackWhenMxcUnavailable = value }; }
     /// <summary>When sandboxed, allow system.run commands to reach the public internet. Default false.</summary>
     public bool SystemRunAllowOutbound { get => _data.SystemRunAllowOutbound; set => _data = _data with { SystemRunAllowOutbound = value }; }
 
@@ -210,7 +224,7 @@ public class SettingsManager
                 var loaded = SettingsData.FromJson(json);
                 if (loaded != null)
                 {
-                    _data = NormalizeLoadedData(loaded);
+                    _data = NormalizeLoadedData(loaded, json);
                 }
             }
         }
@@ -224,6 +238,7 @@ public class SettingsManager
 
     private static SettingsData CreateDefaultData() => new()
     {
+        SettingsSchemaVersion = CurrentSettingsSchemaVersion,
         GatewayUrl = "ws://localhost:18789",
         UseSshTunnel = false,
         SshTunnelUser = "",
@@ -248,6 +263,7 @@ public class SettingsManager
         PreferStructuredCategories = true,
         UserRules = new(),
         UseLegacyWebChat = false,
+        AppTheme = AppThemeSystem,
         EnableNodeMode = false,
         NodeCanvasEnabled = true,
         NodeScreenEnabled = true,
@@ -277,6 +293,7 @@ public class SettingsManager
         SkippedUpdateTag = "",
         PreferredGatewayId = null,
         SystemRunSandboxEnabled = true,
+        SystemRunBlockHostFallbackWhenMxcUnavailable = false,
         SystemRunAllowOutbound = false,
         SandboxClipboard = SandboxClipboardMode.None,
         SandboxDocumentsAccess = null,
@@ -294,11 +311,12 @@ public class SettingsManager
         CompanySkillsHubUrl = "http://localhost:3000"
     };
 
-    private static SettingsData NormalizeLoadedData(SettingsData loaded)
+    private static SettingsData NormalizeLoadedData(SettingsData loaded, string? rawJson = null)
     {
         var defaults = CreateDefaultData();
         var data = loaded with
         {
+            SettingsSchemaVersion = CurrentSettingsSchemaVersion,
             GatewayUrl = loaded.GatewayUrl ?? defaults.GatewayUrl,
             SshTunnelUser = loaded.SshTunnelUser ?? defaults.SshTunnelUser,
             SshTunnelHost = loaded.SshTunnelHost ?? defaults.SshTunnelHost,
@@ -318,8 +336,11 @@ public class SettingsManager
             A2UIImageHosts = loaded.A2UIImageHosts is { Count: > 0 } hosts ? new List<string>(hosts) : new(),
             SkippedUpdateTag = loaded.SkippedUpdateTag ?? defaults.SkippedUpdateTag,
             PreferredGatewayId = loaded.PreferredGatewayId ?? defaults.PreferredGatewayId,
+            AppTheme = NormalizeAppTheme(loaded.AppTheme),
+            ShowDiagnostics = loaded.ShowDiagnostics,
             UserRules = loaded.UserRules != null ? new List<UserNotificationRule>(loaded.UserRules) : new(),
             SandboxCustomFolders = CloneSandboxCustomFolders(loaded.SandboxCustomFolders),
+            SystemRunBlockHostFallbackWhenMxcUnavailable = loaded.SystemRunBlockHostFallbackWhenMxcUnavailable,
             SandboxTimeoutMs = loaded.SandboxTimeoutMs > 0 ? loaded.SandboxTimeoutMs : defaults.SandboxTimeoutMs,
             SandboxMaxOutputBytes = loaded.SandboxMaxOutputBytes > 0 ? loaded.SandboxMaxOutputBytes : defaults.SandboxMaxOutputBytes,
             OaAccessToken = UnprotectSettingSecret(loaded.OaAccessToken) ?? defaults.OaAccessToken,
@@ -407,6 +428,8 @@ public class SettingsManager
         TtsElevenLabsVoiceId = string.IsNullOrWhiteSpace(TtsElevenLabsVoiceId) ? null : TtsElevenLabsVoiceId,
         TtsWindowsVoiceId = string.IsNullOrWhiteSpace(TtsWindowsVoiceId) ? null : TtsWindowsVoiceId,
         TtsPiperVoiceId = TtsPiperVoiceId,
+        AppTheme = AppTheme,
+        ShowDiagnostics = ShowDiagnosticsOverride,
         A2UIImageHosts = A2UIImageHosts.Count == 0 ? null : new List<string>(A2UIImageHosts),
         SkippedUpdateTag = string.IsNullOrWhiteSpace(SkippedUpdateTag) ? null : SkippedUpdateTag,
         PreferredGatewayId = string.IsNullOrWhiteSpace(PreferredGatewayId) ? null : PreferredGatewayId,
@@ -423,6 +446,15 @@ public class SettingsManager
         CompanySkillsHubUrl = CompanySkillsHubUrl,
         McpOnlyMode = null
     };
+
+    public static string NormalizeAppTheme(string? value)
+    {
+        if (string.Equals(value, AppThemeLight, StringComparison.OrdinalIgnoreCase))
+            return AppThemeLight;
+        if (string.Equals(value, AppThemeDark, StringComparison.OrdinalIgnoreCase))
+            return AppThemeDark;
+        return AppThemeSystem;
+    }
 
     public void Save()
     {

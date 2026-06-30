@@ -648,6 +648,75 @@
   <data name="Toast_PairingCommandCopied" xml:space="preserve">
     <value>配對命令已複製</value>
   </data>
+  <data name="Toast_PairingRequestTitle" xml:space="preserve">
+    <value>配對要求</value>
+  </data>
+  <data name="Toast_PairingRequestBody" xml:space="preserve">
+    <value>{0} 想要連線</value>
+  </data>
+  <data name="Toast_PairingRequestBodyNode" xml:space="preserve">
+    <value>{0} 想要作為節點連線</value>
+  </data>
+  <data name="Toast_PairingReview" xml:space="preserve">
+    <value>檢視</value>
+  </data>
+  <data name="Toast_PairingApprovedTitle" xml:space="preserve">
+    <value>配對已核准</value>
+  </data>
+  <data name="Toast_PairingApprovedBody" xml:space="preserve">
+    <value>{0} 現在可以連線</value>
+  </data>
+  <data name="Toast_PairingRejectedTitle" xml:space="preserve">
+    <value>配對已拒絕</value>
+  </data>
+  <data name="Toast_PairingRejectedBody" xml:space="preserve">
+    <value>{0} 未獲允許連線</value>
+  </data>
+  <data name="PairingApproval_WindowTitle" xml:space="preserve">
+    <value>配對要求</value>
+  </data>
+  <data name="PairingApproval_DeviceHeading" xml:space="preserve">
+    <value>有裝置想要連線</value>
+  </data>
+  <data name="PairingApproval_NodeHeading" xml:space="preserve">
+    <value>有節點想要連線</value>
+  </data>
+  <data name="PairingApproval_Subtitle" xml:space="preserve">
+    <value>僅在您認得此要求時才核准。稍後可在「連線」設定中將其移除。</value>
+  </data>
+  <data name="PairingApproval_AccessRequested" xml:space="preserve">
+    <value>要求的存取權限</value>
+  </data>
+  <data name="PairingApproval_RepairBadge" xml:space="preserve">
+    <value>重新配對要求——裝置權杖將輪替。</value>
+  </data>
+  <data name="PairingApproval_Approve" xml:space="preserve">
+    <value>核准</value>
+  </data>
+  <data name="PairingApproval_ApproveDevice" xml:space="preserve">
+    <value>核准裝置</value>
+  </data>
+  <data name="PairingApproval_ApproveNode" xml:space="preserve">
+    <value>核准節點</value>
+  </data>
+  <data name="PairingApproval_Reject" xml:space="preserve">
+    <value>拒絕</value>
+  </data>
+  <data name="PairingApproval_Later" xml:space="preserve">
+    <value>稍後決定</value>
+  </data>
+  <data name="PairingApproval_MoreWaiting" xml:space="preserve">
+    <value>還有 {0} 個等待</value>
+  </data>
+  <data name="PairingApproval_ApproveHint" xml:space="preserve">
+    <value>核准將在稍後可用</value>
+  </data>
+  <data name="PairingApproval_UnknownDevice" xml:space="preserve">
+    <value>未知裝置</value>
+  </data>
+  <data name="PairingApproval_UnknownPlatform" xml:space="preserve">
+    <value>未知平台</value>
+  </data>
   <data name="Toast_NodePaired" xml:space="preserve">
     <value>✅ 節點已配對！</value>
   </data>
@@ -1446,57 +1515,6 @@
   <data name="Onboarding_LocalSetup_Phase_MintToken" xml:space="preserve">
     <value>正在產生設定碼</value>
   </data>
-  <data name="AboutPage_TextBlock_10.Text" xml:space="preserve">
-    <value>關於</value>
-  </data>
-  <data name="AboutPage_TextBlock_19.Text" xml:space="preserve">
-    <value>OpenClaw Hub</value>
-  </data>
-  <data name="AboutPage_TextBlock_23.Text" xml:space="preserve">
-    <value>.NET / WinUI / Windows App SDK</value>
-  </data>
-  <data name="AboutPage_TextBlock_35.Text" xml:space="preserve">
-    <value>閘道資訊</value>
-  </data>
-  <data name="AboutPage_TextBlock_48.Text" xml:space="preserve">
-    <value>版本：</value>
-  </data>
-  <data name="AboutPage_TextBlock_52.Text" xml:space="preserve">
-    <value>通訊協定：</value>
-  </data>
-  <data name="AboutPage_TextBlock_56.Text" xml:space="preserve">
-    <value>驗證模式：</value>
-  </data>
-  <data name="AboutPage_TextBlock_60.Text" xml:space="preserve">
-    <value>執行時間：</value>
-  </data>
-  <data name="AboutPage_TextBlock_72.Text" xml:space="preserve">
-    <value>偵錯</value>
-  </data>
-  <data name="OpenLogButton.Content" xml:space="preserve">
-    <value>開啟記錄檔</value>
-  </data>
-  <data name="OpenConfigButton.Content" xml:space="preserve">
-    <value>開啟設定資料夾</value>
-  </data>
-  <data name="CopySupportButton.Content" xml:space="preserve">
-    <value>複製支援內容</value>
-  </data>
-  <data name="CheckUpdatesButton.Content" xml:space="preserve">
-    <value>檢查更新</value>
-  </data>
-  <data name="AboutPage_TextBlock_91.Text" xml:space="preserve">
-    <value>連結</value>
-  </data>
-  <data name="AboutPage_HyperlinkButton_92.Content" xml:space="preserve">
-    <value>Documentation → docs.openclaw.ai/platforms/windows</value>
-  </data>
-  <data name="AboutPage_HyperlinkButton_94.Content" xml:space="preserve">
-    <value>GitHub → github.com/openclaw/openclaw-windows-node</value>
-  </data>
-  <data name="AboutPage_HyperlinkButton_96.Content" xml:space="preserve">
-    <value>Dashboard → openclaw://dashboard</value>
-  </data>
   <data name="AgentEventsPage_TextBlock_18.Text" xml:space="preserve">
     <value>代理程式事件</value>
   </data>
@@ -1567,7 +1585,7 @@
     <value>本機 MCP 伺服器</value>
   </data>
   <data name="PermissionsPage_McpDescription.Text" xml:space="preserve">
-    <value>透過 HTTP 向 CLI 工具和本機整合公開功能。</value>
+    <value>透過 HTTP 向此電腦上的本機 MCP 用戶端（CLI 工具、整合）提供功能。</value>
   </data>
   <data name="PermissionsPage_McpEndpointLabel.Text" xml:space="preserve">
     <value>端點：</value>
@@ -1668,7 +1686,7 @@
   <data name="DetailPath.Text" xml:space="preserve">
     <value>選取設定區段</value>
   </data>
-<data name="ConfigPage_TabViewItem_82.Text" xml:space="preserve">
+  <data name="ConfigPage_TabViewItem_82.Text" xml:space="preserve">
     <value>原始 JSON</value>
   </data>
   <data name="ConfigPage_TextBlock_95.Text" xml:space="preserve">
@@ -1703,9 +1721,6 @@
   </data>
   <data name="ConnectionPage_TextBlock_11.Text" xml:space="preserve">
     <value>操作員用戶端和節點服務共同使用的閘道端點。</value>
-  </data>
-  <data name="AuthErrorBar.Title" xml:space="preserve">
-    <value>連線錯誤</value>
   </data>
   <data name="StatusText.Text" xml:space="preserve">
     <value>已中斷連線</value>
@@ -2026,10 +2041,13 @@
     <value>命令模式 (例如 echo *)</value>
   </data>
   <data name="PermissionsPage_ComboBoxItem_54.Content" xml:space="preserve">
-    <value>允許</value>
+    <value>拒絕</value>
   </data>
   <data name="PermissionsPage_ComboBoxItem_55.Content" xml:space="preserve">
-    <value>拒絕</value>
+    <value>允許</value>
+  </data>
+  <data name="PermissionsPage_ComboBoxItem_56.Content" xml:space="preserve">
+    <value>詢問</value>
   </data>
   <data name="PermissionsPage_Button_57.Content" xml:space="preserve">
     <value>新增規則</value>
@@ -2220,6 +2238,69 @@
   <data name="WorkspacePage_LoadingContent" xml:space="preserve">
     <value>正在載入內容…</value>
   </data>
+  <data name="WorkspacePage_SearchBox.PlaceholderText" xml:space="preserve">
+    <value>Search files</value>
+  </data>
+  <data name="WorkspacePage_ParentFolderButton.Content" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="WorkspacePage_OpenConnectionSettings.Content" xml:space="preserve">
+    <value>Open Connection settings</value>
+  </data>
+  <data name="WorkspacePage_NoSearchResults.Text" xml:space="preserve">
+    <value>No files match your search.</value>
+  </data>
+  <data name="WorkspacePage_NoFolderResults" xml:space="preserve">
+    <value>No files found in this folder.</value>
+  </data>
+  <data name="WorkspacePage_LoadErrorMessage" xml:space="preserve">
+    <value>Couldn't load workspace files. Try refreshing.</value>
+  </data>
+  <data name="WorkspacePage_UnsupportedMessage" xml:space="preserve">
+    <value>This gateway doesn't support listing workspace files.</value>
+  </data>
+  <data name="WorkspacePage_Badge_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="WorkspacePage_Badge_Edited" xml:space="preserve">
+    <value>Edited</value>
+  </data>
+  <data name="WorkspacePage_Badge_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="WorkspacePage_FolderNote" xml:space="preserve">
+    <value>This is a folder.</value>
+  </data>
+  <data name="WorkspacePage_FileUnavailable" xml:space="preserve">
+    <value>Couldn't load this file.</value>
+  </data>
+  <data name="WorkspacePage_BrowserOnlyFileNote" xml:space="preserve">
+    <value>Only files read or edited in this session can be previewed.</value>
+  </data>
+  <data name="WorkspacePage_OpenFolder" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="WorkspacePage_CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="WorkspacePage_CopyPathFailed" xml:space="preserve">
+    <value>Couldn't copy the path.</value>
+  </data>
+  <data name="WorkspacePage_FileType_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="WorkspacePage_FileType_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="WorkspacePage_RootFolder" xml:space="preserve">
+    <value>Root</value>
+  </data>
+  <data name="WorkspacePage_SearchResultsPath" xml:space="preserve">
+    <value>Search results for "{0}"</value>
+  </data>
+  <data name="WorkspacePage_BrowserTruncated" xml:space="preserve">
+    <value>Some results were omitted. Narrow your search or open a folder.</value>
+  </data>
   <data name="WorkspacePage_MissingFile" xml:space="preserve">
     <value>(磁碟上找不到檔案)</value>
   </data>
@@ -2240,6 +2321,12 @@
   </data>
   <data name="NavPaneToggleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>切換導覽窗格</value>
+  </data>
+  <data name="NavBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="NavBackButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>返回</value>
   </data>
   <data name="TitleStatusText.Text" xml:space="preserve">
     <value>已中斷連線</value>
@@ -2309,9 +2396,6 @@
   </data>
   <data name="HubWindow_NavigationViewItem_Notifications.Content" xml:space="preserve">
     <value>通知</value>
-  </data>
-  <data name="HubWindow_NavigationViewItem_148.Content" xml:space="preserve">
-    <value>資訊</value>
   </data>
   <data name="Onboarding_UnknownPage" xml:space="preserve">
     <value>未知頁面</value>
@@ -2516,6 +2600,105 @@
   </data>
   <data name="VoiceSettingsPage_PageDescription.Text" xml:space="preserve">
     <value>設定語音轉文字和語音互動設定。所有語音處理均在本機本地執行。</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantHeader.Text" xml:space="preserve">
+    <value>助理</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantDescription.Text" xml:space="preserve">
+    <value>永遠聆聽的助理服務和最新對話輪次。</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>重新整理助理狀態</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStartButtonText.Text" xml:space="preserve">
+    <value>啟動</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopButtonText.Text" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStatusChecking.Text" xml:space="preserve">
+    <value>正在檢查助理狀態...</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantRecentTurnsHeader.Text" xml:space="preserve">
+    <value>最近輪次</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStarting" xml:space="preserve">
+    <value>正在啟動助理...</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStartingDetail" xml:space="preserve">
+    <value>正在啟動永遠聆聽模式，並使用本機助理路由和輪次儲存。</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStartFailed" xml:space="preserve">
+    <value>助理未啟動</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopping" xml:space="preserve">
+    <value>正在停止助理...</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopFailed" xml:space="preserve">
+    <value>助理未停止</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantBridgeUnavailable" xml:space="preserve">
+    <value>助理橋接器無法使用</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantNoTurnsLoaded" xml:space="preserve">
+    <value>未載入助理輪次。</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantUnknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantListeningFormat" xml:space="preserve">
+    <value>助理正在聆聽 (PID {0})</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopped" xml:space="preserve">
+    <value>助理已停止</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStatusFormat" xml:space="preserve">
+    <value>助理 {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantTranscriberFormat" xml:space="preserve">
+    <value>轉錄器：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantMicFormat" xml:space="preserve">
+    <value>麥克風：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantSpeakerFormat" xml:space="preserve">
+    <value>喇叭：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantCloudRoutingFormat" xml:space="preserve">
+    <value>雲端路由：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantSpeechOutputFormat" xml:space="preserve">
+    <value>語音輸出：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantOn" xml:space="preserve">
+    <value>開啟</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantOff" xml:space="preserve">
+    <value>關閉</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantLastBridgeUpdateFormat" xml:space="preserve">
+    <value>上次橋接器更新：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantNoConversationTurns" xml:space="preserve">
+    <value>尚無對話輪次。</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantSourceDefault" xml:space="preserve">
+    <value>助理</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantTurnMetadataFormat" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantTurnMetadataWithLatencyFormat" xml:space="preserve">
+    <value>{0} | {1} | {2} 毫秒</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantUserTurnFormat" xml:space="preserve">
+    <value>你：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantResponseTurnFormat" xml:space="preserve">
+    <value>OpenClaw：{0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantEmptyValue" xml:space="preserve">
+    <value>（空）</value>
   </data>
   <data name="VoiceSettingsPage_SttHeader.Text" xml:space="preserve">
     <value>語音轉文字</value>
@@ -2977,13 +3160,19 @@
     <value> … [已截斷 {0} 位元組]</value>
   </data>
   <data name="Chat_Permission_Allow" xml:space="preserve">
-    <value>允許</value>
+    <value>允許一次</value>
+  </data>
+  <data name="Chat_Permission_AllowAlways" xml:space="preserve">
+    <value>一律允許</value>
   </data>
   <data name="Chat_Permission_Deny" xml:space="preserve">
-    <value>拒絕</value>
+    <value>拒絕一次</value>
   </data>
   <data name="Chat_Permission_DecisionAllowed" xml:space="preserve">
     <value>已允許</value>
+  </data>
+  <data name="Chat_Permission_DecisionAlwaysAllowed" xml:space="preserve">
+    <value>已一律允許</value>
   </data>
   <data name="Chat_Permission_DecisionDenied" xml:space="preserve">
     <value>已拒絕</value>
@@ -3015,6 +3204,88 @@
   <data name="AppNotification_ShowMore" xml:space="preserve">
     <value>顯示更多</value>
   </data>
+  <data name="AppNotification_ActionOpenConnection" xml:space="preserve">
+    <value>開啟連線</value>
+  </data>
+  <data name="AppNotification_ActionOpenChannels" xml:space="preserve">
+    <value>開啟頻道</value>
+  </data>
+  <data name="AppNotification_ActionOpenSandbox" xml:space="preserve">
+    <value>開啟沙箱</value>
+  </data>
+  <data name="AppNotification_ActionOpenCron" xml:space="preserve">
+    <value>開啟 Cron</value>
+  </data>
+  <data name="AppNotification_GatewayConnectionFailed_Title" xml:space="preserve">
+    <value>閘道連線失敗</value>
+  </data>
+  <data name="AppNotification_GatewayConnectionFailed_DefaultMessage" xml:space="preserve">
+    <value>OpenClaw 無法連線到作用中閘道。</value>
+  </data>
+  <data name="AppNotification_GatewayPairingRequired_Title" xml:space="preserve">
+    <value>需要核准閘道配對</value>
+  </data>
+  <data name="AppNotification_GatewayPairingRequired_GenericMessage" xml:space="preserve">
+    <value>開啟「連線」以完成閘道配對。</value>
+  </data>
+  <data name="AppNotification_GatewayPairingRequired_DeviceMessageFormat" xml:space="preserve">
+    <value>開啟「連線」以核准裝置 {0}。</value>
+  </data>
+  <data name="AppNotification_WindowsNodeConnectionFailed_Title" xml:space="preserve">
+    <value>Windows 節點連線失敗</value>
+  </data>
+  <data name="AppNotification_WindowsNodeConnectionFailed_DefaultMessage" xml:space="preserve">
+    <value>閘道已連線，但此 Windows 節點無法使用。</value>
+  </data>
+  <data name="AppNotification_WindowsNodeRateLimited_Title" xml:space="preserve">
+    <value>Windows 節點連線受到速率限制</value>
+  </data>
+  <data name="AppNotification_WindowsNodeRateLimited_DefaultMessage" xml:space="preserve">
+    <value>閘道已連線，但此 Windows 節點暫時受到速率限制。</value>
+  </data>
+  <data name="AppNotification_ChannelNeedsAttention_TitleFormat" xml:space="preserve">
+    <value>{0} 頻道需要注意</value>
+  </data>
+  <data name="AppNotification_ChannelNeedsAttention_StatusMessageFormat" xml:space="preserve">
+    <value>閘道回報 {0} 為 {1}。</value>
+  </data>
+  <data name="AppNotification_SandboxDisabled_Title" xml:space="preserve">
+    <value>節點沙箱已關閉 — 命令將不受限制地執行</value>
+  </data>
+  <data name="AppNotification_SandboxDisabled_Message" xml:space="preserve">
+    <value>在重新啟用節點沙箱之前，代理程式啟動的 Windows 命令將在沒有沙箱隔離的情況下執行。</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailable_Title" xml:space="preserve">
+    <value>沙箱無法使用 — 回退到主機</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailable_MessageFormat" xml:space="preserve">
+    <value>{0}
+
+在沙箱無法使用期間，命令將在主機上執行，且沒有沙箱保護。</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailableBlocked_Title" xml:space="preserve">
+    <value>沙箱無法使用 — 命令已封鎖</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailableBlocked_MessageFormat" xml:space="preserve">
+    <value>{0}
+
+由於已啟用嚴格回退封鎖，沙箱無法使用期間命令會被封鎖。</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailable_DefaultReason" xml:space="preserve">
+    <value>此電腦上沒有可用的 MXC 沙箱基元。</value>
+  </data>
+  <data name="AppNotification_CronRunFailed_Title" xml:space="preserve">
+    <value>Cron 作業未啟動</value>
+  </data>
+  <data name="AppNotification_CronRunFailed_DefaultDetail" xml:space="preserve">
+    <value>要求失敗。</value>
+  </data>
+  <data name="AppNotification_CronRunRejectedDetail" xml:space="preserve">
+    <value>閘道拒絕了 cron.run 要求。</value>
+  </data>
+  <data name="AppNotification_CronRunFailed_MessageFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
   <data name="NotificationsPage_Title.Text" xml:space="preserve">
     <value>通知</value>
   </data>
@@ -3039,14 +3310,95 @@
   <data name="NotificationsPage_MetadataCategoryNodeInvoke" xml:space="preserve">
     <value>節點命令</value>
   </data>
+  <data name="AppNotification_ExecApprovalPending_Title" xml:space="preserve">
+    <value>命令核准待處理</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_MessageFormat" xml:space="preserve">
+    <value>{0} 正在等待核准以執行：{1}</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_OpenChatAction" xml:space="preserve">
+    <value>開啟聊天</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_UnknownChatLabel" xml:space="preserve">
+    <value>聊天</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_MainSessionLabel" xml:space="preserve">
+    <value>主要</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_MainChatLabel" xml:space="preserve">
+    <value>主要聊天</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_AgentChatLabelFormat" xml:space="preserve">
+    <value>{0} 聊天</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_AgentSlotLabelFormat" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+  <data name="NotificationsPage_MetadataAuthentication" xml:space="preserve">
+    <value>驗證</value>
+  </data>
+  <data name="NotificationsPage_MetadataBindings" xml:space="preserve">
+    <value>繫結</value>
+  </data>
+  <data name="NotificationsPage_MetadataChannels" xml:space="preserve">
+    <value>頻道</value>
+  </data>
+  <data name="NotificationsPage_MetadataConfig" xml:space="preserve">
+    <value>設定</value>
+  </data>
+  <data name="NotificationsPage_MetadataConnection" xml:space="preserve">
+    <value>連線</value>
+  </data>
+  <data name="NotificationsPage_MetadataCron" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="NotificationsPage_MetadataGateway" xml:space="preserve">
+    <value>閘道</value>
+  </data>
+  <data name="NotificationsPage_MetadataJobs" xml:space="preserve">
+    <value>作業</value>
+  </data>
+  <data name="NotificationsPage_MetadataLoad" xml:space="preserve">
+    <value>載入</value>
+  </data>
+  <data name="NotificationsPage_MetadataLifecycle" xml:space="preserve">
+    <value>生命週期</value>
+  </data>
+  <data name="NotificationsPage_MetadataLocalGateway" xml:space="preserve">
+    <value>本機閘道</value>
+  </data>
+  <data name="NotificationsPage_MetadataNode" xml:space="preserve">
+    <value>節點</value>
+  </data>
+  <data name="NotificationsPage_MetadataPairing" xml:space="preserve">
+    <value>配對</value>
+  </data>
+  <data name="NotificationsPage_MetadataSandbox" xml:space="preserve">
+    <value>沙箱</value>
+  </data>
+  <data name="NotificationsPage_MetadataSettings" xml:space="preserve">
+    <value>設定</value>
+  </data>
+  <data name="NotificationsPage_MetadataStatus" xml:space="preserve">
+    <value>狀態</value>
+  </data>
+  <data name="NotificationsPage_MetadataSystemRun" xml:space="preserve">
+    <value>system.run</value>
+  </data>
   <data name="Chat_Permission_Title" xml:space="preserve">
     <value>需要執行核准</value>
   </data>
+  <data name="Chat_Permission_CommandApprovalTitle" xml:space="preserve">
+    <value>已要求命令核准</value>
+  </data>
   <data name="Chat_Permission_Subtitle" xml:space="preserve">
-    <value>在此 Windows 伴侶上執行以下命令需要核准。按一下「允許」以繼續，或按一下「拒絕」以取消。</value>
+    <value>在此 Windows 伴侶上執行以下命令需要核准。允許一次以繼續，一律允許以記住此命令，或拒絕以取消。</value>
   </data>
   <data name="Chat_Permission_Caption" xml:space="preserve">
-    <value>根據目前策略，每條命令都需要核准。您的選擇僅適用於此請求。</value>
+    <value>「允許一次」僅適用於此請求。「一律允許」會在可能時儲存一條精確的允許規則。</value>
+  </data>
+  <data name="Chat_Permission_ResultSubmittedFormat" xml:space="preserve">
+    <value>已為 {1} 提交核准 {0}。</value>
   </data>
   <data name="Chat_Root_ConnectingToGateway" xml:space="preserve">
     <value>連線到閘道中…</value>
@@ -3156,6 +3508,18 @@
   <data name="PermissionsPage_NodeStatus_ActiveDetailsFormat" xml:space="preserve">
     <value>Providing {0} capabilities: {1}</value>
   </data>
+  <data name="PermissionsPage_NodeStatus_McpOnly" xml:space="preserve">
+    <value>僅本機 MCP</value>
+  </data>
+  <data name="PermissionsPage_NodeStatus_McpOnlyDetailsFormat" xml:space="preserve">
+    <value>正在透過 {1} 向本機 MCP 用戶端提供 {0} 項功能</value>
+  </data>
+  <data name="PermissionsPage_NodeStatus_Starting" xml:space="preserve">
+    <value>Node 正在啟動…</value>
+  </data>
+  <data name="PermissionsPage_NodeStatus_McpError" xml:space="preserve">
+    <value>本機 MCP 伺服器啟動失敗</value>
+  </data>
   <data name="PermissionsPage_NodeStatus_NoCapabilities" xml:space="preserve">
     <value>No capabilities enabled.</value>
   </data>
@@ -3260,9 +3624,6 @@
   </data>
   <data name="InstancesPage_Reason_Resync" xml:space="preserve">
     <value>Resync</value>
-  </data>
-  <data name="InstancesPage_BackToConnectionText.Text" xml:space="preserve">
-    <value>返回連線</value>
   </data>
   <data name="ConnectionPage_NodePairing_Title.Text" xml:space="preserve">
     <value>🔗 Pending Operator/Node Pairing</value>
@@ -3534,9 +3895,6 @@
   <data name="HubWindow_NavigationViewItem_Sandbox.Content" xml:space="preserve">
     <value>沙盒</value>
   </data>
-  <data name="AboutPage_MoreDiagnosticsLink.Content" xml:space="preserve">
-    <value>More diagnostics →</value>
-  </data>
   <data name="ChannelsPage_GuideBar.Title" xml:space="preserve">
     <value>Your gateway didn't list any channels</value>
   </data>
@@ -3567,6 +3925,15 @@
   <data name="DiagnosticsPage_ManageOnConnection.Content" xml:space="preserve">
     <value>Manage on Connection page</value>
   </data>
+  <data name="DiagnosticsPage_Section_Gateway.Text" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="DiagnosticsPage_Card_Doctor.Header" xml:space="preserve">
+    <value>執行 Gateway 診斷</value>
+  </data>
+  <data name="DiagnosticsPage_Card_Doctor.Description" xml:space="preserve">
+    <value>開啟終端機並執行 openclaw doctor，以檢查本機 Gateway 是否有問題。</value>
+  </data>
   <data name="DiagnosticsPage_Section_Share.Text" xml:space="preserve">
     <value>Share diagnostics with support</value>
   </data>
@@ -3595,10 +3962,10 @@
     <value>Connection state, gateway URL, runtime, tunnel.</value>
   </data>
   <data name="DiagnosticsPage_Card_CopyDebugBundle.Header" xml:space="preserve">
-    <value>Copy full debug bundle</value>
+    <value>複製摘要偵錯套件</value>
   </data>
   <data name="DiagnosticsPage_Card_CopyDebugBundle.Description" xml:space="preserve">
-    <value>Everything the preview dialog produces, no preview.</value>
+    <value>僅包含產生的摘要；不包含記錄尾端。請使用「建立診斷套件」在分享前檢查記錄。</value>
   </data>
   <data name="DiagnosticsPage_Card_CopyBrowserSetup.Header" xml:space="preserve">
     <value>Copy browser setup guidance</value>
@@ -3659,15 +4026,6 @@
   </data>
   <data name="DiagnosticsPage_Card_TrayChat.Header" xml:space="preserve">
     <value>Tray chat popup</value>
-  </data>
-  <data name="DiagnosticsPage_Card_Reconfigure.Header" xml:space="preserve">
-    <value>Reconfigure…</value>
-  </data>
-  <data name="DiagnosticsPage_Card_Reconfigure.Description" xml:space="preserve">
-    <value>Reopens the OpenClaw onboarding wizard. You will be asked to confirm.</value>
-  </data>
-  <data name="DiagnosticsPage_ReconfigureButton.Content" xml:space="preserve">
-    <value>Reconfigure…</value>
   </data>
   <data name="DiagnosticsPage_DetailBack.Text" xml:space="preserve">
     <value>Back to Diagnostics</value>
@@ -4143,9 +4501,6 @@
   <data name="InstancesPage_ReviewOnConnectionPage.Content" xml:space="preserve">
     <value>在「連線」頁面檢視</value>
   </data>
-  <data name="PermissionsPage_BackToConnection.Text" xml:space="preserve">
-    <value>返回連線</value>
-  </data>
   <data name="PermissionsPage_Permissions.Text" xml:space="preserve">
     <value>權限</value>
   </data>
@@ -4180,7 +4535,7 @@
     <value>0 條規則</value>
   </data>
   <data name="PermissionsPage_NoRulesYetAdd.Text" xml:space="preserve">
-    <value>尚無規則。在下方新增模式以允許或拒絕特定命令。</value>
+    <value>尚無規則。在下方新增模式以拒絕、允許或詢問特定命令。</value>
   </data>
   <data name="PermissionsPage_WindowsPrivacy.Text" xml:space="preserve">
     <value>Windows 隱私</value>
@@ -4365,9 +4720,6 @@
   <data name="SandboxPage_64MiB.Content" xml:space="preserve">
     <value>64 MiB</value>
   </data>
-  <data name="SessionsPage_BackToConnection.Text" xml:space="preserve">
-    <value>返回連線</value>
-  </data>
   <data name="SessionsPage_Sessions.Text" xml:space="preserve">
     <value>工作階段</value>
   </data>
@@ -4398,14 +4750,77 @@
   <data name="SessionsPage_Compact.Text" xml:space="preserve">
     <value>壓縮</value>
   </data>
+  <data name="SessionsPage_Checkpoints.Text" xml:space="preserve">
+    <value>檢查點</value>
+  </data>
+  <data name="SessionsPage_Checkpoints.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>檢視、分支或還原壓縮檢查點</value>
+  </data>
+  <data name="SessionsPage_ExportTranscript.Text" xml:space="preserve">
+    <value>匯出逐字稿</value>
+  </data>
+  <data name="SessionsPage_ExportTranscript.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>將對話逐字稿儲存為文字檔</value>
+  </data>
   <data name="SessionsPage_Delete.Text" xml:space="preserve">
     <value>刪除</value>
+  </data>
+  <data name="SessionActionPrompt_Reset_Title" xml:space="preserve">
+    <value>重設工作階段？</value>
+  </data>
+  <data name="SessionActionPrompt_Reset_BodyFormat" xml:space="preserve">
+    <value>為「{0}」啟動新的工作階段？目前的對話內容將被清除。</value>
+  </data>
+  <data name="SessionActionPrompt_Reset_ConfirmLabel" xml:space="preserve">
+    <value>重設</value>
+  </data>
+  <data name="SessionActionPrompt_Compact_Title" xml:space="preserve">
+    <value>壓縮工作階段記錄？</value>
+  </data>
+  <data name="SessionActionPrompt_Compact_BodyFormat" xml:space="preserve">
+    <value>保留「{0}」的最新訊息並封存其餘內容。這會建立一個壓縮檢查點；如果需要完整歷程記錄，請先匯出逐字稿。</value>
+  </data>
+  <data name="SessionActionPrompt_Compact_ConfirmLabel" xml:space="preserve">
+    <value>壓縮</value>
+  </data>
+  <data name="SessionActionPrompt_Delete_Title" xml:space="preserve">
+    <value>刪除工作階段？</value>
+  </data>
+  <data name="SessionActionPrompt_Delete_BodyFormat" xml:space="preserve">
+    <value>刪除「{0}」並封存其逐字稿？它將從工作階段清單中移除。</value>
+  </data>
+  <data name="SessionActionPrompt_Delete_ConfirmLabel" xml:space="preserve">
+    <value>刪除</value>
+  </data>
+  <data name="SessionActionPrompt_Restore_Title" xml:space="preserve">
+    <value>還原檢查點？</value>
+  </data>
+  <data name="SessionActionPrompt_Restore_BodyFormat" xml:space="preserve">
+    <value>將「{0}」回復到此壓縮檢查點？檢查點之後新增的訊息將被封存。</value>
+  </data>
+  <data name="SessionActionPrompt_Restore_ConfirmLabel" xml:space="preserve">
+    <value>還原</value>
   </data>
   <data name="SettingsPage_Settings.Text" xml:space="preserve">
     <value>設定</value>
   </data>
   <data name="SettingsPage_General.Text" xml:space="preserve">
     <value>一般</value>
+  </data>
+  <data name="SettingsRow_AppTheme_Header.Text" xml:space="preserve">
+    <value>應用程式佈景主題</value>
+  </data>
+  <data name="SettingsRow_AppTheme_Description.Text" xml:space="preserve">
+    <value>選擇淺色、深色，或使用 Windows 設定。</value>
+  </data>
+  <data name="SettingsPage_AppTheme_System.Content" xml:space="preserve">
+    <value>系統</value>
+  </data>
+  <data name="SettingsPage_AppTheme_Light.Content" xml:space="preserve">
+    <value>淺色</value>
+  </data>
+  <data name="SettingsPage_AppTheme_Dark.Content" xml:space="preserve">
+    <value>深色</value>
   </data>
   <data name="SettingsPage_Notifications.Text" xml:space="preserve">
     <value>通知</value>
@@ -4416,6 +4831,57 @@
   <data name="SettingsPage_LocalGateway.Text" xml:space="preserve">
     <value>本機閘道</value>
   </data>
+  <data name="SettingsPage_Developer.Text" xml:space="preserve">
+    <value>開發人員</value>
+  </data>
+  <data name="SettingsPage_AppInfoExpander.Header" xml:space="preserve">
+    <value>應用程式資訊</value>
+  </data>
+  <data name="SettingsPage_AppInfoCheckUpdates.Content" xml:space="preserve">
+    <value>檢查更新</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_AppName.Text" xml:space="preserve">
+    <value>應用程式名稱</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Version.Text" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_BuildDate.Text" xml:space="preserve">
+    <value>組建日期</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Runtime.Text" xml:space="preserve">
+    <value>執行階段</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Architecture.Text" xml:space="preserve">
+    <value>架構</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Windows.Text" xml:space="preserve">
+    <value>Windows 版本</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_UpdateChannel.Text" xml:space="preserve">
+    <value>更新通道</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_InstallType.Text" xml:space="preserve">
+    <value>安裝類型</value>
+  </data>
+  <data name="SettingsPage_AppInfoRelatedLinks.Text" xml:space="preserve">
+    <value>相關連結</value>
+  </data>
+  <data name="SettingsPage_AppInfoDocumentation.Content" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="SettingsPage_AppInfoGitHub.Content" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="SettingsPage_AppInfoDashboard.Content" xml:space="preserve">
+    <value>儀表板</value>
+  </data>
+  <data name="SettingsRow_ShowDiagnostics_Header.Text" xml:space="preserve">
+    <value>啟用診斷</value>
+  </data>
+  <data name="SettingsRow_ShowDiagnostics_Description.Text" xml:space="preserve">
+    <value>開發人員與疑難排解工具。預設會在本機組建中開啟。</value>
+  </data>
   <data name="SettingsPage_LocalGatewaySetup_Header.Text" xml:space="preserve">
     <value>設定或重新設定本機閘道</value>
   </data>
@@ -4424,6 +4890,15 @@
   </data>
   <data name="SettingsPage_OpenLocalGatewaySetup.Content" xml:space="preserve">
     <value>開啟設定</value>
+  </data>
+  <data name="SettingsPage_OnboardWizard_Header.Text" xml:space="preserve">
+    <value>OpenClaw Onboard</value>
+  </data>
+  <data name="SettingsPage_OnboardWizard_Description.Text" xml:space="preserve">
+    <value>在已安裝的本機閘道上開啟 OpenClaw 引導。略過 WSL 安裝，直接進入設定。</value>
+  </data>
+  <data name="SettingsPage_OpenOnboardWizard.Content" xml:space="preserve">
+    <value>開啟引導</value>
   </data>
   <data name="SettingsPage_MSIXInstallationDetected.Title" xml:space="preserve">
     <value>偵測到 MSIX 安裝</value>
@@ -4617,20 +5092,17 @@
   <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Title" xml:space="preserve">
     <value>分享前請檢閱</value>
   </data>
-  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Message" xml:space="preserve">
-    <value>套件產生器會排除敏感權杖、命令引數、內容與錄製。</value>
-  </data>
   <data name="HubWindow_Disconnected.Text" xml:space="preserve">
     <value>已中斷連線</value>
   </data>
-  <data name="HubWindow_Op.Text" xml:space="preserve">
-    <value>操作</value>
-  </data>
-  <data name="HubWindow_Node.Text" xml:space="preserve">
-    <value>節點</value>
-  </data>
   <data name="HubWindow_Advanced.Content" xml:space="preserve">
     <value>進階</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharingMessage.Text" xml:space="preserve">
+    <value>記錄尾端會經過清理並截斷。敏感權杖、內容、錄製資料與原始設定檔會被排除。分享前請先檢查。</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharingTitle.Text" xml:space="preserve">
+    <value>分享前請檢查</value>
   </data>
   <data name="AgentEventsPage_LiveText.Text" xml:space="preserve">
     <value>即時</value>
@@ -4659,9 +5131,6 @@
   <data name="VoiceSettingsPage_PreviewVoice.Text" xml:space="preserve">
     <value>語音預覽</value>
   </data>
-  <data name="HubWindow_TitleStatus.Text" xml:space="preserve">
-    <value>已中斷連線</value>
-  </data>
   <data name="SandboxPage_GatewayCommandsNote.Text" xml:space="preserve">
     <value>代理直接在閘道上執行的命令不受此限制。如果閘道在此電腦上，它們仍可能存取您的 Windows 檔案、剪貼簿和網路——請檢查閘道的設定。</value>
   </data>
@@ -4682,6 +5151,60 @@
   </data>
   <data name="CronPage_Running" xml:space="preserve">
     <value>正在執行...</value>
+  </data>
+  <data name="CronPage_CompletedOneTimeJobTooltip" xml:space="preserve">
+    <value>一次性作業已完成</value>
+  </data>
+  <data name="CronPage_EnableJobTooltip" xml:space="preserve">
+    <value>啟用作業</value>
+  </data>
+  <data name="CronPage_DisableJobTooltip" xml:space="preserve">
+    <value>停用作業</value>
+  </data>
+  <data name="CronPage_FullResponse" xml:space="preserve">
+    <value>完整回覆</value>
+  </data>
+  <data name="CronPage_OpenChat" xml:space="preserve">
+    <value>開啟聊天</value>
+  </data>
+  <data name="CronPage_RunNow" xml:space="preserve">
+    <value>立即執行</value>
+  </data>
+  <data name="CronPage_EditAction" xml:space="preserve">
+    <value>編輯</value>
+  </data>
+  <data name="CronPage_HistoryAction" xml:space="preserve">
+    <value>歷史記錄</value>
+  </data>
+  <data name="CronPage_RemoveAction" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="CronPage_RunningBadge" xml:space="preserve">
+    <value>正在執行</value>
+  </data>
+  <data name="CronPage_RunHistory" xml:space="preserve">
+    <value>執行歷史記錄</value>
+  </data>
+  <data name="CronPage_RunHistoryShowing" xml:space="preserve">
+    <value>執行歷史記錄 - 正在顯示 {0}/{1}</value>
+  </data>
+  <data name="CronPage_RunHistoryCount" xml:space="preserve">
+    <value>執行歷史記錄 - {0} 次執行</value>
+  </data>
+  <data name="CronPage_LoadingRunHistory" xml:space="preserve">
+    <value>正在載入執行歷史記錄...</value>
+  </data>
+  <data name="CronPage_NoRunHistoryAvailable" xml:space="preserve">
+    <value>沒有可用的執行歷史記錄。</value>
+  </data>
+  <data name="CronPage_LoadOlderRuns" xml:space="preserve">
+    <value>載入較早的執行（還有 {0} 個）...</value>
+  </data>
+  <data name="CronPage_LoadMoreRuns" xml:space="preserve">
+    <value>載入更多執行...</value>
+  </data>
+  <data name="CronPage_Loading" xml:space="preserve">
+    <value>正在載入...</value>
   </data>
   <data name="CronPage_SaveChanges" xml:space="preserve">
     <value>儲存變更</value>
@@ -4875,6 +5398,18 @@
   </data>
   <data name="ConnectionPage_NodeModeDisabledText" xml:space="preserve">
     <value>節點模式已停用</value>
+  </data>
+  <data name="ConnectionPage_NodeStarting" xml:space="preserve">
+    <value>Node 正在啟動…</value>
+  </data>
+  <data name="ConnectionPage_NodeMcpOnly" xml:space="preserve">
+    <value>正在本機提供功能（僅 MCP）</value>
+  </data>
+  <data name="ConnectionPage_NodeMcpOnlyReachable" xml:space="preserve">
+    <value>本機 MCP 用戶端可透過 {0} 存取</value>
+  </data>
+  <data name="ConnectionPage_NodeMcpError" xml:space="preserve">
+    <value>本機 MCP 伺服器啟動失敗</value>
   </data>
   <data name="ConnectionPage_NodeBodyNoCapabilities" xml:space="preserve">
     <value>未啟用任何功能。請在權限中選擇要共用的內容。</value>
@@ -5122,9 +5657,6 @@
   <data name="ConnectionPage_CancelAction" xml:space="preserve">
     <value>取消</value>
   </data>
-  <data name="ConnectionPage_ConnectFailed" xml:space="preserve">
-    <value>連線失敗</value>
-  </data>
   <data name="ConnectionPage_GatewayConnectionFailed" xml:space="preserve">
     <value>閘道連線失敗。</value>
   </data>
@@ -5154,31 +5686,6 @@
   </data>
   <data name="ConnectionPage_DenyPairingRequest" xml:space="preserve">
     <value>拒絕配對請求</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidanceToken" xml:space="preserve">
-    <value>{0}
-
-從新增閘道流程中貼上新的設定碼。</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidancePairing" xml:space="preserve">
-    <value>{0}
-
-您的裝置需要在閘道主機上獲得核准。</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidancePassword" xml:space="preserve">
-    <value>{0}
-
-此閘道需要密碼驗證。</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidanceSignature" xml:space="preserve">
-    <value>{0}
-
-閘道可能需要不同版本的認證協定。</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidanceDefault" xml:space="preserve">
-    <value>{0}
-
-請檢查您的連線設定並重試。</value>
   </data>
   <data name="ConnectionPage_AuthModeBootstrap" xml:space="preserve">
     <value>引導</value>
@@ -5262,7 +5769,7 @@
     <value>連結您的 WhatsApp 手機</value>
   </data>
   <data name="ChannelsPage_GuideWhatsAppStep1" xml:space="preserve">
-    <value>點擊下方「連結」區段中的 &quot;Show QR&quot;。</value>
+    <value>點擊下方「連結」區段中的 "Show QR"。</value>
   </data>
   <data name="ChannelsPage_GuideWhatsAppStep2" xml:space="preserve">
     <value>在手機上：WhatsApp → 設定 → 已連結裝置 → 連結裝置。</value>
@@ -5274,7 +5781,7 @@
     <value>連結您的 Signal 手機</value>
   </data>
   <data name="ChannelsPage_GuideSignalStep1" xml:space="preserve">
-    <value>點擊下方「連結」區段中的 &quot;Show QR&quot;。</value>
+    <value>點擊下方「連結」區段中的 "Show QR"。</value>
   </data>
   <data name="ChannelsPage_GuideSignalStep2" xml:space="preserve">
     <value>在手機上：Signal → 設定 → 已連結裝置 → 連結新裝置。</value>
@@ -5295,7 +5802,7 @@
     <value>將權杖貼到下方的設定表單中。</value>
   </data>
   <data name="ChannelsPage_GuideTelegramStep4" xml:space="preserve">
-    <value>點擊 &quot;Save and start&quot;。頻道將自動啟動。</value>
+    <value>點擊 "Save and start"。頻道將自動啟動。</value>
   </data>
   <data name="ChannelsPage_GuideDiscordHeadline" xml:space="preserve">
     <value>透過 webhook 連接 Discord</value>
@@ -5304,13 +5811,13 @@
     <value>開啟您的 Discord 伺服器設定 → 整合 → Webhooks。</value>
   </data>
   <data name="ChannelsPage_GuideDiscordStep2" xml:space="preserve">
-    <value>點擊 &quot;New Webhook&quot;，為其命名，然後複製 webhook URL。</value>
+    <value>點擊 "New Webhook"，為其命名，然後複製 webhook URL。</value>
   </data>
   <data name="ChannelsPage_GuideDiscordStep3" xml:space="preserve">
     <value>將 URL 貼到下方的設定表單中。</value>
   </data>
   <data name="ChannelsPage_GuideDiscordStep4" xml:space="preserve">
-    <value>點擊 &quot;Save and start&quot;。</value>
+    <value>點擊 "Save and start"。</value>
   </data>
   <data name="ChannelsPage_GuideGoogleChatHeadline" xml:space="preserve">
     <value>透過 webhook 連接 Google Chat</value>
@@ -5325,7 +5832,7 @@
     <value>將 URL 貼到下方的設定表單中。</value>
   </data>
   <data name="ChannelsPage_GuideGoogleChatStep4" xml:space="preserve">
-    <value>點擊 &quot;Save and start&quot;。</value>
+    <value>點擊 "Save and start"。</value>
   </data>
   <data name="ChannelsPage_GuideSlackHeadline" xml:space="preserve">
     <value>透過應用程式連接 Slack</value>
@@ -5340,7 +5847,7 @@
     <value>將兩者貼到下方的設定表單中。</value>
   </data>
   <data name="ChannelsPage_GuideSlackStep4" xml:space="preserve">
-    <value>點擊 &quot;Save and start&quot;。</value>
+    <value>點擊 "Save and start"。</value>
   </data>
   <data name="ChannelsPage_GuideNostrHeadline" xml:space="preserve">
     <value>透過中繼連接 Nostr</value>
@@ -5355,7 +5862,7 @@
     <value>將兩者貼到下方的設定表單中。</value>
   </data>
   <data name="ChannelsPage_GuideNostrStep4" xml:space="preserve">
-    <value>點擊 &quot;Save and start&quot;。</value>
+    <value>點擊 "Save and start"。</value>
   </data>
   <data name="ChannelsPage_GuideIMessageHeadline" xml:space="preserve">
     <value>iMessage 僅適用於 macOS</value>
@@ -5373,10 +5880,10 @@
     <value>連接此頻道</value>
   </data>
   <data name="ChannelsPage_GuideGenericStep1" xml:space="preserve">
-    <value>&quot;{0}&quot; 是一個外掛頻道。請參閱其文件以了解所需欄位。</value>
+    <value>"{0}" 是一個外掛頻道。請參閱其文件以了解所需欄位。</value>
   </data>
   <data name="ChannelsPage_GuideGenericStep2" xml:space="preserve">
-    <value>使用下方「設定」區段中的 &quot;Open Config page&quot; 在 channels.{0} 下新增設定。</value>
+    <value>使用下方「設定」區段中的 "Open Config page" 在 channels.{0} 下新增設定。</value>
   </data>
   <data name="ChannelsPage_GuideGenericStep3" xml:space="preserve">
     <value>儲存設定；OpenClaw 將自動啟動頻道。</value>
@@ -5594,12 +6101,6 @@
   <data name="Command_GoToDiagnostics_Title" xml:space="preserve">
     <value>Go to Diagnostics</value>
   </data>
-  <data name="Command_GoToInfo_Subtitle" xml:space="preserve">
-    <value>About this app</value>
-  </data>
-  <data name="Command_GoToInfo_Title" xml:space="preserve">
-    <value>Go to Info</value>
-  </data>
   <data name="Command_GoToNotifications_Subtitle" xml:space="preserve">
     <value>檢閱作用中的應用程式通知</value>
   </data>
@@ -5727,13 +6228,358 @@
     <value>Waiting for gateway health</value>
   </data>
   <data name="ConfigPage_CheckingConfigPermissions" xml:space="preserve">
-    <value>Checking config permissions</value>
+    <value>正在檢查設定權限</value>
   </data>
   <data name="ConfigPage_ConfigIsReadOnly" xml:space="preserve">
-    <value>Config is read-only</value>
+    <value>設定為唯讀</value>
   </data>
   <data name="ConfigPage_ConfigUnavailable" xml:space="preserve">
-    <value>Config unavailable</value>
+    <value>設定無法使用</value>
+  </data>
+  <data name="ConfigPage_EditingPathFormat" xml:space="preserve">
+    <value>正在透過架構引導表單編輯 {0}。</value>
+  </data>
+  <data name="ConfigPage_RenderConfigUnavailableTitle" xml:space="preserve">
+    <value>設定無法使用</value>
+  </data>
+  <data name="ConfigPage_RenderConfigUnavailableMessage" xml:space="preserve">
+    <value>無法呈現閘道設定。請重新整理後再試一次。</value>
+  </data>
+  <data name="ConfigPage_RenderSchemaUnavailableTitle" xml:space="preserve">
+    <value>架構無法使用</value>
+  </data>
+  <data name="ConfigPage_RenderSchemaUnavailableMessage" xml:space="preserve">
+    <value>無法呈現閘道架構。原始 JSON 仍可作為唯讀預覽使用。</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayRestartingTitle" xml:space="preserve">
+    <value>閘道正在重新啟動</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayRestartingMessage" xml:space="preserve">
+    <value>正在儲存變更。閘道正在重新啟動，並會自動重新連線。</value>
+  </data>
+  <data name="ConfigPage_StatusNoChangesTitle" xml:space="preserve">
+    <value>沒有變更</value>
+  </data>
+  <data name="ConfigPage_StatusNoChangesMessage" xml:space="preserve">
+    <value>沒有需要儲存的內容。</value>
+  </data>
+  <data name="ConfigPage_StatusFixValidationErrorsTitle" xml:space="preserve">
+    <value>修正驗證錯誤</value>
+  </data>
+  <data name="ConfigPage_StatusValidationErrorMessageFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="ConfigPage_StatusNotConnectedTitle" xml:space="preserve">
+    <value>未連線</value>
+  </data>
+  <data name="ConfigPage_StatusNotConnectedMessage" xml:space="preserve">
+    <value>儲存設定前請先連線到閘道。</value>
+  </data>
+  <data name="ConfigPage_StatusReadOnlyMessage" xml:space="preserve">
+    <value>此操作員權杖沒有 operator.write 權限，因此無法儲存設定變更。</value>
+  </data>
+  <data name="ConfigPage_StatusConfigNotLoadedTitle" xml:space="preserve">
+    <value>設定未載入</value>
+  </data>
+  <data name="ConfigPage_StatusConfigNotLoadedMessage" xml:space="preserve">
+    <value>儲存前請重新整理閘道設定。</value>
+  </data>
+  <data name="ConfigPage_StatusSavingConfigTitle" xml:space="preserve">
+    <value>正在儲存設定…</value>
+  </data>
+  <data name="ConfigPage_StatusSavingConfigMessageFormat" xml:space="preserve">
+    <value>正在將 {0} 項變更寫入閘道。</value>
+  </data>
+  <data name="ConfigPage_StatusStaleConfigTitle" xml:space="preserve">
+    <value>閘道設定已在其他位置變更</value>
+  </data>
+  <data name="ConfigPage_StatusStaleConfigMessageFormat" xml:space="preserve">
+    <value>您的編輯已保留。正在重新整理最新設定；請檢閱表單並再次嘗試儲存。詳細資料：{0}</value>
+  </data>
+  <data name="ConfigPage_StatusStaleConfigDefaultDetail" xml:space="preserve">
+    <value>過期的設定雜湊</value>
+  </data>
+  <data name="ConfigPage_StatusSaveFailedTitle" xml:space="preserve">
+    <value>儲存失敗</value>
+  </data>
+  <data name="ConfigPage_StatusSaveRejectedMessage" xml:space="preserve">
+    <value>閘道拒絕了設定更新。您的變更已保留。</value>
+  </data>
+  <data name="ConfigPage_StatusSaveExceptionMessageFormat" xml:space="preserve">
+    <value>{0} 您的變更已保留。</value>
+  </data>
+  <data name="ConfigPage_SaveStatusCheckingConfigPermissions" xml:space="preserve">
+    <value>正在檢查設定權限…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusRefreshing" xml:space="preserve">
+    <value>正在重新整理…</value>
+  </data>
+  <data name="ConfigPage_StatusChangesDiscardedTitle" xml:space="preserve">
+    <value>變更已捨棄</value>
+  </data>
+  <data name="ConfigPage_StatusChangesDiscardedMessage" xml:space="preserve">
+    <value>表單已回復為上次從閘道載入的設定。</value>
+  </data>
+  <data name="ConfigPage_FullConfig" xml:space="preserve">
+    <value>完整設定</value>
+  </data>
+  <data name="ConfigPage_StatusSectionResetTitle" xml:space="preserve">
+    <value>區段已重設</value>
+  </data>
+  <data name="ConfigPage_StatusSectionResetMessageFormat" xml:space="preserve">
+    <value>{0} 已回復為上次載入的閘道值。</value>
+  </data>
+  <data name="ConfigPage_StatusCopiedJsonDiffTitle" xml:space="preserve">
+    <value>已複製 JSON 差異</value>
+  </data>
+  <data name="ConfigPage_StatusCopiedJsonDiffMessage" xml:space="preserve">
+    <value>所選區段的差異已複製到剪貼簿。</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayReconnectedTitle" xml:space="preserve">
+    <value>閘道已重新連線</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayReconnectedRefreshingMessage" xml:space="preserve">
+    <value>設定已儲存，閘道連線已恢復。正在重新整理最新設定。</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayReconnectedLoadedMessage" xml:space="preserve">
+    <value>設定已儲存，且已載入最新的閘道設定。</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayStillReconnectingTitle" xml:space="preserve">
+    <value>閘道仍在重新連線</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayStillReconnectingMessage" xml:space="preserve">
+    <value>設定儲存已被接受，但閘道尚未重新連線。您可以保持此頁面開啟，或使用「連線」檢查狀態。</value>
+  </data>
+  <data name="ConfigPage_CheckingConfigPermissionsMessage" xml:space="preserve">
+    <value>正在等待閘道回報此操作員的權限。</value>
+  </data>
+  <data name="ConfigPage_ConfigUnavailableMessage" xml:space="preserve">
+    <value>此操作員權杖缺少 operator.read 權限，因此無法在此載入閘道設定。</value>
+  </data>
+  <data name="ConfigPage_ConfigIsReadOnlyMessage" xml:space="preserve">
+    <value>此操作員權杖可以讀取設定，但缺少 operator.write 權限。您可以檢查並驗證草稿，但「儲存」已停用。</value>
+  </data>
+  <data name="ConfigPage_MetaNoUnsavedChanges" xml:space="preserve">
+    <value>沒有未儲存的變更。</value>
+  </data>
+  <data name="ConfigPage_MetaUnsavedChangesFormat" xml:space="preserve">
+    <value>{0} 項未儲存的變更</value>
+  </data>
+  <data name="ConfigPage_MetaUnsavedChangesWithValidationFormat" xml:space="preserve">
+    <value>{0} 項未儲存的變更 · {1} 個驗證問題</value>
+  </data>
+  <data name="ConfigPage_SaveStatusSaving" xml:space="preserve">
+    <value>正在儲存…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusGatewayRestarting" xml:space="preserve">
+    <value>閘道正在重新啟動…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusConnectToGateway" xml:space="preserve">
+    <value>連線到閘道以編輯</value>
+  </data>
+  <data name="ConfigPage_SaveStatusCheckingPermissions" xml:space="preserve">
+    <value>正在檢查權限…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusMissingRead" xml:space="preserve">
+    <value>設定無法使用：缺少 operator.read</value>
+  </data>
+  <data name="ConfigPage_SaveStatusReadOnlyMissingWrite" xml:space="preserve">
+    <value>唯讀：缺少 operator.write</value>
+  </data>
+  <data name="ConfigPage_SaveStatusFixValidationBeforeSaving" xml:space="preserve">
+    <value>儲存前請修正驗證錯誤</value>
+  </data>
+  <data name="ConfigPage_SaveStatusUnsavedChanges" xml:space="preserve">
+    <value>未儲存的變更</value>
+  </data>
+  <data name="ConfigPage_SaveStatusNoUnsavedChanges" xml:space="preserve">
+    <value>沒有未儲存的變更</value>
+  </data>
+  <data name="ConfigPage_AccessDisconnected" xml:space="preserve">
+    <value>已中斷連線</value>
+  </data>
+  <data name="ConfigPage_AccessChecking" xml:space="preserve">
+    <value>正在檢查存取權</value>
+  </data>
+  <data name="ConfigPage_AccessNoRead" xml:space="preserve">
+    <value>沒有設定讀取存取權</value>
+  </data>
+  <data name="ConfigPage_AccessReadOnly" xml:space="preserve">
+    <value>唯讀存取權</value>
+  </data>
+  <data name="ConfigPage_AccessReadWrite" xml:space="preserve">
+    <value>讀取/寫入存取權</value>
+  </data>
+  <data name="ConfigPage_AccessUnknown" xml:space="preserve">
+    <value>未知存取權</value>
+  </data>
+  <data name="ConfigPage_AccessChangesFormat" xml:space="preserve">
+    <value>{0} 項變更</value>
+  </data>
+  <data name="ConfigPage_AccessValidationClean" xml:space="preserve">
+    <value>本機驗證通過</value>
+  </data>
+  <data name="ConfigPage_AccessValidationIssuesFormat" xml:space="preserve">
+    <value>{0} 個驗證問題</value>
+  </data>
+  <data name="ConfigPage_AccessSummaryFormat" xml:space="preserve">
+    <value>{0} · {1} · {2}</value>
+  </data>
+  <data name="DebugPage_NoGatewayConfigured" xml:space="preserve">
+    <value>未設定閘道</value>
+  </data>
+  <data name="DebugPage_StatusConnectedFormat" xml:space="preserve">
+    <value>OpenClaw 已連線到 {0}。</value>
+  </data>
+  <data name="DebugPage_StatusConnectingFormat" xml:space="preserve">
+    <value>正在連線到 {0}…</value>
+  </data>
+  <data name="DebugPage_StatusDisconnectedFormat" xml:space="preserve">
+    <value>未連線。閘道：{0}。</value>
+  </data>
+  <data name="DebugPage_StatusErrorFormat" xml:space="preserve">
+    <value>上次閘道：{0}。請查看事件時間軸。</value>
+  </data>
+  <data name="DebugPage_StatusGatewayFormat" xml:space="preserve">
+    <value>閘道：{0}。</value>
+  </data>
+  <data name="DebugPage_RecentLogTitle" xml:space="preserve">
+    <value>最近記錄</value>
+  </data>
+  <data name="DebugPage_RecentLogCaptionFormat" xml:space="preserve">
+    <value>{0} 的最後 200 行。嚴重性會從 [info]/[warn]/[error] 標籤解析。</value>
+  </data>
+  <data name="DebugPage_CopyFeedbackFormat" xml:space="preserve">
+    <value>{0} 已複製到剪貼簿。</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableTitle" xml:space="preserve">
+    <value>節點沙箱無法使用 — 回退到主機</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableSubtext" xml:space="preserve">
+    <value>此電腦上無法使用隔離，因此代理程式啟動的命令會在主機上執行，且沒有沙箱保護。</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableBlockedTitle" xml:space="preserve">
+    <value>節點沙箱無法使用 — 命令已封鎖</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableBlockedSubtext" xml:space="preserve">
+    <value>此電腦上無法使用隔離，且已啟用嚴格回退封鎖，因此代理程式啟動的命令會被封鎖。</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableOffTitle" xml:space="preserve">
+    <value>節點沙箱已關閉 — 主機執行</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableOffSubtext" xml:space="preserve">
+    <value>隔離無法使用且節點沙箱已關閉，因此代理程式啟動的命令會在主機上執行，且沒有沙箱保護。</value>
+  </data>
+  <data name="SandboxPage_StatusOnTitle" xml:space="preserve">
+    <value>節點沙箱已開啟</value>
+  </data>
+  <data name="SandboxPage_StatusOnSubtext" xml:space="preserve">
+    <value>代理程式在此電腦上執行的程式會被隔離。</value>
+  </data>
+  <data name="SandboxPage_StatusOffTitle" xml:space="preserve">
+    <value>節點沙箱已關閉 — 高風險</value>
+  </data>
+  <data name="SandboxPage_StatusOffSubtext" xml:space="preserve">
+    <value>代理程式在此電腦上執行的程式不會被隔離。</value>
+  </data>
+  <data name="SandboxPage_UnavailableDefaultReason" xml:space="preserve">
+    <value>此電腦上沒有可用的 MXC 沙箱基元。</value>
+  </data>
+  <data name="SandboxPage_ProbeErrorReason" xml:space="preserve">
+    <value>無法檢查沙箱可用性。</value>
+  </data>
+  <data name="SandboxPage_UnavailableBehaviorHostFallback" xml:space="preserve">
+    <value>在沙箱無法使用期間，命令將在主機上執行，且沒有沙箱保護。</value>
+  </data>
+  <data name="SandboxPage_UnavailableBehaviorBlocked" xml:space="preserve">
+    <value>由於已啟用嚴格回退封鎖，沙箱無法使用期間命令會被封鎖。</value>
+  </data>
+  <data name="SandboxPage_ProbeErrorTitle" xml:space="preserve">
+    <value>無法驗證沙箱可用性</value>
+  </data>
+  <data name="SandboxPage_ProbeErrorMessageFormat" xml:space="preserve">
+    <value>{0}
+
+{1} 沙箱功能檢查未完成。這通常是暫時性的（檢查緩慢或遭封鎖）— 請重試；如果問題仍然存在，請檢查安全性軟體是否封鎖了 wxc-exec。</value>
+  </data>
+  <data name="SandboxPage_Retry" xml:space="preserve">
+    <value>重試</value>
+  </data>
+  <data name="SandboxPage_WindowsUnsupportedTitle" xml:space="preserve">
+    <value>您的 Windows 版本尚不支援沙箱</value>
+  </data>
+  <data name="SandboxPage_WindowsUnsupportedMessageFormat" xml:space="preserve">
+    <value>{0}
+
+{1} 沙箱需要包含 AppContainer 基元的較新 Windows 版本。請安裝最新 Windows 更新（或加入 Windows 測試人員計畫以取得最新版本）以啟用隔離。</value>
+  </data>
+  <data name="SandboxPage_OpenWindowsUpdate" xml:space="preserve">
+    <value>開啟 Windows Update</value>
+  </data>
+  <data name="SandboxPage_ComponentsMissingTitle" xml:space="preserve">
+    <value>缺少沙箱元件</value>
+  </data>
+  <data name="SandboxPage_ComponentsMissingMessageFormat" xml:space="preserve">
+    <value>{0}
+
+找不到 wxc-exec 二進位檔。{1} 如果這是開發人員組建，請建置托盤應用程式，讓 wxc-exec.exe 複製到輸出資料夾。否則請重新安裝伴侶應用程式以還原沙箱。</value>
+  </data>
+  <data name="SandboxPage_ShowInstallInstructions" xml:space="preserve">
+    <value>顯示安裝指示</value>
+  </data>
+  <data name="SandboxPage_UnavailableTitle" xml:space="preserve">
+    <value>沙箱無法使用 — 回退到主機</value>
+  </data>
+  <data name="SandboxPage_UnavailableBlockedTitle" xml:space="preserve">
+    <value>沙箱無法使用 — 命令已封鎖</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovedTitle" xml:space="preserve">
+    <value>本機閘道已移除</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovedMessage" xml:space="preserve">
+    <value>設定已重設；您可以從托盤功能表重新執行設定。</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalErrorsMessage" xml:space="preserve">
+    <value>移除已完成但發生錯誤。請查看記錄以取得詳細資料。</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalCancelledTitle" xml:space="preserve">
+    <value>移除已取消</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalCancelledMessage" xml:space="preserve">
+    <value>閘道可能處於部分移除狀態。請查看記錄或重試。</value>
+  </data>
+  <data name="SettingsPage_ViewLogs" xml:space="preserve">
+    <value>檢視記錄</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalFailedTitle" xml:space="preserve">
+    <value>移除失敗</value>
+  </data>
+  <data name="SettingsPage_RemoveLocalGatewayButton" xml:space="preserve">
+    <value>移除本機閘道</value>
+  </data>
+  <data name="SettingsPage_RemovingDistro" xml:space="preserve">
+    <value>正在移除散發套件…</value>
+  </data>
+  <data name="SettingsPage_RemovingLocalGatewayMessage" xml:space="preserve">
+    <value>正在移除本機閘道。這可能需要 10–30 秒…</value>
+  </data>
+  <data name="CronPage_NextWakeFormat" xml:space="preserve">
+    <value>· 下次喚醒：{0}</value>
+  </data>
+  <data name="ChatWindow_UnableToLoadChatCredentials" xml:space="preserve">
+    <value>無法載入聊天。閘道 URL 或權杖無法使用。</value>
+  </data>
+  <data name="ChatWindow_UnableToLoadChatRetryFormat" xml:space="preserve">
+    <value>無法載入聊天。請重試。({0})</value>
+  </data>
+  <data name="ChatWindow_WebViewFailedFormat" xml:space="preserve">
+    <value>WebView2 失敗：{0}</value>
+  </data>
+  <data name="CanvasWindow_WebViewInitFailedFormat" xml:space="preserve">
+    <value>無法初始化 WebView2：{0}</value>
+  </data>
+  <data name="CanvasWindow_NavigationFailedFormat" xml:space="preserve">
+    <value>瀏覽失敗：{0}</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsDescription_Format" xml:space="preserve">
     <value>Open a shell or manage the local gateway service in {0}.</value>
@@ -5742,7 +6588,16 @@
     <value>Job completed</value>
   </data>
   <data name="CronPage_JobCompletedRanSuccessfully" xml:space="preserve">
-    <value>&quot;{0}&quot; ran successfully and was removed.</value>
+    <value>"{0}" ran successfully and was removed.</value>
+  </data>
+  <data name="CronPage_RunNotStarted" xml:space="preserve">
+    <value>執行未啟動</value>
+  </data>
+  <data name="CronPage_RunNotStartedGeneric" xml:space="preserve">
+    <value>{0} 未啟動。</value>
+  </data>
+  <data name="CronPage_RunNotStartedWithReason" xml:space="preserve">
+    <value>{0} 未啟動：{1}</value>
   </data>
   <data name="GatewayHostAccess_NoTerminalAccess" xml:space="preserve">
     <value>This gateway does not have WSL or SSH terminal access.</value>
@@ -5810,6 +6665,24 @@
   <data name="ConnectionPage_NodeSurfaceNone" xml:space="preserve">
     <value>none</value>
   </data>
+  <data name="ConnectionPage_NodeTechnicalDetails.Text" xml:space="preserve">
+    <value>Show technical details</value>
+  </data>
+  <data name="ConnectionPage_NodePillState_Active" xml:space="preserve">
+    <value>Sharing now</value>
+  </data>
+  <data name="ConnectionPage_NodePillState_Pending" xml:space="preserve">
+    <value>Enabled, not active yet</value>
+  </data>
+  <data name="ConnectionPage_NodePillState_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="ConnectionPage_NodeCap_Device" xml:space="preserve">
+    <value>Device info</value>
+  </data>
+  <data name="ConnectionPage_NodeCap_System" xml:space="preserve">
+    <value>System access</value>
+  </data>
   <data name="ConnectionPage_NodeEffectiveCapabilities" xml:space="preserve">
     <value>Approved/effective capabilities: {0}</value>
   </data>
@@ -5827,5 +6700,176 @@
   </data>
   <data name="ConnectionPage_NodePendingDeclaredPermissions" xml:space="preserve">
     <value>Pending declared permissions: {0}</value>
+  </data>
+  <data name="ConnectionPage_AdviceCleartextTitle" xml:space="preserve">
+    <value>未加密的連線</value>
+  </data>
+  <data name="ConnectionPage_AdviceCleartextMessage" xml:space="preserve">
+    <value>此遠端 gateway 使用 ws:// — 您的 token 將以明文傳送。請使用 wss://（TLS）、SSH 通道或受信任的 Proxy / Tailscale。</value>
+  </data>
+  <data name="ConnectionPage_AdviceSecureTitle" xml:space="preserve">
+    <value>已加密 (TLS)</value>
+  </data>
+  <data name="ConnectionPage_AdviceSecureMessage" xml:space="preserve">
+    <value>此 gateway 使用 TLS。憑證驗證通過後，您的 token 在傳輸過程中受到保護。</value>
+  </data>
+  <data name="ConnectionPage_AdviceTunnelTitle" xml:space="preserve">
+    <value>SSH 通道</value>
+  </data>
+  <data name="ConnectionPage_AdviceTunnelMessage" xml:space="preserve">
+    <value>到此 gateway 的流量透過 SSH 通道加密。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderTokenDrift" xml:space="preserve">
+    <value>重新配對此裝置：</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderScope" xml:space="preserve">
+    <value>升級此裝置的存取權限：</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderTls" xml:space="preserve">
+    <value>修復安全連線：</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTokenDriftBullet1" xml:space="preserve">
+    <value>gateway 不再信任此裝置儲存的 token（它已被輪換或撤銷）。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTokenDriftBullet2" xml:space="preserve">
+    <value>從 gateway 主機取得新的設定代碼，並貼到下方以重新配對。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryScopeBullet1" xml:space="preserve">
+    <value>此裝置已通過驗證，但缺少所需的 scope（例如 operator.admin 或 operator.pairing）。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryScopeBullet2" xml:space="preserve">
+    <value>使用新的設定代碼重新配對以請求所需的 scope，或在 gateway 主機上核准更高的 scope。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTlsBullet1" xml:space="preserve">
+    <value>無法建立 gateway 的 TLS/安全傳輸。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTlsBullet2" xml:space="preserve">
+    <value>驗證 gateway 主機上的憑證，或透過 wss:// 或 SSH 通道連線。</value>
+  </data>
+  <data name="ConnectionPage_TokenOrPasswordHint.Text" xml:space="preserve">
+    <value>貼上共用 gateway token，或將其留空以使用設定代碼配對。</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpDirect.Text" xml:space="preserve">
+    <value>當 gateway 擁有受信任憑證時，連線到 wss:// 或 https://。憑證驗證通過後，您的 token 會在傳輸過程中加密。</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpTunnel.Text" xml:space="preserve">
+    <value>當 gateway 僅在 localhost 上接聽時，請展開下方的「使用 SSH 通道」。tray 會透過 SSH 轉發本機連接埠，使流量保持加密。</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpProxy.Text" xml:space="preserve">
+    <value>如果 Tailscale 或反向 Proxy 已加密路徑，則在該私人網路上使用一般 ws:// URL 即可。</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpAuth.Text" xml:space="preserve">
+    <value>貼上共用 token，或將其留空並使用設定代碼配對。重新配對也會升級此裝置的 scope。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderRateLimited" xml:space="preserve">
+    <value>請稍後再重新連線：</value>
+  </data>
+  <data name="ConnectionPage_RecoveryRateLimitedBullet1" xml:space="preserve">
+    <value>gateway 在多次失敗嘗試後正在對此用戶端限速。</value>
+  </data>
+  <data name="ConnectionPage_RecoveryRateLimitedBullet2" xml:space="preserve">
+    <value>暫時停止重試，然後在修正 token、密碼或配對狀態後重新連線。</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpLink.Text" xml:space="preserve">
+    <value>如何連線到遠端 gateway？</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpTip.Title" xml:space="preserve">
+    <value>連線到遠端 gateway</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpDirectTitle.Text" xml:space="preserve">
+    <value>直連 (TLS)</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpTunnelTitle.Text" xml:space="preserve">
+    <value>SSH 通道</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpProxyTitle.Text" xml:space="preserve">
+    <value>受信任 Proxy / Tailscale</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpAuthTitle.Text" xml:space="preserve">
+    <value>驗證</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_Title.Text" xml:space="preserve">
+    <value>Connection</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_OpenConnection.Content" xml:space="preserve">
+    <value>Open Connection</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_GatewayLabel.Text" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_Reconnect.Content" xml:space="preserve">
+    <value>Reconnect</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_OperatorLabel.Text" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_NodeLabel.Text" xml:space="preserve">
+    <value>Node</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_Approve.Content" xml:space="preserve">
+    <value>Approve…</value>
+  </data>
+  <data name="HubWindow_StatusPill_Tooltip" xml:space="preserve">
+    <value>Connection status</value>
+  </data>
+  <data name="HubWindow_Bell_Tooltip" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="HubWindow_Pill_Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="HubWindow_Pill_PairingRequired" xml:space="preserve">
+    <value>Pairing required</value>
+  </data>
+  <data name="HubWindow_Pill_Degraded" xml:space="preserve">
+    <value>Degraded</value>
+  </data>
+  <data name="HubWindow_Role_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="HubWindow_Role_PairingRequired" xml:space="preserve">
+    <value>Pairing required</value>
+  </data>
+  <data name="HubWindow_Role_PairingRejected" xml:space="preserve">
+    <value>Pairing rejected</value>
+  </data>
+  <data name="HubWindow_Role_RateLimited" xml:space="preserve">
+    <value>Rate limited</value>
+  </data>
+  <data name="HubWindow_Role_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="NotificationsFlyout_ClearAll.Content" xml:space="preserve">
+    <value>Clear all</value>
+  </data>
+  <data name="NotificationsFlyout_EmptyTitle.Text" xml:space="preserve">
+    <value>No notifications</value>
+  </data>
+  <data name="NotificationsFlyout_OpenPage.Content" xml:space="preserve">
+    <value>Open notifications</value>
+  </data>
+  <data name="NotificationsFlyout_ActiveCountFormat" xml:space="preserve">
+    <value>{0} active</value>
+  </data>
+  <data name="HubWindow_Role_PermissionsIncomplete" xml:space="preserve">
+    <value>Permissions incomplete</value>
+  </data>
+  <data name="SettingsPage_About.Text" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoExpander.Header" xml:space="preserve">
+    <value>Gateway info</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_Version.Text" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_Protocol.Text" xml:space="preserve">
+    <value>Protocol</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_AuthMode.Text" xml:space="preserve">
+    <value>Auth mode</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_Uptime.Text" xml:space="preserve">
+    <value>Uptime</value>
   </data>
 </root>

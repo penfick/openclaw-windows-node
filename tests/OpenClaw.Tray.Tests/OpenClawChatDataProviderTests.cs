@@ -16,17 +16,33 @@ public class OpenClawChatDataProviderTests
         public List<string> SentMessages { get; } = new();
         public List<string?> SentSessionKeys { get; } = new();
         public List<string?> SentSessionIds { get; } = new();
+        public List<IReadOnlyList<ChatAttachment>?> SentAttachments { get; } = new();
         public Queue<ChatSendResult> SendResults { get; } = new();
         public List<string> AbortedRunIds { get; } = new();
         public Func<string, string?, string?, Task>? SendBehavior { get; set; }
+        public Func<string, string, Task>? PatchSessionModelBehavior { get; set; }
+        public Func<string, Task>? ClearSessionModelBehavior { get; set; }
         public Func<string?, Task<ChatHistoryInfo>>? HistoryBehavior { get; set; }
         public Func<string, Task>? AbortBehavior { get; set; }
         public SessionInfo[] Sessions { get; set; } = Array.Empty<SessionInfo>();
         public ModelsListInfo? CurrentModels { get; set; }
+        // Configurable commands.list result + a call counter for the
+        // request/response protocol API.
+        public CommandCatalog CommandCatalogResult { get; set; } = new CommandCatalog { IsSupported = true };
+        public Func<CommandCatalogQuery?, Task<CommandCatalog>>? ListCommandsBehavior { get; set; }
+        public int ListCommandsCallCount { get; private set; }
+        public CommandCatalogQuery? LastListCommandsQuery { get; private set; }
 
         public SessionInfo[] GetSessionList() => Sessions;
         public ModelsListInfo? GetCurrentModelsList() => CurrentModels;
         public void StartProactiveBootstrap() { }
+
+        public Task<CommandCatalog> ListCommandsAsync(CommandCatalogQuery? query = null)
+        {
+            ListCommandsCallCount++;
+            LastListCommandsQuery = query;
+            return ListCommandsBehavior?.Invoke(query) ?? Task.FromResult(CommandCatalogResult);
+        }
 
         public Task SendChatMessageAsync(string message, string? sessionKey, string? sessionId, IReadOnlyList<ChatAttachment>? attachments = null)
             => SendChatMessageForRunAsync(message, sessionKey, sessionId, attachments);
@@ -36,13 +52,27 @@ public class OpenClawChatDataProviderTests
             SentMessages.Add(message);
             SentSessionKeys.Add(sessionKey);
             SentSessionIds.Add(sessionId);
+            SentAttachments.Add(attachments?.ToArray());
             if (SendBehavior is not null)
                 await SendBehavior(message, sessionKey, sessionId);
 
             return SendResults.Count > 0 ? SendResults.Dequeue() : new ChatSendResult();
         }
 
-        public Task PatchSessionModelAsync(string sessionKey, string model) => Task.CompletedTask;
+        public Task PatchSessionModelAsync(string sessionKey, string model)
+        {
+            PatchedModelKeys.Add(sessionKey);
+            PatchedModels.Add(model);
+            return PatchSessionModelBehavior?.Invoke(sessionKey, model) ?? Task.CompletedTask;
+        }
+        public List<string> PatchedModelKeys { get; } = new();
+        public List<string> PatchedModels { get; } = new();
+        public Task ClearSessionModelAsync(string sessionKey)
+        {
+            ClearedModelKeys.Add(sessionKey);
+            return ClearSessionModelBehavior?.Invoke(sessionKey) ?? Task.CompletedTask;
+        }
+        public List<string> ClearedModelKeys { get; } = new();
         public Task PatchSessionThinkingLevelAsync(string sessionKey, string thinkingLevel) => Task.CompletedTask;
 
         public Task<ChatHistoryInfo> RequestChatHistoryAsync(string? sessionKey)
@@ -128,6 +158,20 @@ public class OpenClawChatDataProviderTests
         Assert.Equal("Main session", snapshot.Threads[0].Title);
         Assert.Equal("main", snapshot.DefaultThreadId);
         Assert.True(snapshot.Timelines.ContainsKey("main"));
+    }
+
+    [Fact]
+    public async Task LoadAsync_CarriesSessionModelProviderToThreads()
+    {
+        var session = MainSession();
+        session.Model = "gpt-5.4";
+        session.Provider = "openrouter";
+        var (_, provider, _, _) = CreateProvider(new[] { session });
+
+        var snapshot = await provider.LoadAsync();
+
+        Assert.Equal("gpt-5.4", snapshot.Threads[0].Model);
+        Assert.Equal("openrouter", snapshot.Threads[0].ModelProvider);
     }
 
     [Fact]
@@ -1941,13 +1985,15 @@ public class OpenClawChatDataProviderTests
             {
                 new() { Id = "gpt-5.4", IsConfigured = true, HasConfiguredFlag = true },
                 new() { Id = "gpt-5.5", IsConfigured = false, HasConfiguredFlag = true },
+                new() { Id = "needs-auth", IsConfigured = false, HasConfiguredFlag = true, RequiresAuth = true },
                 new() { Id = "legacy-gateway-model" }
             }
         });
 
         Assert.Equal(
-            new[] { "gpt-5.4", "legacy-gateway-model" },
+            new[] { "gpt-5.4", "needs-auth", "legacy-gateway-model" },
             snapshots[^1].AvailableModels);
+        Assert.True(snapshots[^1].ModelChoices!.Single(c => c.Id == "needs-auth").RequiresAuth);
     }
 
     [Fact]
@@ -1972,6 +2018,274 @@ public class OpenClawChatDataProviderTests
     }
 
     [Fact]
+    public async Task EnsureCommandCatalogAsync_PopulatesCatalogInSnapshot()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[]
+            {
+                new GatewayCommand { Name = "clear", NativeName = "/clear", Category = "Session" },
+                new GatewayCommand { Name = "model", NativeName = "/model", Category = "Session", AcceptsArgs = true },
+            }
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        snapshots.Clear();
+
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        Assert.True(snap.CommandsSupported);
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Equal(2, snap.AvailableCommands!.Count);
+        Assert.Contains(snap.AvailableCommands, c => c.Name == "clear");
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_RequestsTextScopeAndExcludesNativeOnlyCommands()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        var mixedCatalog = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[]
+            {
+                new GatewayCommand { Name = "open-native-panel", NativeName = "open-native-panel", Scope = "native" },
+                new GatewayCommand { Name = "review", NativeName = "/review", Scope = "text" },
+                new GatewayCommand { Name = "model", NativeName = "/model", Scope = "both" },
+            }
+        };
+        bridge.ListCommandsBehavior = query => Task.FromResult(new CommandCatalog
+        {
+            IsSupported = mixedCatalog.IsSupported,
+            Commands = mixedCatalog.Commands.Where(c => query?.Matches(c) ?? true).ToArray(),
+        });
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        snapshots.Clear();
+
+        await provider.EnsureCommandCatalogAsync();
+
+        Assert.NotNull(bridge.LastListCommandsQuery);
+        Assert.Equal("text", bridge.LastListCommandsQuery!.Scope);
+        var commands = snapshots[^1].AvailableCommands!;
+        Assert.DoesNotContain(commands, c => c.Name == "open-native-panel");
+        Assert.Contains(commands, c => c.Name == "review");
+        Assert.Contains(commands, c => c.Name == "model");
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_Unsupported_FlipsSupportedFlag()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog { IsSupported = false };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        // The UI renders the "unsupported" state from this flag.
+        Assert.False(snap.CommandsSupported);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_Exception_PublishesUnsupportedFallback()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.ListCommandsBehavior = _ => Task.FromException<CommandCatalog>(
+            new InvalidOperationException("catalog unavailable"));
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        snapshots.Clear();
+
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        Assert.False(snap.CommandsSupported);
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Empty(snap.AvailableCommands!);
+
+        await provider.EnsureCommandCatalogAsync();
+        // The fallback is cached for this connection so reopening the menu does
+        // not retry immediately and put the composer back into "loading".
+        Assert.Equal(1, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_NotConnected_DoesNotFetch()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog { IsSupported = true };
+        await provider.LoadAsync();
+        // Provider starts Disconnected (FakeBridge default).
+
+        await provider.EnsureCommandCatalogAsync();
+
+        // The command catalog is a property of the live connection; no fetch
+        // should be issued while disconnected.
+        Assert.Equal(0, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task CommandCatalog_NullBeforeFetch_ThenEmptyNonNullWhenLoadedEmpty()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog { IsSupported = true };
+
+        // Before any commands.list fetch the catalog is null so the UI can
+        // distinguish "still loading" from "loaded but empty".
+        var initial = await provider.LoadAsync();
+        Assert.Null(initial.AvailableCommands);
+
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots[^1];
+        Assert.True(snap.CommandsSupported);
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Empty(snap.AvailableCommands!);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_FetchesOnceThenReusesCache()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[] { new GatewayCommand { Name = "clear", NativeName = "/clear" } }
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+        await provider.EnsureCommandCatalogAsync();
+
+        // The catalog is cached after the first successful fetch; a second
+        // palette-open does not re-hit commands.list.
+        Assert.Equal(1, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_RefetchesAfterReconnect()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[] { new GatewayCommand { Name = "clear", NativeName = "/clear" } }
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+        Assert.Equal(1, bridge.ListCommandsCallCount);
+
+        // Leaving Connected clears the cached catalog; the next palette-open
+        // re-fetches it.
+        bridge.RaiseStatus(ConnectionStatus.Disconnected);
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync();
+        Assert.Equal(2, bridge.ListCommandsCallCount);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_DisconnectDuringFetch_DiscardsLateResult()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+
+        // Gate the fetch so we can disconnect while it is in flight.
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        bridge.ListCommandsBehavior = async _ =>
+        {
+            await release.Task;
+            return new CommandCatalog
+            {
+                IsSupported = true,
+                Commands = new[] { new GatewayCommand { Name = "stale", NativeName = "/stale" } }
+            };
+        };
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        var fetch = provider.EnsureCommandCatalogAsync();
+
+        // Disconnect while the fetch is still awaiting — this bumps the epoch.
+        bridge.RaiseStatus(ConnectionStatus.Disconnected);
+
+        // Now let the in-flight fetch complete; its result must be discarded.
+        release.SetResult(true);
+        await fetch;
+
+        var snapshots2 = new List<ChatDataSnapshot>();
+        provider.Changed += (_, e) => snapshots2.Add(e.Snapshot);
+        // Reconnect and fetch fresh — the stale "/stale" catalog must not appear.
+        bridge.ListCommandsBehavior = null;
+        bridge.CommandCatalogResult = new CommandCatalog
+        {
+            IsSupported = true,
+            Commands = new[] { new GatewayCommand { Name = "fresh", NativeName = "/fresh" } }
+        };
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+        await provider.EnsureCommandCatalogAsync();
+
+        var snap = snapshots2[^1];
+        Assert.NotNull(snap.AvailableCommands);
+        Assert.Single(snap.AvailableCommands!);
+        Assert.Equal("fresh", snap.AvailableCommands![0].Name);
+    }
+
+    [Fact]
+    public async Task EnsureCommandCatalogAsync_DisconnectBeforeDelivery_DropsStaleCommandSnapshot()
+    {
+        var bridge = new FakeBridge
+        {
+            Sessions = new[] { MainSession() },
+            CurrentStatus = ConnectionStatus.Connected,
+            CommandCatalogResult = new CommandCatalog
+            {
+                IsSupported = true,
+                Commands = new[] { new GatewayCommand { Name = "stale", NativeName = "/stale" } }
+            }
+        };
+        // Manually-pumped post queue so we can interleave a disconnect between
+        // the commands.list snapshot's marshaled delivery being enqueued and run.
+        var queued = new List<Action>();
+        var provider = new OpenClawChatDataProvider(bridge, post: a => queued.Add(a));
+        var delivered = new List<ChatDataSnapshot>();
+        provider.Changed += (_, e) => delivered.Add(e.Snapshot);
+
+        await provider.LoadAsync();
+        bridge.RaiseStatus(ConnectionStatus.Connected);
+
+        await provider.EnsureCommandCatalogAsync(); // enqueues the command-catalog delivery
+
+        // Disconnect runs and is itself enqueued; drain the queue in order. The
+        // command-catalog delivery re-checks the epoch and, finding it bumped by
+        // the disconnect, drops itself — so the last delivered snapshot reflects
+        // the disconnect (no stale commands), not "connected + /stale".
+        bridge.RaiseStatus(ConnectionStatus.Disconnected);
+        foreach (var action in queued.ToArray())
+            action();
+
+        Assert.NotEmpty(delivered);
+        // The command-catalog delivery re-checks the epoch (bumped by the
+        // disconnect) and drops itself, so no delivered snapshot ever surfaces
+        // the now-stale command — regardless of marshaled delivery ordering.
+        Assert.DoesNotContain(delivered, s =>
+            s.AvailableCommands is { Count: > 0 } cmds && cmds.Any(c => c.Name == "stale"));
+        var last = delivered[^1];
+        Assert.True(last.AvailableCommands is null || last.AvailableCommands.Count == 0,
+            "A stale connected+commands snapshot must not be delivered after disconnect.");
+
+        await provider.DisposeAsync();
+    }
+
+    [Fact]
     public async Task LoadAsync_SeedsModelsFromBridgeSnapshot()
     {
         var bridge = new FakeBridge
@@ -1989,7 +2303,220 @@ public class OpenClawChatDataProviderTests
         Assert.Equal(new[] { "x" }, snap.AvailableModels);
     }
 
-    // ── Iteration 4: per-entry metadata (timestamp + model) ──
+    [Fact]
+    public async Task ModelsListUpdated_PopulatesProviderRichChoices()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        bridge.RaiseModels(new ModelsListInfo
+        {
+            Models = new List<ModelInfo>
+            {
+                new() { Id = "claude-opus-4.8", Name = "Claude Opus 4.8", Provider = "Anthropic", ContextWindow = 200000, IsDefault = true },
+                new() { Id = "gemini-3.1-pro", Name = "Gemini 3.1 Pro", Provider = "Google", ContextWindow = 1000000, RequiresAuth = true },
+                new() { Id = "local-llama", Provider = "Ollama", IsAvailable = false },
+            }
+        });
+
+        var choices = snapshots[^1].ModelChoices;
+        Assert.NotNull(choices);
+        Assert.Equal(3, choices!.Count);
+
+        Assert.Equal("claude-opus-4.8", choices[0].Id);
+        Assert.Equal("Anthropic/claude-opus-4.8", choices[0].SelectionId);
+        Assert.Equal("Claude Opus 4.8", choices[0].DisplayName);
+        Assert.Equal("Anthropic", choices[0].Provider);
+        Assert.Equal(200000, choices[0].ContextWindow);
+        Assert.True(choices[0].IsDefault);
+
+        Assert.True(choices[1].RequiresAuth);
+        Assert.False(choices[2].IsAvailable);
+        Assert.False(choices[2].IsSelectable);
+
+        // AvailableModels stays a parallel id list for back-compat.
+        Assert.Equal(new[] { "claude-opus-4.8", "gemini-3.1-pro", "local-llama" }, snapshots[^1].AvailableModels);
+    }
+
+    [Fact]
+    public async Task ModelsListUpdated_DedupesChoicesById()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        bridge.RaiseModels(new ModelsListInfo
+        {
+            Models = new List<ModelInfo>
+            {
+                new() { Id = "gpt-5.4", Name = "GPT-5.4" },
+                new() { Id = "gpt-5.4", Name = "GPT-5.4 (dupe)" },
+                new() { Id = "", Name = "no id" },
+            }
+        });
+
+        var choices = snapshots[^1].ModelChoices!;
+        Assert.Single(choices);
+        Assert.Equal("gpt-5.4", choices[0].Id);
+        Assert.Equal("GPT-5.4", choices[0].DisplayName); // first wins
+    }
+
+    [Fact]
+    public async Task ModelsListUpdated_KeepsDuplicateRawModelIdsFromDifferentProviders()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        bridge.RaiseModels(new ModelsListInfo
+        {
+            Models = new List<ModelInfo>
+            {
+                new() { Id = "gpt-5.4", Name = "GPT-5.4", Provider = "openai" },
+                new() { Id = "gpt-5.4", Name = "GPT-5.4 via OpenRouter", Provider = "openrouter" },
+            }
+        });
+
+        var choices = snapshots[^1].ModelChoices!;
+        Assert.Equal(2, choices.Count);
+        Assert.Equal("openai/gpt-5.4", choices[0].SelectionId);
+        Assert.Equal("openrouter/gpt-5.4", choices[1].SelectionId);
+        Assert.Equal(new[] { "gpt-5.4" }, snapshots[^1].AvailableModels);
+    }
+
+    [Fact]
+    public async Task SetModelAsync_ForwardsModelToBridge()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        await provider.SetModelAsync("main", "claude-opus-4.8");
+
+        Assert.Equal(new[] { "main" }, bridge.PatchedModelKeys);
+        Assert.Equal(new[] { "claude-opus-4.8" }, bridge.PatchedModels);
+    }
+
+    [Fact]
+    public async Task SetModelAsync_EmptyModel_IsNoOp_NotSent()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        // The gateway's sessions.patch schema rejects an empty model (NonEmpty
+        // string); a blank Set is a no-op. Clearing goes through ClearModelAsync.
+        await provider.SetModelAsync("main", "");
+        await provider.SetModelAsync("main", "   ");
+
+        Assert.Empty(bridge.PatchedModels);
+        Assert.Empty(bridge.ClearedModelKeys);
+    }
+
+    [Fact]
+    public async Task ClearModelAsync_ClearsOverrideViaBridge()
+    {
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        // The picker's "Default" entry clears the session's model override
+        // (tri-state sessions.patch null) — distinct from a Set.
+        await provider.ClearModelAsync("main");
+
+        Assert.Equal(new[] { "main" }, bridge.ClearedModelKeys);
+        Assert.Empty(bridge.PatchedModels);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_WaitsForInFlightModelPatchBeforeGatewaySend()
+    {
+        var patchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePatch = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.PatchSessionModelBehavior = (_, _) =>
+        {
+            patchStarted.TrySetResult();
+            return releasePatch.Task;
+        };
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        var modelTask = provider.SetModelAsync("main", "openai/gpt-5.4");
+        var sendTask = provider.SendMessageAsync("main", "Hello");
+        await Task.Delay(50);
+
+        Assert.Single(snapshots);
+        Assert.Empty(bridge.SentMessages);
+
+        await patchStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        releasePatch.SetResult();
+        await Task.WhenAll(modelTask, sendTask);
+
+        Assert.Equal(new[] { "openai/gpt-5.4" }, bridge.PatchedModels);
+        Assert.Equal(new[] { "Hello" }, bridge.SentMessages);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_ContinuesWhenInFlightModelPatchFails()
+    {
+        var patchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releasePatch = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        bridge.PatchSessionModelBehavior = async (_, _) =>
+        {
+            patchStarted.SetResult();
+            await releasePatch.Task;
+            throw new InvalidOperationException("patch failed");
+        };
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        var modelTask = provider.SetModelAsync("main", "openai/gpt-5.4");
+        await patchStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        var sendTask = provider.SendMessageAsync("main", "Hello");
+        await Task.Delay(50);
+
+        Assert.Empty(bridge.SentMessages);
+        releasePatch.SetResult();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => modelTask);
+        await sendTask;
+
+        Assert.Equal(new[] { "openai/gpt-5.4" }, bridge.PatchedModels);
+        Assert.Equal(new[] { "Hello" }, bridge.SentMessages);
+        Assert.DoesNotContain(
+            snapshots.SelectMany(s => s.Timelines["main"].Entries),
+            e => e.Kind == ChatTimelineItemKind.Status && e.Text.Contains("patch failed"));
+    }
+
+    [Fact]
+    public async Task ModelPatches_AreSerializedSoLatestSelectionCannotBeOvertaken()
+    {
+        var releaseFirst = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (bridge, provider, _, _) = CreateProvider(new[] { MainSession() });
+        bridge.PatchSessionModelBehavior = (_, model) =>
+        {
+            if (model == "openai/gpt-5.4")
+                return releaseFirst.Task;
+            if (model == "openai/gpt-5.4-pro")
+                secondStarted.SetResult();
+            return Task.CompletedTask;
+        };
+        await provider.LoadAsync();
+
+        var firstTask = provider.SetModelAsync("main", "openai/gpt-5.4");
+        var secondTask = provider.SetModelAsync("main", "openai/gpt-5.4-pro");
+        await Task.Delay(50);
+
+        Assert.False(secondStarted.Task.IsCompleted);
+
+        releaseFirst.SetResult();
+        await Task.WhenAll(firstTask, secondTask);
+
+        Assert.True(secondStarted.Task.IsCompleted);
+        Assert.Equal(new[] { "openai/gpt-5.4", "openai/gpt-5.4-pro" }, bridge.PatchedModels);
+    }
+
 
     [Fact]
     public async Task LoadHistoryAsync_CapturesPerEntryTimestamps()
@@ -2936,10 +3463,50 @@ public class OpenClawChatDataProviderTests
         await provider.SendMessageAsync("main", "Check this", default, new[] { attachment });
 
         Assert.Contains(bridge.SentMessages, m => m == "Check this");
+        var sentAttachment = Assert.Single(bridge.SentAttachments);
+        Assert.NotNull(sentAttachment);
+        Assert.Same(attachment, sentAttachment![0]);
         // The display text in the timeline should include the attachment indicator
         var timeline = snapshots[^1].Timelines["main"];
         var userEntry = timeline.Entries.Last(e => e.Kind == ChatTimelineItemKind.User);
         Assert.Contains("test.txt", userEntry.Text);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_WithMultipleAttachments_SendsAndRendersAllMarkers()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        var fileAttachment = new ChatAttachment
+        {
+            Type = "file",
+            MimeType = "text/plain",
+            FileName = "notes.txt",
+            Content = Convert.ToBase64String(new byte[] { 1 }),
+            SizeBytes = 1
+        };
+        var imageAttachment = new ChatAttachment
+        {
+            Type = "image",
+            MimeType = "image/png",
+            FileName = "diagram.png",
+            Content = Convert.ToBase64String(new byte[] { 2, 3 }),
+            SizeBytes = 2
+        };
+
+        await provider.SendMessageAsync("main", "See both", default, new[] { fileAttachment, imageAttachment });
+
+        var sentAttachments = Assert.Single(bridge.SentAttachments);
+        Assert.NotNull(sentAttachments);
+        Assert.Collection(
+            sentAttachments!,
+            a => Assert.Same(fileAttachment, a),
+            a => Assert.Same(imageAttachment, a));
+
+        var timeline = snapshots[^1].Timelines["main"];
+        var userEntry = timeline.Entries.Last(e => e.Kind == ChatTimelineItemKind.User);
+        Assert.Equal("See both\n\u200B📎 notes.txt\n\u200B🖼️ diagram.png", userEntry.Text);
     }
 
     [Fact]
@@ -2979,6 +3546,53 @@ public class OpenClawChatDataProviderTests
 
         var userEntry = snapshots[^1].Timelines["main"].Entries.Single(e => e.Kind == ChatTimelineItemKind.User);
         Assert.Equal("Check this\n\u200B📎 test.txt", userEntry.Text);
+    }
+
+    [Fact]
+    public async Task AttachmentMetadata_PersistsAndRehydratesMultipleAttachments()
+    {
+        using var tempDir = new TempDirectory();
+        var toolPath = Path.Combine(tempDir.DirectoryPath, "tool-metadata.json");
+        var attachmentPath = Path.Combine(tempDir.DirectoryPath, "attachment-metadata.json");
+        var sentTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var (_, provider1, _, _) = CreateProvider(new[] { MainSession() }, toolPath, attachmentPath);
+        await provider1.LoadAsync();
+        await provider1.SendMessageAsync("main", "See both", default, new[]
+        {
+            new ChatAttachment
+            {
+                Type = "file",
+                MimeType = "text/plain",
+                FileName = "notes.txt",
+                Content = Convert.ToBase64String(new byte[] { 1 }),
+                SizeBytes = 1
+            },
+            new ChatAttachment
+            {
+                Type = "image",
+                MimeType = "image/png",
+                FileName = "diagram.png",
+                Content = Convert.ToBase64String(new byte[] { 2, 3 }),
+                SizeBytes = 2
+            }
+        });
+
+        var (bridge2, provider2, snapshots, _) = CreateProvider(new[] { MainSession() }, toolPath, attachmentPath);
+        bridge2.HistoryBehavior = key => Task.FromResult(new ChatHistoryInfo
+        {
+            SessionKey = key ?? "",
+            SessionId = "session-1",
+            Messages = new[]
+            {
+                new ChatMessageInfo { Role = "user", Text = "See both", State = "final", Ts = sentTs }
+            }
+        });
+
+        await provider2.LoadHistoryAsync("main");
+
+        var userEntry = snapshots[^1].Timelines["main"].Entries.Single(e => e.Kind == ChatTimelineItemKind.User);
+        Assert.Equal("See both\n\u200B📎 notes.txt\n\u200B🖼️ diagram.png", userEntry.Text);
     }
 
     [Fact]
@@ -3543,6 +4157,30 @@ public class OpenClawChatDataProviderTests
     }
 
     [Fact]
+    public async Task RespondToPermissionAsync_AllowAlwaysRoutesAllowAlwaysThroughRpcAndMarksAlwaysAllowed()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-always-1"));
+        var pendingEntry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Contains(ChatPermissionActionKeys.AllowAlways, pendingEntry.PermissionActions!);
+
+        await provider.RespondToPermissionAsync("main", "appr-always-1", ChatPermissionActionKeys.AllowAlways);
+
+        Assert.Single(bridge.ResolvedApprovals);
+        Assert.Equal("appr-always-1", bridge.ResolvedApprovals[0].Id);
+        Assert.Equal("allow-always", bridge.ResolvedApprovals[0].Decision);
+        Assert.Empty(bridge.SentMessages);
+
+        var decidedEntry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.AllowedAlways, decidedEntry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
     public async Task RespondToPermissionAsync_RpcThrows_BannerPreservedForRetry()
     {
         // Critical contract: if ResolveExecApprovalAsync throws (e.g. gateway
@@ -3592,6 +4230,21 @@ public class OpenClawChatDataProviderTests
     }
 
     [Fact]
+    public async Task ResolvedEcho_WithAllowAlwaysDecision_MarksEntryAlwaysAllowed()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-echo-always"));
+        bridge.RaiseAgent(MakeApprovalResolvedEvent("appr-echo-always", phase: "resolved", decision: "allow-always"));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.AllowedAlways, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
     public async Task ResolvedEcho_WithDenyDecision_MarksEntryDeniedNotExpired()
     {
         var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
@@ -3617,6 +4270,24 @@ public class OpenClawChatDataProviderTests
 
         bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-echo-expired"));
         bridge.RaiseAgent(MakeApprovalResolvedEvent("appr-echo-expired", phase: "expired"));
+
+        var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Expired, entry.PermissionDecision);
+        Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
+    }
+
+    [Fact]
+    public async Task ResolvedEcho_WithExpiredPhaseAndAllowDecision_StaysExpired()
+    {
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+
+        bridge.RaiseAgent(MakeApprovalRequestedEvent("appr-echo-expired-allow"));
+        bridge.RaiseAgent(MakeApprovalResolvedEvent(
+            "appr-echo-expired-allow",
+            phase: "expired",
+            decision: ChatPermissionActionKeys.AllowAlways));
 
         var entry = Assert.Single(snapshots[^1].Timelines["main"].Entries,
             e => e.Kind == ChatTimelineItemKind.PermissionRequest);
@@ -3680,11 +4351,111 @@ public class OpenClawChatDataProviderTests
         Assert.Null(snapshots[^1].Timelines["main"].PendingPermission);
     }
 
+    [Fact]
+    public async Task LocalExecApproval_InlineDecisionCompletesPromptAndAddsHistoryResult()
+    {
+        var (_, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        var promptTask = provider.RequestLocalExecApprovalAsync(new ExecApprovalPromptRequest
+        {
+            Command = "del \"E:\\Temp\\sample.txt\"",
+            Shell = "auto",
+            Reason = "No matching rule; default policy applied",
+            SessionKey = "main",
+            CorrelationId = "abc12345"
+        });
+
+        Assert.False(promptTask.IsCompleted);
+        var pendingTimeline = snapshots[^1].Timelines["main"];
+        var pendingEntry = Assert.Single(pendingTimeline.Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal("local-abc12345", pendingEntry.PermissionRequestId);
+        Assert.Contains(ChatPermissionActionKeys.AllowOnce, pendingEntry.PermissionActions!);
+        Assert.Contains(ChatPermissionActionKeys.AllowAlways, pendingEntry.PermissionActions!);
+        Assert.Contains(ChatPermissionActionKeys.Deny, pendingEntry.PermissionActions!);
+
+        await provider.RespondToPermissionAsync("main", "local-abc12345", ChatPermissionActionKeys.AllowAlways);
+
+        var decision = await promptTask;
+        Assert.Equal(ExecApprovalPromptDecisionKind.AlwaysAllow, decision!.Kind);
+
+        var decidedTimeline = snapshots[^1].Timelines["main"];
+        var decidedEntry = Assert.Single(decidedTimeline.Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.AllowedAlways, decidedEntry.PermissionDecision);
+        Assert.Contains(decidedTimeline.Entries, e =>
+            e.Kind == ChatTimelineItemKind.Status &&
+            e.Text.Contains("Always allow", StringComparison.Ordinal) &&
+            e.Text.Contains("del \"E:\\Temp\\sample.txt\"", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task LocalExecApproval_SyntheticThreadUsesCachedModelProvider()
+    {
+        var session = MainSession();
+        session.Model = "gpt-5.4";
+        session.Provider = "openrouter";
+        var (bridge, provider, snapshots, _) = CreateProvider(new[] { session });
+        await provider.LoadAsync();
+        Assert.Equal("gpt-5.4", provider.CachedLastChatState?.Model);
+        Assert.Equal("openrouter", provider.CachedLastChatState?.ModelProvider);
+        bridge.RaiseSessions(Array.Empty<SessionInfo>());
+        Assert.Equal("gpt-5.4", provider.CachedLastChatState?.Model);
+        Assert.Equal("openrouter", provider.CachedLastChatState?.ModelProvider);
+        snapshots.Clear();
+
+        var promptTask = provider.RequestLocalExecApprovalAsync(new ExecApprovalPromptRequest
+        {
+            Command = "tasklist",
+            Shell = "cmd",
+            SessionKey = "main",
+            CorrelationId = "provider-context"
+        });
+
+        var synthetic = Assert.Single(snapshots[^1].Threads, t => t.Id == "main");
+        Assert.Equal("gpt-5.4", synthetic.Model);
+        Assert.Equal("openrouter", synthetic.ModelProvider);
+
+        await provider.RespondToPermissionAsync("main", "local-provider-context", ChatPermissionActionKeys.Deny);
+        await promptTask;
+    }
+
+    [Fact]
+    public async Task LocalExecApproval_TimeoutExpiresEntryAndCompletesAsTimedOutDeny()
+    {
+        var (_, provider, snapshots, _) = CreateProvider(new[] { MainSession() });
+        await provider.LoadAsync();
+        snapshots.Clear();
+
+        var promptTask = provider.RequestLocalExecApprovalAsync(new ExecApprovalPromptRequest
+        {
+            Command = "tasklist",
+            Shell = "cmd",
+            SessionKey = "main",
+            CorrelationId = "timeout1"
+        }, approvalTimeout: TimeSpan.FromMilliseconds(10));
+
+        var decision = await promptTask.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.NotNull(decision);
+        Assert.Equal(ExecApprovalPromptDecisionKind.Deny, decision!.Kind);
+        Assert.Equal(ExecApprovalPromptDecision.TimedOutReason, decision.Reason);
+
+        var timedOutTimeline = snapshots[^1].Timelines["main"];
+        var timedOutEntry = Assert.Single(timedOutTimeline.Entries,
+            e => e.Kind == ChatTimelineItemKind.PermissionRequest);
+        Assert.Equal(ChatPermissionDecision.Expired, timedOutEntry.PermissionDecision);
+        Assert.Null(timedOutTimeline.PendingPermission);
+    }
+
     private static AgentEventInfo MakeApprovalResolvedEvent(
         string approvalId,
         string phase,
         string sessionKey = "main",
-        string? approvalSlug = null)
+        string? approvalSlug = null,
+        string? decision = null)
     {
         // Mirrors the flat envelope that OpenClawGatewayClient.HandleExecApprovalEvent
         // synthesizes from a top-level exec.approval.resolved broadcast.
@@ -3693,6 +4464,7 @@ public class OpenClawChatDataProviderTests
               "phase": "{{phase}}",
               "approvalId": "{{approvalId}}",
               "approvalSlug": "{{approvalSlug ?? approvalId}}",
+              "decision": "{{decision ?? ""}}",
               "host": "gateway",
               "command": "openclaw nodes invoke --node \"Windows Node\" --command system.run",
               "agentId": "main"

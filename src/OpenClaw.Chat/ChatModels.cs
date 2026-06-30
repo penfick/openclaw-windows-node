@@ -45,10 +45,33 @@ public enum ChatTimelineItemKind
 /// </remarks>
 public enum ChatPermissionDecision
 {
-    Pending,
-    Allowed,
-    Denied,
-    Expired
+    Pending = 0,
+    Allowed = 1,
+    Denied = 2,
+    Expired = 3,
+    AllowedAlways = 4
+}
+
+public static class ChatPermissionActionKeys
+{
+    public const string AllowOnce = "allow-once";
+    public const string AllowAlways = "allow-always";
+    public const string Deny = "deny";
+
+    public static readonly string[] ExecApprovalDefaults = [AllowOnce, AllowAlways, Deny];
+
+    public static string[] NormalizeActions(IReadOnlyList<string>? actions)
+    {
+        if (actions is not { Count: > 0 })
+            return ExecApprovalDefaults;
+
+        var normalized = actions
+            .Where(action => !string.IsNullOrWhiteSpace(action))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return normalized.Length > 0 ? normalized : ExecApprovalDefaults;
+    }
 }
 
 public enum ChatToolCallStatus
@@ -82,6 +105,7 @@ public record ChatThread
     public string? Compute { get; init; }
     public string? ProfileName { get; init; }
     public string? Model { get; init; }
+    public string? ModelProvider { get; init; }
     public string? ThinkingLevel { get; init; }
     public long InputTokens { get; init; }
     public long OutputTokens { get; init; }
@@ -107,9 +131,10 @@ public record ChatTimelineItem(
     ChatTone? Tone = null,
     string? ToolCallId = null,
     string? PermissionRequestId = null,
-    ChatPermissionDecision PermissionDecision = ChatPermissionDecision.Pending);
+    ChatPermissionDecision PermissionDecision = ChatPermissionDecision.Pending,
+    IReadOnlyList<string>? PermissionActions = null);
 
-public record ChatPermissionRequest(string RequestId, string PermissionKind, string ToolName, string Detail);
+public record ChatPermissionRequest(string RequestId, string PermissionKind, string ToolName, string Detail, IReadOnlyList<string>? Actions = null);
 
 public record ChatTimelineState(
     System.Collections.Immutable.ImmutableList<ChatTimelineItem> Entries,
@@ -156,7 +181,7 @@ public record ChatContextChangedEvent(string? Cwd, string? GitBranch) : ChatEven
 public record ChatStatusEvent(string Text, ChatTone Tone) : ChatEvent;
 public record ChatErrorEvent(string Text) : ChatEvent;
 public record ChatRestoredEvent(string Text) : ChatEvent;
-public record ChatPermissionRequestEvent(string RequestId, string PermissionKind, string ToolName, string Detail) : ChatEvent;
+public record ChatPermissionRequestEvent(string RequestId, string PermissionKind, string ToolName, string Detail, IReadOnlyList<string>? Actions = null) : ChatEvent;
 public record ChatModelChangedEvent(string Model) : ChatEvent;
 public record ChatRawEvent(string EventType, string? Text = null) : ChatEvent;
 
@@ -166,7 +191,10 @@ public record ChatDataSnapshot(
     string? DefaultThreadId,
     string? ConnectionStatus,
     string[] AvailableModels,
-    ChatComposeTarget ComposeTarget);
+    ChatComposeTarget ComposeTarget,
+    IReadOnlyList<ChatModelChoice>? ModelChoices = null,
+    IReadOnlyList<OpenClaw.Shared.GatewayCommand>? AvailableCommands = null,
+    bool CommandsSupported = true);
 
 /// <summary>
 /// Describes where the UI may send the next chat message. Distinct from
@@ -233,7 +261,27 @@ public interface IChatDataProvider : IAsyncDisposable
     Task SetThreadSuspendedAsync(string threadId, bool suspended, CancellationToken cancellationToken = default);
     Task DeleteThreadAsync(string threadId, CancellationToken cancellationToken = default);
     Task SetModelAsync(string threadId, string model, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Clears the session's explicit model override so it tracks the gateway's
+    /// agent/default model again. Providers that don't support clearing leave
+    /// the default no-op. Distinct from <see cref="SetModelAsync"/> because the
+    /// gateway models this as an explicit null (tri-state), not an empty string.
+    /// </summary>
+    Task ClearModelAsync(string threadId, CancellationToken cancellationToken = default) => Task.CompletedTask;
     Task SetThinkingLevelAsync(string threadId, string thinkingLevel, CancellationToken cancellationToken = default);
     Task SetPermissionModeAsync(string threadId, bool allowAll, CancellationToken cancellationToken = default);
-    Task RespondToPermissionAsync(string threadId, string requestId, bool allow, CancellationToken cancellationToken = default);
+    Task RespondToPermissionAsync(string threadId, string requestId, string action, CancellationToken cancellationToken = default);
+    Task RespondToPermissionAsync(string threadId, string requestId, bool allow, CancellationToken cancellationToken = default) =>
+        RespondToPermissionAsync(
+            threadId,
+            requestId,
+            allow ? ChatPermissionActionKeys.AllowOnce : ChatPermissionActionKeys.Deny,
+            cancellationToken);
+
+    /// <summary>
+    /// Requests a refresh of the gateway command catalog surfaced via
+    /// <see cref="ChatDataSnapshot.AvailableCommands"/>. Providers that have no
+    /// command catalog (e.g. previews/fakes) may treat this as a no-op.
+    /// </summary>
+    Task EnsureCommandCatalogAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

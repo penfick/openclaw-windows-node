@@ -54,6 +54,15 @@ function Write-Info($text) { Write-Host "   $text" -ForegroundColor Gray }
 # Track issues
 $issues = @()
 
+function Test-WindowsHost {
+    $isWindowsVariable = Get-Variable -Name IsWindows -ErrorAction SilentlyContinue
+    if ($isWindowsVariable) {
+        return [bool]$isWindowsVariable.Value
+    }
+
+    return [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+}
+
 function ConvertTo-GitSafeDirectoryPath($path) {
     return ([System.IO.Path]::GetFullPath($path).TrimEnd("\") -replace "\\", "/")
 }
@@ -143,7 +152,7 @@ Write-Host @"
 Write-Header "Checking Prerequisites"
 
 # Check OS
-if ($env:OS -ne "Windows_NT") {
+if (-not (Test-WindowsHost)) {
     Write-Error "This project requires Windows"
     exit 1
 }
@@ -219,11 +228,23 @@ if (-not $nodeVersion) {
 # Check Windows SDK (for WinUI)
 $windowsSdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include"
 if (Test-Path $windowsSdkPath) {
-    $sdkVersions = Get-ChildItem $windowsSdkPath -Directory | Select-Object -ExpandProperty Name | Sort-Object -Descending
-    Write-Success "Windows SDK: $($sdkVersions[0])"
+    $sdkVersions = @(
+        Get-ChildItem $windowsSdkPath -Directory |
+            Where-Object { $_.Name -match "^\d+\.\d+\.\d+\.\d+$" } |
+            Sort-Object { [version]$_.Name } -Descending |
+            Select-Object -ExpandProperty Name
+    )
+
+    if ($sdkVersions.Count -gt 0) {
+        Write-Success "Windows SDK: $($sdkVersions[0])"
+    } else {
+        Write-Warning "Windows 10 SDK not found (needed for WinUI build)"
+        Write-Info "Install via Visual Studio Installer, standalone SDK, or: winget install --id Microsoft.WindowsSDK.10.0.26100 -e"
+        $issues += "Windows 10 SDK not detected"
+    }
 } else {
     Write-Warning "Windows 10 SDK not found (needed for WinUI build)"
-    Write-Info "Install via Visual Studio Installer or standalone SDK"
+    Write-Info "Install via Visual Studio Installer, standalone SDK, or: winget install --id Microsoft.WindowsSDK.10.0.26100 -e"
     $issues += "Windows 10 SDK not detected"
 }
 

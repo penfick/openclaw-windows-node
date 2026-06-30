@@ -649,6 +649,75 @@ Gebruik een van deze opties:
   <data name="Toast_PairingCommandCopied" xml:space="preserve">
     <value>Koppelingsopdracht gekopieerd</value>
   </data>
+  <data name="Toast_PairingRequestTitle" xml:space="preserve">
+    <value>Koppelingsverzoek</value>
+  </data>
+  <data name="Toast_PairingRequestBody" xml:space="preserve">
+    <value>{0} wil verbinding maken</value>
+  </data>
+  <data name="Toast_PairingRequestBodyNode" xml:space="preserve">
+    <value>{0} wil verbinding maken als node</value>
+  </data>
+  <data name="Toast_PairingReview" xml:space="preserve">
+    <value>Bekijken</value>
+  </data>
+  <data name="Toast_PairingApprovedTitle" xml:space="preserve">
+    <value>Koppeling goedgekeurd</value>
+  </data>
+  <data name="Toast_PairingApprovedBody" xml:space="preserve">
+    <value>{0} kan nu verbinding maken</value>
+  </data>
+  <data name="Toast_PairingRejectedTitle" xml:space="preserve">
+    <value>Koppeling geweigerd</value>
+  </data>
+  <data name="Toast_PairingRejectedBody" xml:space="preserve">
+    <value>{0} mocht geen verbinding maken</value>
+  </data>
+  <data name="PairingApproval_WindowTitle" xml:space="preserve">
+    <value>Koppelingsverzoek</value>
+  </data>
+  <data name="PairingApproval_DeviceHeading" xml:space="preserve">
+    <value>Een apparaat wil verbinding maken</value>
+  </data>
+  <data name="PairingApproval_NodeHeading" xml:space="preserve">
+    <value>Een node wil verbinding maken</value>
+  </data>
+  <data name="PairingApproval_Subtitle" xml:space="preserve">
+    <value>Keur dit alleen goed als je dit verzoek herkent. Je kunt het later verwijderen in de verbindingsinstellingen.</value>
+  </data>
+  <data name="PairingApproval_AccessRequested" xml:space="preserve">
+    <value>Gevraagde toegang</value>
+  </data>
+  <data name="PairingApproval_RepairBadge" xml:space="preserve">
+    <value>Verzoek om opnieuw te koppelen — het apparaattoken wordt vernieuwd.</value>
+  </data>
+  <data name="PairingApproval_Approve" xml:space="preserve">
+    <value>Goedkeuren</value>
+  </data>
+  <data name="PairingApproval_ApproveDevice" xml:space="preserve">
+    <value>Apparaat goedkeuren</value>
+  </data>
+  <data name="PairingApproval_ApproveNode" xml:space="preserve">
+    <value>Node goedkeuren</value>
+  </data>
+  <data name="PairingApproval_Reject" xml:space="preserve">
+    <value>Weigeren</value>
+  </data>
+  <data name="PairingApproval_Later" xml:space="preserve">
+    <value>Later beslissen</value>
+  </data>
+  <data name="PairingApproval_MoreWaiting" xml:space="preserve">
+    <value>Nog {0} in wachtrij</value>
+  </data>
+  <data name="PairingApproval_ApproveHint" xml:space="preserve">
+    <value>Goedkeuren komt zo beschikbaar</value>
+  </data>
+  <data name="PairingApproval_UnknownDevice" xml:space="preserve">
+    <value>Onbekend apparaat</value>
+  </data>
+  <data name="PairingApproval_UnknownPlatform" xml:space="preserve">
+    <value>Onbekend platform</value>
+  </data>
   <data name="Toast_NodePaired" xml:space="preserve">
     <value>✅ Node gekoppeld!</value>
   </data>
@@ -1447,57 +1516,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="Onboarding_LocalSetup_Phase_MintToken" xml:space="preserve">
     <value>Installatiecode genereren</value>
   </data>
-  <data name="AboutPage_TextBlock_10.Text" xml:space="preserve">
-    <value>Over</value>
-  </data>
-  <data name="AboutPage_TextBlock_19.Text" xml:space="preserve">
-    <value>OpenClaw Hub</value>
-  </data>
-  <data name="AboutPage_TextBlock_23.Text" xml:space="preserve">
-    <value>.NET / WinUI / Windows App SDK</value>
-  </data>
-  <data name="AboutPage_TextBlock_35.Text" xml:space="preserve">
-    <value>Gatewaygegevens</value>
-  </data>
-  <data name="AboutPage_TextBlock_48.Text" xml:space="preserve">
-    <value>Versie:</value>
-  </data>
-  <data name="AboutPage_TextBlock_52.Text" xml:space="preserve">
-    <value>Protocolversie:</value>
-  </data>
-  <data name="AboutPage_TextBlock_56.Text" xml:space="preserve">
-    <value>Verificatiemodus:</value>
-  </data>
-  <data name="AboutPage_TextBlock_60.Text" xml:space="preserve">
-    <value>Actieve tijd:</value>
-  </data>
-  <data name="AboutPage_TextBlock_72.Text" xml:space="preserve">
-    <value>Foutopsporing</value>
-  </data>
-  <data name="OpenLogButton.Content" xml:space="preserve">
-    <value>Logbestand openen</value>
-  </data>
-  <data name="OpenConfigButton.Content" xml:space="preserve">
-    <value>Configuratiemap openen</value>
-  </data>
-  <data name="CopySupportButton.Content" xml:space="preserve">
-    <value>Ondersteuningscontext kopiëren</value>
-  </data>
-  <data name="CheckUpdatesButton.Content" xml:space="preserve">
-    <value>Updates zoeken</value>
-  </data>
-  <data name="AboutPage_TextBlock_91.Text" xml:space="preserve">
-    <value>Koppelingen</value>
-  </data>
-  <data name="AboutPage_HyperlinkButton_92.Content" xml:space="preserve">
-    <value>Documentation → docs.openclaw.ai/platforms/windows</value>
-  </data>
-  <data name="AboutPage_HyperlinkButton_94.Content" xml:space="preserve">
-    <value>GitHub → github.com/openclaw/openclaw-windows-node</value>
-  </data>
-  <data name="AboutPage_HyperlinkButton_96.Content" xml:space="preserve">
-    <value>Dashboard → openclaw://dashboard</value>
-  </data>
   <data name="AgentEventsPage_TextBlock_18.Text" xml:space="preserve">
     <value>Agentgebeurtenissen</value>
   </data>
@@ -1568,7 +1586,7 @@ Voer op uw gateway-host (Mac/Linux) uit:
     <value>Lokale MCP-server</value>
   </data>
   <data name="PermissionsPage_McpDescription.Text" xml:space="preserve">
-    <value>Stel mogelijkheden beschikbaar via HTTP voor CLI-hulpprogramma’s en lokale integraties.</value>
+    <value>Levert mogelijkheden aan lokale MCP-clients (CLI-hulpprogramma's, integraties) op deze pc via HTTP.</value>
   </data>
   <data name="PermissionsPage_McpEndpointLabel.Text" xml:space="preserve">
     <value>Eindpunt:</value>
@@ -1698,9 +1716,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="ConnectionPage_TextBlock_11.Text" xml:space="preserve">
     <value>Gateway-eindpunt dat door zowel de operatorclient als de knooppuntservice wordt gebruikt.</value>
-  </data>
-  <data name="AuthErrorBar.Title" xml:space="preserve">
-    <value>Verbindingsfout</value>
   </data>
   <data name="StatusText.Text" xml:space="preserve">
     <value>Verbinding verbroken</value>
@@ -2021,10 +2036,13 @@ Voer op uw gateway-host (Mac/Linux) uit:
     <value>Opdrachtpatroon (bijv. echo *)</value>
   </data>
   <data name="PermissionsPage_ComboBoxItem_54.Content" xml:space="preserve">
-    <value>Toestaan</value>
+    <value>Weigeren</value>
   </data>
   <data name="PermissionsPage_ComboBoxItem_55.Content" xml:space="preserve">
-    <value>Weigeren</value>
+    <value>Toestaan</value>
+  </data>
+  <data name="PermissionsPage_ComboBoxItem_56.Content" xml:space="preserve">
+    <value>Vragen</value>
   </data>
   <data name="PermissionsPage_Button_57.Content" xml:space="preserve">
     <value>Regel toevoegen</value>
@@ -2215,6 +2233,69 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="WorkspacePage_LoadingContent" xml:space="preserve">
     <value>Inhoud laden…</value>
   </data>
+  <data name="WorkspacePage_SearchBox.PlaceholderText" xml:space="preserve">
+    <value>Search files</value>
+  </data>
+  <data name="WorkspacePage_ParentFolderButton.Content" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="WorkspacePage_OpenConnectionSettings.Content" xml:space="preserve">
+    <value>Open Connection settings</value>
+  </data>
+  <data name="WorkspacePage_NoSearchResults.Text" xml:space="preserve">
+    <value>No files match your search.</value>
+  </data>
+  <data name="WorkspacePage_NoFolderResults" xml:space="preserve">
+    <value>No files found in this folder.</value>
+  </data>
+  <data name="WorkspacePage_LoadErrorMessage" xml:space="preserve">
+    <value>Couldn't load workspace files. Try refreshing.</value>
+  </data>
+  <data name="WorkspacePage_UnsupportedMessage" xml:space="preserve">
+    <value>This gateway doesn't support listing workspace files.</value>
+  </data>
+  <data name="WorkspacePage_Badge_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="WorkspacePage_Badge_Edited" xml:space="preserve">
+    <value>Edited</value>
+  </data>
+  <data name="WorkspacePage_Badge_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="WorkspacePage_FolderNote" xml:space="preserve">
+    <value>This is a folder.</value>
+  </data>
+  <data name="WorkspacePage_FileUnavailable" xml:space="preserve">
+    <value>Couldn't load this file.</value>
+  </data>
+  <data name="WorkspacePage_BrowserOnlyFileNote" xml:space="preserve">
+    <value>Only files read or edited in this session can be previewed.</value>
+  </data>
+  <data name="WorkspacePage_OpenFolder" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="WorkspacePage_CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="WorkspacePage_CopyPathFailed" xml:space="preserve">
+    <value>Couldn't copy the path.</value>
+  </data>
+  <data name="WorkspacePage_FileType_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="WorkspacePage_FileType_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="WorkspacePage_RootFolder" xml:space="preserve">
+    <value>Root</value>
+  </data>
+  <data name="WorkspacePage_SearchResultsPath" xml:space="preserve">
+    <value>Search results for "{0}"</value>
+  </data>
+  <data name="WorkspacePage_BrowserTruncated" xml:space="preserve">
+    <value>Some results were omitted. Narrow your search or open a folder.</value>
+  </data>
   <data name="WorkspacePage_MissingFile" xml:space="preserve">
     <value>(bestand niet gevonden op schijf)</value>
   </data>
@@ -2235,6 +2316,12 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="NavPaneToggleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Navigatievenster in- of uitschakelen</value>
+  </data>
+  <data name="NavBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Terug</value>
+  </data>
+  <data name="NavBackButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Terug</value>
   </data>
   <data name="TitleStatusText.Text" xml:space="preserve">
     <value>Verbinding verbroken</value>
@@ -2304,9 +2391,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="HubWindow_NavigationViewItem_Notifications.Content" xml:space="preserve">
     <value>Meldingen</value>
-  </data>
-  <data name="HubWindow_NavigationViewItem_148.Content" xml:space="preserve">
-    <value>Informatie</value>
   </data>
   <data name="Onboarding_UnknownPage" xml:space="preserve">
     <value>Onbekende pagina</value>
@@ -2511,6 +2595,105 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="VoiceSettingsPage_PageDescription.Text" xml:space="preserve">
     <value>Configureer spraak-naar-tekst en spraakinteractie-instellingen. Alle spraakverwerking draait lokaal op uw apparaat.</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantHeader.Text" xml:space="preserve">
+    <value>Assistent</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantDescription.Text" xml:space="preserve">
+    <value>Altijd luisterende assistentservice en nieuwste gespreksbeurten.</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Assistentstatus vernieuwen</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStartButtonText.Text" xml:space="preserve">
+    <value>Starten</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopButtonText.Text" xml:space="preserve">
+    <value>Stoppen</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStatusChecking.Text" xml:space="preserve">
+    <value>Assistentstatus controleren...</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantRecentTurnsHeader.Text" xml:space="preserve">
+    <value>Recente beurten</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStarting" xml:space="preserve">
+    <value>Assistent starten...</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStartingDetail" xml:space="preserve">
+    <value>Altijd-luisterende modus starten met lokale assistentroutering en opslag van beurten.</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStartFailed" xml:space="preserve">
+    <value>Assistent is niet gestart</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopping" xml:space="preserve">
+    <value>Assistent stoppen...</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopFailed" xml:space="preserve">
+    <value>Assistent is niet gestopt</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantBridgeUnavailable" xml:space="preserve">
+    <value>Assistentbrug niet beschikbaar</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantNoTurnsLoaded" xml:space="preserve">
+    <value>Geen assistentbeurten geladen.</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantUnknown" xml:space="preserve">
+    <value>onbekend</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantListeningFormat" xml:space="preserve">
+    <value>Assistent luistert (PID {0})</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStopped" xml:space="preserve">
+    <value>Assistent gestopt</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantStatusFormat" xml:space="preserve">
+    <value>Assistent {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantTranscriberFormat" xml:space="preserve">
+    <value>Transcriptie: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantMicFormat" xml:space="preserve">
+    <value>Microfoon: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantSpeakerFormat" xml:space="preserve">
+    <value>Luidspreker: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantCloudRoutingFormat" xml:space="preserve">
+    <value>Cloudroutering: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantSpeechOutputFormat" xml:space="preserve">
+    <value>Spraakuitvoer: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantOn" xml:space="preserve">
+    <value>aan</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantOff" xml:space="preserve">
+    <value>uit</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantLastBridgeUpdateFormat" xml:space="preserve">
+    <value>Laatste brugupdate: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantNoConversationTurns" xml:space="preserve">
+    <value>Nog geen gespreksbeurten.</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantSourceDefault" xml:space="preserve">
+    <value>assistent</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantTurnMetadataFormat" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantTurnMetadataWithLatencyFormat" xml:space="preserve">
+    <value>{0} | {1} | {2} ms vertraging</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantUserTurnFormat" xml:space="preserve">
+    <value>Jij: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantResponseTurnFormat" xml:space="preserve">
+    <value>OpenClaw-antwoord: {0}</value>
+  </data>
+  <data name="VoiceSettingsPage_AssistantEmptyValue" xml:space="preserve">
+    <value>(leeg)</value>
   </data>
   <data name="VoiceSettingsPage_SttHeader.Text" xml:space="preserve">
     <value>Spraak-naar-tekst</value>
@@ -2972,13 +3155,19 @@ Voer op uw gateway-host (Mac/Linux) uit:
     <value> … [{0} bytes afgekapt]</value>
   </data>
   <data name="Chat_Permission_Allow" xml:space="preserve">
-    <value>Toestaan</value>
+    <value>Eenmalig toestaan</value>
+  </data>
+  <data name="Chat_Permission_AllowAlways" xml:space="preserve">
+    <value>Altijd toestaan</value>
   </data>
   <data name="Chat_Permission_Deny" xml:space="preserve">
-    <value>Weigeren</value>
+    <value>Eenmalig weigeren</value>
   </data>
   <data name="Chat_Permission_DecisionAllowed" xml:space="preserve">
     <value>Toegestaan</value>
+  </data>
+  <data name="Chat_Permission_DecisionAlwaysAllowed" xml:space="preserve">
+    <value>Altijd toegestaan</value>
   </data>
   <data name="Chat_Permission_DecisionDenied" xml:space="preserve">
     <value>Geweigerd</value>
@@ -3010,6 +3199,88 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="AppNotification_ShowMore" xml:space="preserve">
     <value>Meer weergeven</value>
   </data>
+  <data name="AppNotification_ActionOpenConnection" xml:space="preserve">
+    <value>Verbinding openen</value>
+  </data>
+  <data name="AppNotification_ActionOpenChannels" xml:space="preserve">
+    <value>Kanalen openen</value>
+  </data>
+  <data name="AppNotification_ActionOpenSandbox" xml:space="preserve">
+    <value>Sandbox openen</value>
+  </data>
+  <data name="AppNotification_ActionOpenCron" xml:space="preserve">
+    <value>Cron openen</value>
+  </data>
+  <data name="AppNotification_GatewayConnectionFailed_Title" xml:space="preserve">
+    <value>Gatewayverbinding mislukt</value>
+  </data>
+  <data name="AppNotification_GatewayConnectionFailed_DefaultMessage" xml:space="preserve">
+    <value>OpenClaw kon geen verbinding maken met de actieve gateway.</value>
+  </data>
+  <data name="AppNotification_GatewayPairingRequired_Title" xml:space="preserve">
+    <value>Goedkeuring voor gatewaykoppeling vereist</value>
+  </data>
+  <data name="AppNotification_GatewayPairingRequired_GenericMessage" xml:space="preserve">
+    <value>Open Verbinding om de gatewaykoppeling te voltooien.</value>
+  </data>
+  <data name="AppNotification_GatewayPairingRequired_DeviceMessageFormat" xml:space="preserve">
+    <value>Open Verbinding om apparaat {0} goed te keuren.</value>
+  </data>
+  <data name="AppNotification_WindowsNodeConnectionFailed_Title" xml:space="preserve">
+    <value>Windows-nodeverbinding mislukt</value>
+  </data>
+  <data name="AppNotification_WindowsNodeConnectionFailed_DefaultMessage" xml:space="preserve">
+    <value>De gateway is verbonden, maar deze Windows-node is niet beschikbaar.</value>
+  </data>
+  <data name="AppNotification_WindowsNodeRateLimited_Title" xml:space="preserve">
+    <value>Windows-nodeverbinding beperkt</value>
+  </data>
+  <data name="AppNotification_WindowsNodeRateLimited_DefaultMessage" xml:space="preserve">
+    <value>De gateway is verbonden, maar deze Windows-node is tijdelijk beperkt.</value>
+  </data>
+  <data name="AppNotification_ChannelNeedsAttention_TitleFormat" xml:space="preserve">
+    <value>Kanaal {0} heeft aandacht nodig</value>
+  </data>
+  <data name="AppNotification_ChannelNeedsAttention_StatusMessageFormat" xml:space="preserve">
+    <value>De gateway meldt {0} als {1}.</value>
+  </data>
+  <data name="AppNotification_SandboxDisabled_Title" xml:space="preserve">
+    <value>Node-sandbox is uitgeschakeld — opdrachten worden onbeperkt uitgevoerd</value>
+  </data>
+  <data name="AppNotification_SandboxDisabled_Message" xml:space="preserve">
+    <value>Door agents gestarte Windows-opdrachten worden zonder sandboxbeperking uitgevoerd totdat Node-sandbox weer is ingeschakeld.</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailable_Title" xml:space="preserve">
+    <value>Sandbox niet beschikbaar — host-fallback</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailable_MessageFormat" xml:space="preserve">
+    <value>{0}
+
+Opdrachten worden op de host uitgevoerd zonder sandboxbescherming zolang sandboxing niet beschikbaar is.</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailableBlocked_Title" xml:space="preserve">
+    <value>Sandbox niet beschikbaar — opdrachten geblokkeerd</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailableBlocked_MessageFormat" xml:space="preserve">
+    <value>{0}
+
+Opdrachten worden geblokkeerd zolang sandboxing niet beschikbaar is, omdat strikte fallbackblokkering is ingeschakeld.</value>
+  </data>
+  <data name="AppNotification_SandboxUnavailable_DefaultReason" xml:space="preserve">
+    <value>MXC-sandboxprimitieven zijn niet beschikbaar op deze machine.</value>
+  </data>
+  <data name="AppNotification_CronRunFailed_Title" xml:space="preserve">
+    <value>Cron-taak is niet gestart</value>
+  </data>
+  <data name="AppNotification_CronRunFailed_DefaultDetail" xml:space="preserve">
+    <value>De aanvraag is mislukt.</value>
+  </data>
+  <data name="AppNotification_CronRunRejectedDetail" xml:space="preserve">
+    <value>De gateway heeft de cron.run-aanvraag geweigerd.</value>
+  </data>
+  <data name="AppNotification_CronRunFailed_MessageFormat" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
   <data name="NotificationsPage_Title.Text" xml:space="preserve">
     <value>Meldingen</value>
   </data>
@@ -3034,14 +3305,95 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="NotificationsPage_MetadataCategoryNodeInvoke" xml:space="preserve">
     <value>Node-opdracht</value>
   </data>
+  <data name="AppNotification_ExecApprovalPending_Title" xml:space="preserve">
+    <value>Opdrachtgoedkeuring in behandeling</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_MessageFormat" xml:space="preserve">
+    <value>{0} wacht op goedkeuring om uit te voeren: {1}</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_OpenChatAction" xml:space="preserve">
+    <value>Chat openen</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_UnknownChatLabel" xml:space="preserve">
+    <value>gesprek</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_MainSessionLabel" xml:space="preserve">
+    <value>Hoofd</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_MainChatLabel" xml:space="preserve">
+    <value>Hoofdchat</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_AgentChatLabelFormat" xml:space="preserve">
+    <value>{0}-chat</value>
+  </data>
+  <data name="AppNotification_ExecApprovalPending_AgentSlotLabelFormat" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+  <data name="NotificationsPage_MetadataAuthentication" xml:space="preserve">
+    <value>Verificatie</value>
+  </data>
+  <data name="NotificationsPage_MetadataBindings" xml:space="preserve">
+    <value>Bindingen</value>
+  </data>
+  <data name="NotificationsPage_MetadataChannels" xml:space="preserve">
+    <value>Kanalen</value>
+  </data>
+  <data name="NotificationsPage_MetadataConfig" xml:space="preserve">
+    <value>Configuratie</value>
+  </data>
+  <data name="NotificationsPage_MetadataConnection" xml:space="preserve">
+    <value>Verbinding</value>
+  </data>
+  <data name="NotificationsPage_MetadataCron" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="NotificationsPage_MetadataGateway" xml:space="preserve">
+    <value>Gatewaydienst</value>
+  </data>
+  <data name="NotificationsPage_MetadataJobs" xml:space="preserve">
+    <value>Taken</value>
+  </data>
+  <data name="NotificationsPage_MetadataLoad" xml:space="preserve">
+    <value>Laden</value>
+  </data>
+  <data name="NotificationsPage_MetadataLifecycle" xml:space="preserve">
+    <value>Levenscyclus</value>
+  </data>
+  <data name="NotificationsPage_MetadataLocalGateway" xml:space="preserve">
+    <value>Lokale gateway</value>
+  </data>
+  <data name="NotificationsPage_MetadataNode" xml:space="preserve">
+    <value>Knooppunt</value>
+  </data>
+  <data name="NotificationsPage_MetadataPairing" xml:space="preserve">
+    <value>Koppeling</value>
+  </data>
+  <data name="NotificationsPage_MetadataSandbox" xml:space="preserve">
+    <value>Zandbak</value>
+  </data>
+  <data name="NotificationsPage_MetadataSettings" xml:space="preserve">
+    <value>Instellingen</value>
+  </data>
+  <data name="NotificationsPage_MetadataStatus" xml:space="preserve">
+    <value>Toestand</value>
+  </data>
+  <data name="NotificationsPage_MetadataSystemRun" xml:space="preserve">
+    <value>system.run</value>
+  </data>
   <data name="Chat_Permission_Title" xml:space="preserve">
     <value>Goedkeuring voor uitvoering vereist</value>
   </data>
+  <data name="Chat_Permission_CommandApprovalTitle" xml:space="preserve">
+    <value>Opdrachtgoedkeuring aangevraagd</value>
+  </data>
   <data name="Chat_Permission_Subtitle" xml:space="preserve">
-    <value>Goedkeuring is nodig om de onderstaande opdracht uit te voeren op deze Windows-companion. Klik op Toestaan om door te gaan, of Weigeren om te annuleren.</value>
+    <value>Goedkeuring is nodig om de onderstaande opdracht uit te voeren op deze Windows-companion. Sta eenmalig toe om door te gaan, sta altijd toe om deze opdracht te onthouden, of weiger om te annuleren.</value>
   </data>
   <data name="Chat_Permission_Caption" xml:space="preserve">
-    <value>Voor elke opdracht is goedkeuring vereist volgens het actieve beleid. Uw keuze geldt alleen voor deze aanvraag.</value>
+    <value>Eenmalig toestaan geldt alleen voor deze aanvraag. Altijd toestaan slaat waar mogelijk een exacte toestaan-regel op.</value>
+  </data>
+  <data name="Chat_Permission_ResultSubmittedFormat" xml:space="preserve">
+    <value>Goedkeuring {0} ingediend voor {1}.</value>
   </data>
   <data name="Chat_Root_ConnectingToGateway" xml:space="preserve">
     <value>Verbinden met gateway…</value>
@@ -3151,6 +3503,18 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="PermissionsPage_NodeStatus_ActiveDetailsFormat" xml:space="preserve">
     <value>Providing {0} capabilities: {1}</value>
   </data>
+  <data name="PermissionsPage_NodeStatus_McpOnly" xml:space="preserve">
+    <value>Alleen lokale MCP</value>
+  </data>
+  <data name="PermissionsPage_NodeStatus_McpOnlyDetailsFormat" xml:space="preserve">
+    <value>Levert {0} mogelijkheden aan lokale MCP-clients op {1}</value>
+  </data>
+  <data name="PermissionsPage_NodeStatus_Starting" xml:space="preserve">
+    <value>Node wordt gestart…</value>
+  </data>
+  <data name="PermissionsPage_NodeStatus_McpError" xml:space="preserve">
+    <value>Lokale MCP-server kon niet worden gestart</value>
+  </data>
   <data name="PermissionsPage_NodeStatus_NoCapabilities" xml:space="preserve">
     <value>No capabilities enabled.</value>
   </data>
@@ -3255,9 +3619,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="InstancesPage_Reason_Resync" xml:space="preserve">
     <value>Resync</value>
-  </data>
-  <data name="InstancesPage_BackToConnectionText.Text" xml:space="preserve">
-    <value>Terug naar verbinding</value>
   </data>
   <data name="ConnectionPage_NodePairing_Title.Text" xml:space="preserve">
     <value>🔗 Pending Operator/Node Pairing</value>
@@ -3529,9 +3890,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="HubWindow_NavigationViewItem_Sandbox.Content" xml:space="preserve">
     <value>Sandboxomgeving</value>
   </data>
-  <data name="AboutPage_MoreDiagnosticsLink.Content" xml:space="preserve">
-    <value>More diagnostics →</value>
-  </data>
   <data name="ChannelsPage_GuideBar.Title" xml:space="preserve">
     <value>Your gateway didn't list any channels</value>
   </data>
@@ -3562,6 +3920,15 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="DiagnosticsPage_ManageOnConnection.Content" xml:space="preserve">
     <value>Manage on Connection page</value>
   </data>
+  <data name="DiagnosticsPage_Section_Gateway.Text" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="DiagnosticsPage_Card_Doctor.Header" xml:space="preserve">
+    <value>Gatewaydiagnose uitvoeren</value>
+  </data>
+  <data name="DiagnosticsPage_Card_Doctor.Description" xml:space="preserve">
+    <value>Opent een terminal en voert openclaw doctor uit om de lokale Gateway op problemen te controleren.</value>
+  </data>
   <data name="DiagnosticsPage_Section_Share.Text" xml:space="preserve">
     <value>Share diagnostics with support</value>
   </data>
@@ -3590,10 +3957,10 @@ Voer op uw gateway-host (Mac/Linux) uit:
     <value>Connection state, gateway URL, runtime, tunnel.</value>
   </data>
   <data name="DiagnosticsPage_Card_CopyDebugBundle.Header" xml:space="preserve">
-    <value>Copy full debug bundle</value>
+    <value>Samenvattende debugbundel kopiëren</value>
   </data>
   <data name="DiagnosticsPage_Card_CopyDebugBundle.Description" xml:space="preserve">
-    <value>Everything the preview dialog produces, no preview.</value>
+    <value>Alleen gegenereerde samenvattingen; logfragmenten zijn uitgesloten. Gebruik Diagnostische bundel maken om logs vóór het delen te bekijken.</value>
   </data>
   <data name="DiagnosticsPage_Card_CopyBrowserSetup.Header" xml:space="preserve">
     <value>Copy browser setup guidance</value>
@@ -3654,15 +4021,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="DiagnosticsPage_Card_TrayChat.Header" xml:space="preserve">
     <value>Tray chat popup</value>
-  </data>
-  <data name="DiagnosticsPage_Card_Reconfigure.Header" xml:space="preserve">
-    <value>Reconfigure…</value>
-  </data>
-  <data name="DiagnosticsPage_Card_Reconfigure.Description" xml:space="preserve">
-    <value>Reopens the OpenClaw onboarding wizard. You will be asked to confirm.</value>
-  </data>
-  <data name="DiagnosticsPage_ReconfigureButton.Content" xml:space="preserve">
-    <value>Reconfigure…</value>
   </data>
   <data name="DiagnosticsPage_DetailBack.Text" xml:space="preserve">
     <value>Back to Diagnostics</value>
@@ -4138,9 +4496,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="InstancesPage_ReviewOnConnectionPage.Content" xml:space="preserve">
     <value>Bekijken op pagina Verbinding</value>
   </data>
-  <data name="PermissionsPage_BackToConnection.Text" xml:space="preserve">
-    <value>Terug naar verbinding</value>
-  </data>
   <data name="PermissionsPage_Permissions.Text" xml:space="preserve">
     <value>Machtigingen</value>
   </data>
@@ -4175,7 +4530,7 @@ Voer op uw gateway-host (Mac/Linux) uit:
     <value>0 regels</value>
   </data>
   <data name="PermissionsPage_NoRulesYetAdd.Text" xml:space="preserve">
-    <value>Nog geen regels. Voeg hieronder een patroon toe om specifieke opdrachten toe te staan of te weigeren.</value>
+    <value>Nog geen regels. Voeg hieronder een patroon toe om specifieke opdrachten te weigeren, toe te staan of te vragen.</value>
   </data>
   <data name="PermissionsPage_WindowsPrivacy.Text" xml:space="preserve">
     <value>Windows-privacy</value>
@@ -4360,9 +4715,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="SandboxPage_64MiB.Content" xml:space="preserve">
     <value>64 MiB</value>
   </data>
-  <data name="SessionsPage_BackToConnection.Text" xml:space="preserve">
-    <value>Terug naar verbinding</value>
-  </data>
   <data name="SessionsPage_Sessions.Text" xml:space="preserve">
     <value>Sessies</value>
   </data>
@@ -4393,14 +4745,77 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="SessionsPage_Compact.Text" xml:space="preserve">
     <value>Compact maken</value>
   </data>
+  <data name="SessionsPage_Checkpoints.Text" xml:space="preserve">
+    <value>Controlepunten</value>
+  </data>
+  <data name="SessionsPage_Checkpoints.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Compactiecontrolepunten bekijken, vertakken of herstellen</value>
+  </data>
+  <data name="SessionsPage_ExportTranscript.Text" xml:space="preserve">
+    <value>Transcript exporteren</value>
+  </data>
+  <data name="SessionsPage_ExportTranscript.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Het gesprekstranscript opslaan als tekstbestand</value>
+  </data>
   <data name="SessionsPage_Delete.Text" xml:space="preserve">
     <value>Verwijderen</value>
+  </data>
+  <data name="SessionActionPrompt_Reset_Title" xml:space="preserve">
+    <value>Sessie resetten?</value>
+  </data>
+  <data name="SessionActionPrompt_Reset_BodyFormat" xml:space="preserve">
+    <value>Een nieuwe sessie starten voor '{0}'? De huidige gesprekscontext wordt gewist.</value>
+  </data>
+  <data name="SessionActionPrompt_Reset_ConfirmLabel" xml:space="preserve">
+    <value>Resetten</value>
+  </data>
+  <data name="SessionActionPrompt_Compact_Title" xml:space="preserve">
+    <value>Sessielog compact maken?</value>
+  </data>
+  <data name="SessionActionPrompt_Compact_BodyFormat" xml:space="preserve">
+    <value>Bewaar de meest recente berichten voor '{0}' en archiveer de rest. Hiermee wordt een compactiecontrolepunt gemaakt; exporteer eerst het transcript als u de volledige geschiedenis nodig hebt.</value>
+  </data>
+  <data name="SessionActionPrompt_Compact_ConfirmLabel" xml:space="preserve">
+    <value>Compact maken</value>
+  </data>
+  <data name="SessionActionPrompt_Delete_Title" xml:space="preserve">
+    <value>Sessie verwijderen?</value>
+  </data>
+  <data name="SessionActionPrompt_Delete_BodyFormat" xml:space="preserve">
+    <value>'{0}' verwijderen en het transcript archiveren? De sessie wordt uit de sessielijst verwijderd.</value>
+  </data>
+  <data name="SessionActionPrompt_Delete_ConfirmLabel" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="SessionActionPrompt_Restore_Title" xml:space="preserve">
+    <value>Controlepunt herstellen?</value>
+  </data>
+  <data name="SessionActionPrompt_Restore_BodyFormat" xml:space="preserve">
+    <value>'{0}' terugzetten naar dit compactiecontrolepunt? Berichten die na het controlepunt zijn toegevoegd, worden gearchiveerd.</value>
+  </data>
+  <data name="SessionActionPrompt_Restore_ConfirmLabel" xml:space="preserve">
+    <value>Herstellen</value>
   </data>
   <data name="SettingsPage_Settings.Text" xml:space="preserve">
     <value>Instellingen</value>
   </data>
   <data name="SettingsPage_General.Text" xml:space="preserve">
     <value>Algemeen</value>
+  </data>
+  <data name="SettingsRow_AppTheme_Header.Text" xml:space="preserve">
+    <value>Appthema</value>
+  </data>
+  <data name="SettingsRow_AppTheme_Description.Text" xml:space="preserve">
+    <value>Kies licht, donker of gebruik uw Windows-instelling.</value>
+  </data>
+  <data name="SettingsPage_AppTheme_System.Content" xml:space="preserve">
+    <value>Systeem</value>
+  </data>
+  <data name="SettingsPage_AppTheme_Light.Content" xml:space="preserve">
+    <value>Licht</value>
+  </data>
+  <data name="SettingsPage_AppTheme_Dark.Content" xml:space="preserve">
+    <value>Donker</value>
   </data>
   <data name="SettingsPage_Notifications.Text" xml:space="preserve">
     <value>Meldingen</value>
@@ -4411,6 +4826,57 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="SettingsPage_LocalGateway.Text" xml:space="preserve">
     <value>Lokale gateway</value>
   </data>
+  <data name="SettingsPage_Developer.Text" xml:space="preserve">
+    <value>Ontwikkelaar</value>
+  </data>
+  <data name="SettingsPage_AppInfoExpander.Header" xml:space="preserve">
+    <value>Appgegevens</value>
+  </data>
+  <data name="SettingsPage_AppInfoCheckUpdates.Content" xml:space="preserve">
+    <value>Controleren op updates</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_AppName.Text" xml:space="preserve">
+    <value>Appnaam</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Version.Text" xml:space="preserve">
+    <value>Versie</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_BuildDate.Text" xml:space="preserve">
+    <value>Builddatum</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Runtime.Text" xml:space="preserve">
+    <value>Runtimeomgeving</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Architecture.Text" xml:space="preserve">
+    <value>Architectuur</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_Windows.Text" xml:space="preserve">
+    <value>Windows-versie</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_UpdateChannel.Text" xml:space="preserve">
+    <value>Updatekanaal</value>
+  </data>
+  <data name="SettingsPage_AppInfoLabel_InstallType.Text" xml:space="preserve">
+    <value>Installatietype</value>
+  </data>
+  <data name="SettingsPage_AppInfoRelatedLinks.Text" xml:space="preserve">
+    <value>Gerelateerde koppelingen</value>
+  </data>
+  <data name="SettingsPage_AppInfoDocumentation.Content" xml:space="preserve">
+    <value>Documentatie</value>
+  </data>
+  <data name="SettingsPage_AppInfoGitHub.Content" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="SettingsPage_AppInfoDashboard.Content" xml:space="preserve">
+    <value>Dashboardpagina</value>
+  </data>
+  <data name="SettingsRow_ShowDiagnostics_Header.Text" xml:space="preserve">
+    <value>Diagnostiek inschakelen</value>
+  </data>
+  <data name="SettingsRow_ShowDiagnostics_Description.Text" xml:space="preserve">
+    <value>Ontwikkelaars- en probleemoplossingshulpmiddelen. Standaard ingeschakeld voor lokale builds.</value>
+  </data>
   <data name="SettingsPage_LocalGatewaySetup_Header.Text" xml:space="preserve">
     <value>Lokale gateway instellen of opnieuw configureren</value>
   </data>
@@ -4419,6 +4885,15 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="SettingsPage_OpenLocalGatewaySetup.Content" xml:space="preserve">
     <value>Setup openen</value>
+  </data>
+  <data name="SettingsPage_OnboardWizard_Header.Text" xml:space="preserve">
+    <value>OpenClaw Onboard</value>
+  </data>
+  <data name="SettingsPage_OnboardWizard_Description.Text" xml:space="preserve">
+    <value>Open de OpenClaw onboarding op een geïnstalleerde lokale gateway. Slaat de WSL-installatie over en gaat direct naar de configuratie.</value>
+  </data>
+  <data name="SettingsPage_OpenOnboardWizard.Content" xml:space="preserve">
+    <value>Onboarding openen</value>
   </data>
   <data name="SettingsPage_MSIXInstallationDetected.Title" xml:space="preserve">
     <value>MSIX-installatie gedetecteerd</value>
@@ -4612,20 +5087,17 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Title" xml:space="preserve">
     <value>Controleer voor het delen</value>
   </data>
-  <data name="DiagnosticsBundleDialog_ReviewBeforeSharing.Message" xml:space="preserve">
-    <value>Gevoelige tokens, opdrachtargumenten, payloads en opnames worden door de bundelmaker uitgesloten.</value>
-  </data>
   <data name="HubWindow_Disconnected.Text" xml:space="preserve">
     <value>Niet verbonden</value>
   </data>
-  <data name="HubWindow_Op.Text" xml:space="preserve">
-    <value>Op.</value>
-  </data>
-  <data name="HubWindow_Node.Text" xml:space="preserve">
-    <value>Knooppunt</value>
-  </data>
   <data name="HubWindow_Advanced.Content" xml:space="preserve">
     <value>Geavanceerd</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharingMessage.Text" xml:space="preserve">
+    <value>Logfragmenten worden opgeschoond en ingekort. Gevoelige tokens, payloads, opnames en onbewerkte instellingenbestanden worden uitgesloten. Controleer dit voordat u deelt.</value>
+  </data>
+  <data name="DiagnosticsBundleDialog_ReviewBeforeSharingTitle.Text" xml:space="preserve">
+    <value>Controleer voor het delen</value>
   </data>
   <data name="AgentEventsPage_LiveText.Text" xml:space="preserve">
     <value>Actueel</value>
@@ -4654,12 +5126,10 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="VoiceSettingsPage_PreviewVoice.Text" xml:space="preserve">
     <value>Stemvoorbeeld</value>
   </data>
-  <data name="HubWindow_TitleStatus.Text" xml:space="preserve">
-    <value>Niet verbonden</value>
-  </data>
   <data name="SandboxPage_GatewayCommandsNote.Text" xml:space="preserve">
     <value>Opdrachten die de agent rechtstreeks op de gateway uitvoert, vallen hier niet onder. Als de gateway op deze pc staat, hebben ze mogelijk nog steeds toegang tot uw Windows-bestanden, klembord en netwerk — controleer de configuratie van uw gateway.</value>
-  </data>  <data name="AgentEventsPage_AllAgents" xml:space="preserve">
+  </data>
+  <data name="AgentEventsPage_AllAgents" xml:space="preserve">
     <value>Alle agenten</value>
   </data>
   <data name="AgentEventsPage_EventsStatus" xml:space="preserve">
@@ -4676,6 +5146,60 @@ Voer op uw gateway-host (Mac/Linux) uit:
   </data>
   <data name="CronPage_Running" xml:space="preserve">
     <value>Uitvoeren...</value>
+  </data>
+  <data name="CronPage_CompletedOneTimeJobTooltip" xml:space="preserve">
+    <value>Eenmalige taak voltooid</value>
+  </data>
+  <data name="CronPage_EnableJobTooltip" xml:space="preserve">
+    <value>Taak inschakelen</value>
+  </data>
+  <data name="CronPage_DisableJobTooltip" xml:space="preserve">
+    <value>Taak uitschakelen</value>
+  </data>
+  <data name="CronPage_FullResponse" xml:space="preserve">
+    <value>Volledig antwoord</value>
+  </data>
+  <data name="CronPage_OpenChat" xml:space="preserve">
+    <value>Chat openen</value>
+  </data>
+  <data name="CronPage_RunNow" xml:space="preserve">
+    <value>Nu uitvoeren</value>
+  </data>
+  <data name="CronPage_EditAction" xml:space="preserve">
+    <value>Bewerken</value>
+  </data>
+  <data name="CronPage_HistoryAction" xml:space="preserve">
+    <value>Geschiedenis</value>
+  </data>
+  <data name="CronPage_RemoveAction" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="CronPage_RunningBadge" xml:space="preserve">
+    <value>Wordt uitgevoerd</value>
+  </data>
+  <data name="CronPage_RunHistory" xml:space="preserve">
+    <value>Uitvoeringsgeschiedenis</value>
+  </data>
+  <data name="CronPage_RunHistoryShowing" xml:space="preserve">
+    <value>Uitvoeringsgeschiedenis - {0} van {1} weergegeven</value>
+  </data>
+  <data name="CronPage_RunHistoryCount" xml:space="preserve">
+    <value>Uitvoeringsgeschiedenis - {0} uitvoeringen</value>
+  </data>
+  <data name="CronPage_LoadingRunHistory" xml:space="preserve">
+    <value>Uitvoeringsgeschiedenis laden...</value>
+  </data>
+  <data name="CronPage_NoRunHistoryAvailable" xml:space="preserve">
+    <value>Geen uitvoeringsgeschiedenis beschikbaar.</value>
+  </data>
+  <data name="CronPage_LoadOlderRuns" xml:space="preserve">
+    <value>Oudere uitvoeringen laden (nog {0})...</value>
+  </data>
+  <data name="CronPage_LoadMoreRuns" xml:space="preserve">
+    <value>Meer uitvoeringen laden...</value>
+  </data>
+  <data name="CronPage_Loading" xml:space="preserve">
+    <value>Laden...</value>
   </data>
   <data name="CronPage_SaveChanges" xml:space="preserve">
     <value>Wijzigingen opslaan</value>
@@ -4869,6 +5393,18 @@ Controleer of de gateway actief is.</value>
   </data>
   <data name="ConnectionPage_NodeModeDisabledText" xml:space="preserve">
     <value>Nodemodus uitgeschakeld</value>
+  </data>
+  <data name="ConnectionPage_NodeStarting" xml:space="preserve">
+    <value>Node wordt gestart…</value>
+  </data>
+  <data name="ConnectionPage_NodeMcpOnly" xml:space="preserve">
+    <value>Mogelijkheden lokaal beschikbaar (alleen MCP)</value>
+  </data>
+  <data name="ConnectionPage_NodeMcpOnlyReachable" xml:space="preserve">
+    <value>Bereikbaar voor lokale MCP-clients op {0}</value>
+  </data>
+  <data name="ConnectionPage_NodeMcpError" xml:space="preserve">
+    <value>Lokale MCP-server kon niet worden gestart</value>
   </data>
   <data name="ConnectionPage_NodeBodyNoCapabilities" xml:space="preserve">
     <value>Geen mogelijkheden ingeschakeld. Kies wat u wilt delen bij Machtigingen.</value>
@@ -5116,9 +5652,6 @@ Controleer of de gateway actief is.</value>
   <data name="ConnectionPage_CancelAction" xml:space="preserve">
     <value>Annuleren</value>
   </data>
-  <data name="ConnectionPage_ConnectFailed" xml:space="preserve">
-    <value>Verbinding mislukt</value>
-  </data>
   <data name="ConnectionPage_GatewayConnectionFailed" xml:space="preserve">
     <value>Gatewayverbinding mislukt.</value>
   </data>
@@ -5148,31 +5681,6 @@ Controleer of de gateway actief is.</value>
   </data>
   <data name="ConnectionPage_DenyPairingRequest" xml:space="preserve">
     <value>Koppelingverzoek weigeren</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidanceToken" xml:space="preserve">
-    <value>{0}
-
-Plak een nieuwe installatiecode vanuit het Gateway toevoegen-proces.</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidancePairing" xml:space="preserve">
-    <value>{0}
-
-Uw apparaat moet worden goedgekeurd op de gatewayhost.</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidancePassword" xml:space="preserve">
-    <value>{0}
-
-Deze gateway vereist wachtwoordverificatie.</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidanceSignature" xml:space="preserve">
-    <value>{0}
-
-De gateway vereist mogelijk een andere versie van het verificatieprotocol.</value>
-  </data>
-  <data name="ConnectionPage_AuthGuidanceDefault" xml:space="preserve">
-    <value>{0}
-
-Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
   </data>
   <data name="ConnectionPage_AuthModeBootstrap" xml:space="preserve">
     <value>bootstrap-modus</value>
@@ -5256,7 +5764,7 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Koppel uw WhatsApp-telefoon</value>
   </data>
   <data name="ChannelsPage_GuideWhatsAppStep1" xml:space="preserve">
-    <value>Klik op &quot;Show QR&quot; in het gedeelte Koppelen hieronder.</value>
+    <value>Klik op "Show QR" in het gedeelte Koppelen hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideWhatsAppStep2" xml:space="preserve">
     <value>Op uw telefoon: WhatsApp → Instellingen → Gekoppelde apparaten → Apparaat koppelen.</value>
@@ -5268,7 +5776,7 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Koppel uw Signal-telefoon</value>
   </data>
   <data name="ChannelsPage_GuideSignalStep1" xml:space="preserve">
-    <value>Klik op &quot;Show QR&quot; in het gedeelte Koppelen hieronder.</value>
+    <value>Klik op "Show QR" in het gedeelte Koppelen hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideSignalStep2" xml:space="preserve">
     <value>Op uw telefoon: Signal → Instellingen → Gekoppelde apparaten → Nieuw apparaat koppelen.</value>
@@ -5289,7 +5797,7 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Plak het token in het configuratieformulier hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideTelegramStep4" xml:space="preserve">
-    <value>Klik op &quot;Save and start&quot;. Het kanaal start automatisch.</value>
+    <value>Klik op "Save and start". Het kanaal start automatisch.</value>
   </data>
   <data name="ChannelsPage_GuideDiscordHeadline" xml:space="preserve">
     <value>Discord verbinden via een webhook</value>
@@ -5298,13 +5806,13 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Open uw Discord-serverinstellingen → Integraties → Webhooks.</value>
   </data>
   <data name="ChannelsPage_GuideDiscordStep2" xml:space="preserve">
-    <value>Klik op &quot;New Webhook&quot;, geef het een naam en kopieer de webhook-URL.</value>
+    <value>Klik op "New Webhook", geef het een naam en kopieer de webhook-URL.</value>
   </data>
   <data name="ChannelsPage_GuideDiscordStep3" xml:space="preserve">
     <value>Plak de URL in het configuratieformulier hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideDiscordStep4" xml:space="preserve">
-    <value>Klik op &quot;Save and start&quot;.</value>
+    <value>Klik op "Save and start".</value>
   </data>
   <data name="ChannelsPage_GuideGoogleChatHeadline" xml:space="preserve">
     <value>Google Chat verbinden via een webhook</value>
@@ -5319,7 +5827,7 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Plak de URL in het configuratieformulier hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideGoogleChatStep4" xml:space="preserve">
-    <value>Klik op &quot;Save and start&quot;.</value>
+    <value>Klik op "Save and start".</value>
   </data>
   <data name="ChannelsPage_GuideSlackHeadline" xml:space="preserve">
     <value>Slack verbinden via een app</value>
@@ -5334,7 +5842,7 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Plak beide in het configuratieformulier hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideSlackStep4" xml:space="preserve">
-    <value>Klik op &quot;Save and start&quot;.</value>
+    <value>Klik op "Save and start".</value>
   </data>
   <data name="ChannelsPage_GuideNostrHeadline" xml:space="preserve">
     <value>Nostr verbinden via relays</value>
@@ -5349,7 +5857,7 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Plak beide in het configuratieformulier hieronder.</value>
   </data>
   <data name="ChannelsPage_GuideNostrStep4" xml:space="preserve">
-    <value>Klik op &quot;Save and start&quot;.</value>
+    <value>Klik op "Save and start".</value>
   </data>
   <data name="ChannelsPage_GuideIMessageHeadline" xml:space="preserve">
     <value>iMessage is alleen beschikbaar op macOS</value>
@@ -5367,10 +5875,10 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Dit kanaal verbinden</value>
   </data>
   <data name="ChannelsPage_GuideGenericStep1" xml:space="preserve">
-    <value>&quot;{0}&quot; is een pluginkanaal. Raadpleeg de documentatie voor de vereiste velden.</value>
+    <value>"{0}" is een pluginkanaal. Raadpleeg de documentatie voor de vereiste velden.</value>
   </data>
   <data name="ChannelsPage_GuideGenericStep2" xml:space="preserve">
-    <value>Gebruik &quot;Open Config page&quot; in het gedeelte Configuratie hieronder om instellingen toe te voegen onder channels.{0}.</value>
+    <value>Gebruik "Open Config page" in het gedeelte Configuratie hieronder om instellingen toe te voegen onder channels.{0}.</value>
   </data>
   <data name="ChannelsPage_GuideGenericStep3" xml:space="preserve">
     <value>Sla de configuratie op; OpenClaw start het kanaal automatisch.</value>
@@ -5588,12 +6096,6 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
   <data name="Command_GoToDiagnostics_Title" xml:space="preserve">
     <value>Go to Diagnostics</value>
   </data>
-  <data name="Command_GoToInfo_Subtitle" xml:space="preserve">
-    <value>About this app</value>
-  </data>
-  <data name="Command_GoToInfo_Title" xml:space="preserve">
-    <value>Go to Info</value>
-  </data>
   <data name="Command_GoToNotifications_Subtitle" xml:space="preserve">
     <value>Actieve app-meldingen bekijken</value>
   </data>
@@ -5721,13 +6223,358 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Waiting for gateway health</value>
   </data>
   <data name="ConfigPage_CheckingConfigPermissions" xml:space="preserve">
-    <value>Checking config permissions</value>
+    <value>Configuratiemachtigingen controleren</value>
   </data>
   <data name="ConfigPage_ConfigIsReadOnly" xml:space="preserve">
-    <value>Config is read-only</value>
+    <value>Configuratie is alleen-lezen</value>
   </data>
   <data name="ConfigPage_ConfigUnavailable" xml:space="preserve">
-    <value>Config unavailable</value>
+    <value>Configuratie niet beschikbaar</value>
+  </data>
+  <data name="ConfigPage_EditingPathFormat" xml:space="preserve">
+    <value>{0} bewerken via schema-gestuurd formulier.</value>
+  </data>
+  <data name="ConfigPage_RenderConfigUnavailableTitle" xml:space="preserve">
+    <value>Configuratie niet beschikbaar</value>
+  </data>
+  <data name="ConfigPage_RenderConfigUnavailableMessage" xml:space="preserve">
+    <value>De gatewayconfiguratie kon niet worden weergegeven. Vernieuw en probeer het opnieuw.</value>
+  </data>
+  <data name="ConfigPage_RenderSchemaUnavailableTitle" xml:space="preserve">
+    <value>Schema niet beschikbaar</value>
+  </data>
+  <data name="ConfigPage_RenderSchemaUnavailableMessage" xml:space="preserve">
+    <value>Het gatewayschema kon niet worden weergegeven. Ruwe JSON blijft beschikbaar als alleen-lezen voorbeeld.</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayRestartingTitle" xml:space="preserve">
+    <value>Gateway wordt opnieuw gestart</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayRestartingMessage" xml:space="preserve">
+    <value>Wijzigingen worden opgeslagen. De gateway wordt opnieuw gestart en maakt automatisch opnieuw verbinding.</value>
+  </data>
+  <data name="ConfigPage_StatusNoChangesTitle" xml:space="preserve">
+    <value>Geen wijzigingen</value>
+  </data>
+  <data name="ConfigPage_StatusNoChangesMessage" xml:space="preserve">
+    <value>Er is niets om op te slaan.</value>
+  </data>
+  <data name="ConfigPage_StatusFixValidationErrorsTitle" xml:space="preserve">
+    <value>Validatiefouten oplossen</value>
+  </data>
+  <data name="ConfigPage_StatusValidationErrorMessageFormat" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="ConfigPage_StatusNotConnectedTitle" xml:space="preserve">
+    <value>Niet verbonden</value>
+  </data>
+  <data name="ConfigPage_StatusNotConnectedMessage" xml:space="preserve">
+    <value>Maak verbinding met een gateway voordat u de configuratie opslaat.</value>
+  </data>
+  <data name="ConfigPage_StatusReadOnlyMessage" xml:space="preserve">
+    <value>Dit operatortoken heeft geen operator.write-machtiging, dus configuratiewijzigingen kunnen niet worden opgeslagen.</value>
+  </data>
+  <data name="ConfigPage_StatusConfigNotLoadedTitle" xml:space="preserve">
+    <value>Configuratie niet geladen</value>
+  </data>
+  <data name="ConfigPage_StatusConfigNotLoadedMessage" xml:space="preserve">
+    <value>Vernieuw de gatewayconfiguratie voordat u opslaat.</value>
+  </data>
+  <data name="ConfigPage_StatusSavingConfigTitle" xml:space="preserve">
+    <value>Configuratie opslaan…</value>
+  </data>
+  <data name="ConfigPage_StatusSavingConfigMessageFormat" xml:space="preserve">
+    <value>{0} wijziging(en) naar de gateway schrijven.</value>
+  </data>
+  <data name="ConfigPage_StatusStaleConfigTitle" xml:space="preserve">
+    <value>Gatewayconfiguratie is elders gewijzigd</value>
+  </data>
+  <data name="ConfigPage_StatusStaleConfigMessageFormat" xml:space="preserve">
+    <value>Uw bewerkingen blijven behouden. De nieuwste configuratie wordt vernieuwd; controleer het formulier en probeer opnieuw op te slaan. Details: {0}</value>
+  </data>
+  <data name="ConfigPage_StatusStaleConfigDefaultDetail" xml:space="preserve">
+    <value>verouderde configuratiehash</value>
+  </data>
+  <data name="ConfigPage_StatusSaveFailedTitle" xml:space="preserve">
+    <value>Opslaan mislukt</value>
+  </data>
+  <data name="ConfigPage_StatusSaveRejectedMessage" xml:space="preserve">
+    <value>De gateway heeft de configuratie-update geweigerd. Uw wijzigingen blijven behouden.</value>
+  </data>
+  <data name="ConfigPage_StatusSaveExceptionMessageFormat" xml:space="preserve">
+    <value>{0} Uw wijzigingen blijven behouden.</value>
+  </data>
+  <data name="ConfigPage_SaveStatusCheckingConfigPermissions" xml:space="preserve">
+    <value>Configuratiemachtigingen controleren…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusRefreshing" xml:space="preserve">
+    <value>Vernieuwen…</value>
+  </data>
+  <data name="ConfigPage_StatusChangesDiscardedTitle" xml:space="preserve">
+    <value>Wijzigingen genegeerd</value>
+  </data>
+  <data name="ConfigPage_StatusChangesDiscardedMessage" xml:space="preserve">
+    <value>Het formulier is teruggezet naar de laatst geladen configuratie van de gateway.</value>
+  </data>
+  <data name="ConfigPage_FullConfig" xml:space="preserve">
+    <value>Volledige configuratie</value>
+  </data>
+  <data name="ConfigPage_StatusSectionResetTitle" xml:space="preserve">
+    <value>Sectie opnieuw ingesteld</value>
+  </data>
+  <data name="ConfigPage_StatusSectionResetMessageFormat" xml:space="preserve">
+    <value>{0} is teruggezet naar de laatst geladen gatewaywaarde.</value>
+  </data>
+  <data name="ConfigPage_StatusCopiedJsonDiffTitle" xml:space="preserve">
+    <value>JSON-diff gekopieerd</value>
+  </data>
+  <data name="ConfigPage_StatusCopiedJsonDiffMessage" xml:space="preserve">
+    <value>De diff van de geselecteerde sectie is naar het klembord gekopieerd.</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayReconnectedTitle" xml:space="preserve">
+    <value>Gateway opnieuw verbonden</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayReconnectedRefreshingMessage" xml:space="preserve">
+    <value>Configuratie opgeslagen en de gatewayverbinding is terug. De nieuwste configuratie wordt vernieuwd.</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayReconnectedLoadedMessage" xml:space="preserve">
+    <value>Configuratie opgeslagen en de nieuwste gatewayconfiguratie is geladen.</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayStillReconnectingTitle" xml:space="preserve">
+    <value>Gateway maakt nog steeds opnieuw verbinding</value>
+  </data>
+  <data name="ConfigPage_StatusGatewayStillReconnectingMessage" xml:space="preserve">
+    <value>Het opslaan van de configuratie is geaccepteerd, maar de gateway heeft nog geen nieuwe verbinding gemaakt. U kunt deze pagina open houden of Verbinding gebruiken om de status te controleren.</value>
+  </data>
+  <data name="ConfigPage_CheckingConfigPermissionsMessage" xml:space="preserve">
+    <value>Wachten tot de gateway de machtigingen van deze operator meldt.</value>
+  </data>
+  <data name="ConfigPage_ConfigUnavailableMessage" xml:space="preserve">
+    <value>Dit operatortoken mist de operator.read-machtiging, dus de gatewayconfiguratie kan hier niet worden geladen.</value>
+  </data>
+  <data name="ConfigPage_ConfigIsReadOnlyMessage" xml:space="preserve">
+    <value>Dit operatortoken kan de configuratie lezen, maar mist de operator.write-machtiging. U kunt concepten bekijken en valideren, maar Opslaan is uitgeschakeld.</value>
+  </data>
+  <data name="ConfigPage_MetaNoUnsavedChanges" xml:space="preserve">
+    <value>Geen niet-opgeslagen wijzigingen.</value>
+  </data>
+  <data name="ConfigPage_MetaUnsavedChangesFormat" xml:space="preserve">
+    <value>{0} niet-opgeslagen wijziging(en)</value>
+  </data>
+  <data name="ConfigPage_MetaUnsavedChangesWithValidationFormat" xml:space="preserve">
+    <value>{0} niet-opgeslagen wijziging(en) · {1} validatieproble(e)m(en)</value>
+  </data>
+  <data name="ConfigPage_SaveStatusSaving" xml:space="preserve">
+    <value>Opslaan…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusGatewayRestarting" xml:space="preserve">
+    <value>Gateway wordt opnieuw gestart…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusConnectToGateway" xml:space="preserve">
+    <value>Maak verbinding met een gateway om te bewerken</value>
+  </data>
+  <data name="ConfigPage_SaveStatusCheckingPermissions" xml:space="preserve">
+    <value>Machtigingen controleren…</value>
+  </data>
+  <data name="ConfigPage_SaveStatusMissingRead" xml:space="preserve">
+    <value>Configuratie niet beschikbaar: operator.read ontbreekt</value>
+  </data>
+  <data name="ConfigPage_SaveStatusReadOnlyMissingWrite" xml:space="preserve">
+    <value>Alleen-lezen: operator.write ontbreekt</value>
+  </data>
+  <data name="ConfigPage_SaveStatusFixValidationBeforeSaving" xml:space="preserve">
+    <value>Los validatiefouten op voordat u opslaat</value>
+  </data>
+  <data name="ConfigPage_SaveStatusUnsavedChanges" xml:space="preserve">
+    <value>Niet-opgeslagen wijzigingen</value>
+  </data>
+  <data name="ConfigPage_SaveStatusNoUnsavedChanges" xml:space="preserve">
+    <value>Geen niet-opgeslagen wijzigingen</value>
+  </data>
+  <data name="ConfigPage_AccessDisconnected" xml:space="preserve">
+    <value>Verbinding verbroken</value>
+  </data>
+  <data name="ConfigPage_AccessChecking" xml:space="preserve">
+    <value>Toegang controleren</value>
+  </data>
+  <data name="ConfigPage_AccessNoRead" xml:space="preserve">
+    <value>Geen leestoegang tot configuratie</value>
+  </data>
+  <data name="ConfigPage_AccessReadOnly" xml:space="preserve">
+    <value>Alleen-lezen toegang</value>
+  </data>
+  <data name="ConfigPage_AccessReadWrite" xml:space="preserve">
+    <value>Lees-/schrijftoegang</value>
+  </data>
+  <data name="ConfigPage_AccessUnknown" xml:space="preserve">
+    <value>Onbekende toegang</value>
+  </data>
+  <data name="ConfigPage_AccessChangesFormat" xml:space="preserve">
+    <value>{0} wijziging(en)</value>
+  </data>
+  <data name="ConfigPage_AccessValidationClean" xml:space="preserve">
+    <value>Lokale validatie in orde</value>
+  </data>
+  <data name="ConfigPage_AccessValidationIssuesFormat" xml:space="preserve">
+    <value>{0} validatieproble(e)m(en)</value>
+  </data>
+  <data name="ConfigPage_AccessSummaryFormat" xml:space="preserve">
+    <value>{0} · {1} · {2}</value>
+  </data>
+  <data name="DebugPage_NoGatewayConfigured" xml:space="preserve">
+    <value>geen gateway geconfigureerd</value>
+  </data>
+  <data name="DebugPage_StatusConnectedFormat" xml:space="preserve">
+    <value>OpenClaw is verbonden met {0}.</value>
+  </data>
+  <data name="DebugPage_StatusConnectingFormat" xml:space="preserve">
+    <value>Verbinding maken met {0}…</value>
+  </data>
+  <data name="DebugPage_StatusDisconnectedFormat" xml:space="preserve">
+    <value>Niet verbonden. Gateway: {0}.</value>
+  </data>
+  <data name="DebugPage_StatusErrorFormat" xml:space="preserve">
+    <value>Laatste gateway: {0}. Bekijk de gebeurtenistijdlijn.</value>
+  </data>
+  <data name="DebugPage_StatusGatewayFormat" xml:space="preserve">
+    <value>Gatewaydienst: {0}.</value>
+  </data>
+  <data name="DebugPage_RecentLogTitle" xml:space="preserve">
+    <value>Recent logboek</value>
+  </data>
+  <data name="DebugPage_RecentLogCaptionFormat" xml:space="preserve">
+    <value>Laatste 200 regels van {0}. Ernst wordt afgeleid uit [info]/[warn]/[error]-tags.</value>
+  </data>
+  <data name="DebugPage_CopyFeedbackFormat" xml:space="preserve">
+    <value>{0} gekopieerd naar klembord.</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableTitle" xml:space="preserve">
+    <value>Node-sandbox niet beschikbaar — host-fallback</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableSubtext" xml:space="preserve">
+    <value>Containment is niet beschikbaar op deze pc, dus opdrachten die de agent start, worden op de host uitgevoerd zonder sandboxbescherming.</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableBlockedTitle" xml:space="preserve">
+    <value>Node-sandbox niet beschikbaar — opdrachten geblokkeerd</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableBlockedSubtext" xml:space="preserve">
+    <value>Containment is niet beschikbaar op deze pc en strikte fallbackblokkering staat aan, dus opdrachten die de agent start, worden geblokkeerd.</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableOffTitle" xml:space="preserve">
+    <value>Node-sandbox is uitgeschakeld — hostuitvoering</value>
+  </data>
+  <data name="SandboxPage_StatusUnavailableOffSubtext" xml:space="preserve">
+    <value>Containment is niet beschikbaar en Node-sandbox is uitgeschakeld, dus opdrachten die de agent start, worden op de host uitgevoerd zonder sandboxbescherming.</value>
+  </data>
+  <data name="SandboxPage_StatusOnTitle" xml:space="preserve">
+    <value>Node-sandbox is ingeschakeld</value>
+  </data>
+  <data name="SandboxPage_StatusOnSubtext" xml:space="preserve">
+    <value>Programma's die de agent op deze pc uitvoert, zijn ingesloten.</value>
+  </data>
+  <data name="SandboxPage_StatusOffTitle" xml:space="preserve">
+    <value>Node-sandbox is uitgeschakeld — hoog risico</value>
+  </data>
+  <data name="SandboxPage_StatusOffSubtext" xml:space="preserve">
+    <value>Programma's die de agent op deze pc uitvoert, zijn niet ingesloten.</value>
+  </data>
+  <data name="SandboxPage_UnavailableDefaultReason" xml:space="preserve">
+    <value>MXC-sandboxprimitieven zijn niet beschikbaar op deze machine.</value>
+  </data>
+  <data name="SandboxPage_ProbeErrorReason" xml:space="preserve">
+    <value>Kan de beschikbaarheid van de sandbox niet controleren.</value>
+  </data>
+  <data name="SandboxPage_UnavailableBehaviorHostFallback" xml:space="preserve">
+    <value>Opdrachten worden op de host uitgevoerd zonder sandboxbescherming zolang sandboxing niet beschikbaar is.</value>
+  </data>
+  <data name="SandboxPage_UnavailableBehaviorBlocked" xml:space="preserve">
+    <value>Opdrachten worden geblokkeerd zolang sandboxing niet beschikbaar is, omdat strikte fallbackblokkering is ingeschakeld.</value>
+  </data>
+  <data name="SandboxPage_ProbeErrorTitle" xml:space="preserve">
+    <value>Kan de beschikbaarheid van de sandbox niet verifiëren</value>
+  </data>
+  <data name="SandboxPage_ProbeErrorMessageFormat" xml:space="preserve">
+    <value>{0}
+
+{1} De sandboxcapaciteitscontrole is niet voltooid. Dit is meestal tijdelijk (een trage of geblokkeerde controle) — probeer het opnieuw en controleer, als het probleem blijft bestaan, of beveiligingssoftware wxc-exec blokkeert.</value>
+  </data>
+  <data name="SandboxPage_Retry" xml:space="preserve">
+    <value>Opnieuw proberen</value>
+  </data>
+  <data name="SandboxPage_WindowsUnsupportedTitle" xml:space="preserve">
+    <value>Uw Windows-versie ondersteunt sandboxing nog niet</value>
+  </data>
+  <data name="SandboxPage_WindowsUnsupportedMessageFormat" xml:space="preserve">
+    <value>{0}
+
+{1} Sandboxing vereist een recente Windows-build met de AppContainer-primitieven. Installeer de nieuwste Windows-updates (of neem deel aan het Windows Insider-programma voor de nieuwste builds) om containment in te schakelen.</value>
+  </data>
+  <data name="SandboxPage_OpenWindowsUpdate" xml:space="preserve">
+    <value>Windows Update openen</value>
+  </data>
+  <data name="SandboxPage_ComponentsMissingTitle" xml:space="preserve">
+    <value>Sandboxing-onderdelen ontbreken</value>
+  </data>
+  <data name="SandboxPage_ComponentsMissingMessageFormat" xml:space="preserve">
+    <value>{0}
+
+Het binaire bestand wxc-exec is niet gevonden. {1} Als dit een ontwikkelaarsbuild is, bouw dan de tray-app zodat wxc-exec.exe naar de uitvoermap wordt gekopieerd. Installeer anders de companion-app opnieuw om sandboxing te herstellen.</value>
+  </data>
+  <data name="SandboxPage_ShowInstallInstructions" xml:space="preserve">
+    <value>Installatie-instructies weergeven</value>
+  </data>
+  <data name="SandboxPage_UnavailableTitle" xml:space="preserve">
+    <value>Sandbox niet beschikbaar — host-fallback</value>
+  </data>
+  <data name="SandboxPage_UnavailableBlockedTitle" xml:space="preserve">
+    <value>Sandbox niet beschikbaar — opdrachten geblokkeerd</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovedTitle" xml:space="preserve">
+    <value>Lokale gateway verwijderd</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovedMessage" xml:space="preserve">
+    <value>Setup is opnieuw ingesteld; u kunt setup opnieuw uitvoeren vanuit het traymenu.</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalErrorsMessage" xml:space="preserve">
+    <value>Verwijderen is voltooid met fouten. Controleer de logboeken voor details.</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalCancelledTitle" xml:space="preserve">
+    <value>Verwijderen geannuleerd</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalCancelledMessage" xml:space="preserve">
+    <value>Gateway bevindt zich mogelijk in een gedeeltelijk verwijderde staat. Controleer logboeken of probeer opnieuw.</value>
+  </data>
+  <data name="SettingsPage_ViewLogs" xml:space="preserve">
+    <value>Logboeken weergeven</value>
+  </data>
+  <data name="SettingsPage_LocalGatewayRemovalFailedTitle" xml:space="preserve">
+    <value>Verwijderen mislukt</value>
+  </data>
+  <data name="SettingsPage_RemoveLocalGatewayButton" xml:space="preserve">
+    <value>Lokale gateway verwijderen</value>
+  </data>
+  <data name="SettingsPage_RemovingDistro" xml:space="preserve">
+    <value>Distro verwijderen…</value>
+  </data>
+  <data name="SettingsPage_RemovingLocalGatewayMessage" xml:space="preserve">
+    <value>De lokale gateway wordt verwijderd. Dit kan 10–30 seconden duren…</value>
+  </data>
+  <data name="CronPage_NextWakeFormat" xml:space="preserve">
+    <value>· Volgende wake: {0}</value>
+  </data>
+  <data name="ChatWindow_UnableToLoadChatCredentials" xml:space="preserve">
+    <value>Kan chat niet laden. De gateway-URL of het token is niet beschikbaar.</value>
+  </data>
+  <data name="ChatWindow_UnableToLoadChatRetryFormat" xml:space="preserve">
+    <value>Kan chat niet laden. Probeer het opnieuw. ({0})</value>
+  </data>
+  <data name="ChatWindow_WebViewFailedFormat" xml:space="preserve">
+    <value>WebView2 is mislukt: {0}</value>
+  </data>
+  <data name="CanvasWindow_WebViewInitFailedFormat" xml:space="preserve">
+    <value>Kan WebView2 niet initialiseren: {0}</value>
+  </data>
+  <data name="CanvasWindow_NavigationFailedFormat" xml:space="preserve">
+    <value>Navigatie mislukt: {0}</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsDescription_Format" xml:space="preserve">
     <value>Open a shell or manage the local gateway service in {0}.</value>
@@ -5736,7 +6583,16 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
     <value>Job completed</value>
   </data>
   <data name="CronPage_JobCompletedRanSuccessfully" xml:space="preserve">
-    <value>&quot;{0}&quot; ran successfully and was removed.</value>
+    <value>"{0}" ran successfully and was removed.</value>
+  </data>
+  <data name="CronPage_RunNotStarted" xml:space="preserve">
+    <value>Uitvoering niet gestart</value>
+  </data>
+  <data name="CronPage_RunNotStartedGeneric" xml:space="preserve">
+    <value>{0} is niet gestart.</value>
+  </data>
+  <data name="CronPage_RunNotStartedWithReason" xml:space="preserve">
+    <value>{0} is niet gestart: {1}</value>
   </data>
   <data name="GatewayHostAccess_NoTerminalAccess" xml:space="preserve">
     <value>This gateway does not have WSL or SSH terminal access.</value>
@@ -5804,6 +6660,24 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
   <data name="ConnectionPage_NodeSurfaceNone" xml:space="preserve">
     <value>none</value>
   </data>
+  <data name="ConnectionPage_NodeTechnicalDetails.Text" xml:space="preserve">
+    <value>Show technical details</value>
+  </data>
+  <data name="ConnectionPage_NodePillState_Active" xml:space="preserve">
+    <value>Sharing now</value>
+  </data>
+  <data name="ConnectionPage_NodePillState_Pending" xml:space="preserve">
+    <value>Enabled, not active yet</value>
+  </data>
+  <data name="ConnectionPage_NodePillState_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="ConnectionPage_NodeCap_Device" xml:space="preserve">
+    <value>Device info</value>
+  </data>
+  <data name="ConnectionPage_NodeCap_System" xml:space="preserve">
+    <value>System access</value>
+  </data>
   <data name="ConnectionPage_NodeEffectiveCapabilities" xml:space="preserve">
     <value>Approved/effective capabilities: {0}</value>
   </data>
@@ -5821,5 +6695,176 @@ Controleer uw verbindingsinstellingen en probeer het opnieuw.</value>
   </data>
   <data name="ConnectionPage_NodePendingDeclaredPermissions" xml:space="preserve">
     <value>Pending declared permissions: {0}</value>
+  </data>
+  <data name="ConnectionPage_AdviceCleartextTitle" xml:space="preserve">
+    <value>Niet-versleutelde verbinding</value>
+  </data>
+  <data name="ConnectionPage_AdviceCleartextMessage" xml:space="preserve">
+    <value>Deze externe gateway gebruikt ws:// — uw token zou onversleuteld worden verzonden. Gebruik wss:// (TLS), een SSH-tunnel of een vertrouwde proxy / Tailscale.</value>
+  </data>
+  <data name="ConnectionPage_AdviceSecureTitle" xml:space="preserve">
+    <value>Versleuteld (TLS)</value>
+  </data>
+  <data name="ConnectionPage_AdviceSecureMessage" xml:space="preserve">
+    <value>Deze gateway gebruikt TLS. Uw token is beschermd tijdens het transport wanneer het certificaat wordt gevalideerd.</value>
+  </data>
+  <data name="ConnectionPage_AdviceTunnelTitle" xml:space="preserve">
+    <value>SSH-tunnel</value>
+  </data>
+  <data name="ConnectionPage_AdviceTunnelMessage" xml:space="preserve">
+    <value>Verkeer naar deze gateway wordt versleuteld via de SSH-tunnel.</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderTokenDrift" xml:space="preserve">
+    <value>Koppel dit apparaat opnieuw:</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderScope" xml:space="preserve">
+    <value>Werk de toegang van dit apparaat bij:</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderTls" xml:space="preserve">
+    <value>Herstel de beveiligde verbinding:</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTokenDriftBullet1" xml:space="preserve">
+    <value>De gateway vertrouwt het opgeslagen token van dit apparaat niet meer (het is gewijzigd of ingetrokken).</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTokenDriftBullet2" xml:space="preserve">
+    <value>Haal een nieuwe installatiecode op van de gateway-host en plak deze hieronder om opnieuw te koppelen.</value>
+  </data>
+  <data name="ConnectionPage_RecoveryScopeBullet1" xml:space="preserve">
+    <value>Dit apparaat is geverifieerd maar mist de benodigde scopes (bijvoorbeeld operator.admin of operator.pairing).</value>
+  </data>
+  <data name="ConnectionPage_RecoveryScopeBullet2" xml:space="preserve">
+    <value>Koppel opnieuw met een nieuwe installatiecode om de vereiste scopes aan te vragen, of keur de hogere scopes goed op de gateway-host.</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTlsBullet1" xml:space="preserve">
+    <value>Het TLS-/beveiligde transport van de gateway kon niet tot stand worden gebracht.</value>
+  </data>
+  <data name="ConnectionPage_RecoveryTlsBullet2" xml:space="preserve">
+    <value>Controleer het certificaat op de gateway-host, of maak verbinding via wss:// of een SSH-tunnel.</value>
+  </data>
+  <data name="ConnectionPage_TokenOrPasswordHint.Text" xml:space="preserve">
+    <value>Plak een gedeeld gateway-token, of laat het leeg om te koppelen met een installatiecode.</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpDirect.Text" xml:space="preserve">
+    <value>Maak verbinding met wss:// of https:// wanneer de gateway een vertrouwd certificaat heeft. Uw token wordt tijdens het transport versleuteld na certificaatvalidatie.</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpTunnel.Text" xml:space="preserve">
+    <value>Wanneer de gateway alleen op localhost luistert, vouwt u "SSH-tunnel gebruiken" hieronder uit. De tray stuurt een lokale poort door via SSH zodat het verkeer versleuteld blijft.</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpProxy.Text" xml:space="preserve">
+    <value>Als Tailscale of een reverse proxy het pad al versleutelt, is een gewone ws://-URL over dat privénetwerk prima.</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpAuth.Text" xml:space="preserve">
+    <value>Plak een gedeeld token, of laat het leeg en koppel met een installatiecode. Opnieuw koppelen werkt ook de scopes van dit apparaat bij.</value>
+  </data>
+  <data name="ConnectionPage_RecoveryHeaderRateLimited" xml:space="preserve">
+    <value>Wacht voordat u opnieuw verbinding maakt:</value>
+  </data>
+  <data name="ConnectionPage_RecoveryRateLimitedBullet1" xml:space="preserve">
+    <value>De gateway beperkt deze client tijdelijk na herhaalde mislukte pogingen.</value>
+  </data>
+  <data name="ConnectionPage_RecoveryRateLimitedBullet2" xml:space="preserve">
+    <value>Stop even met opnieuw proberen en verbind opnieuw nadat het token, wachtwoord of de koppelingsstatus is gecorrigeerd.</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpLink.Text" xml:space="preserve">
+    <value>Hoe maak ik verbinding met een externe gateway?</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpTip.Title" xml:space="preserve">
+    <value>Verbinding maken met een externe gateway</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpDirectTitle.Text" xml:space="preserve">
+    <value>Directe verbinding (TLS)</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpTunnelTitle.Text" xml:space="preserve">
+    <value>SSH-tunnel</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpProxyTitle.Text" xml:space="preserve">
+    <value>Vertrouwde proxy / Tailscale</value>
+  </data>
+  <data name="ConnectionPage_RemoteSetupHelpAuthTitle.Text" xml:space="preserve">
+    <value>Verificatie</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_Title.Text" xml:space="preserve">
+    <value>Connection</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_OpenConnection.Content" xml:space="preserve">
+    <value>Open Connection</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_GatewayLabel.Text" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_Reconnect.Content" xml:space="preserve">
+    <value>Reconnect</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_OperatorLabel.Text" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_NodeLabel.Text" xml:space="preserve">
+    <value>Node</value>
+  </data>
+  <data name="HubWindow_StatusFlyout_Approve.Content" xml:space="preserve">
+    <value>Approve…</value>
+  </data>
+  <data name="HubWindow_StatusPill_Tooltip" xml:space="preserve">
+    <value>Connection status</value>
+  </data>
+  <data name="HubWindow_Bell_Tooltip" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="HubWindow_Pill_Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="HubWindow_Pill_PairingRequired" xml:space="preserve">
+    <value>Pairing required</value>
+  </data>
+  <data name="HubWindow_Pill_Degraded" xml:space="preserve">
+    <value>Degraded</value>
+  </data>
+  <data name="HubWindow_Role_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="HubWindow_Role_PairingRequired" xml:space="preserve">
+    <value>Pairing required</value>
+  </data>
+  <data name="HubWindow_Role_PairingRejected" xml:space="preserve">
+    <value>Pairing rejected</value>
+  </data>
+  <data name="HubWindow_Role_RateLimited" xml:space="preserve">
+    <value>Rate limited</value>
+  </data>
+  <data name="HubWindow_Role_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="NotificationsFlyout_ClearAll.Content" xml:space="preserve">
+    <value>Clear all</value>
+  </data>
+  <data name="NotificationsFlyout_EmptyTitle.Text" xml:space="preserve">
+    <value>No notifications</value>
+  </data>
+  <data name="NotificationsFlyout_OpenPage.Content" xml:space="preserve">
+    <value>Open notifications</value>
+  </data>
+  <data name="NotificationsFlyout_ActiveCountFormat" xml:space="preserve">
+    <value>{0} active</value>
+  </data>
+  <data name="HubWindow_Role_PermissionsIncomplete" xml:space="preserve">
+    <value>Permissions incomplete</value>
+  </data>
+  <data name="SettingsPage_About.Text" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoExpander.Header" xml:space="preserve">
+    <value>Gateway info</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_Version.Text" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_Protocol.Text" xml:space="preserve">
+    <value>Protocol</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_AuthMode.Text" xml:space="preserve">
+    <value>Auth mode</value>
+  </data>
+  <data name="SettingsPage_GatewayInfoLabel_Uptime.Text" xml:space="preserve">
+    <value>Uptime</value>
   </data>
 </root>

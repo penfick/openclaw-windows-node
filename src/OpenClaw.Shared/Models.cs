@@ -106,6 +106,13 @@ public class OpenClawNotification
     public string? Agent { get; set; }     // agent name/identifier
     public string? Intent { get; set; }    // normalized intent (reminder, build, alert)
     public string[]? Tags { get; set; }    // free-form routing tags
+
+    /// <summary>
+    /// The session key associated with this notification (e.g. the chat session
+    /// that produced an assistant response). Used by toast activation to open
+    /// the specific session instead of the default/main session.
+    /// </summary>
+    public string? SessionKey { get; set; }
 }
 
 /// <summary>
@@ -1158,6 +1165,7 @@ public static class CommandCenterCommandGroups
     public static readonly string[] DangerousCommands =
     [
         .. CommonDangerousCommands,
+        "tts.status",
         "stt.transcribe",
         "stt.listen",
         "stt.status"
@@ -2072,8 +2080,27 @@ public class ModelInfo
     public string? Name { get; set; }
     public string? Provider { get; set; }
     public int? ContextWindow { get; set; }
+
+    /// <summary>True when the model's provider is configured on the gateway.</summary>
     public bool IsConfigured { get; set; }
     public bool HasConfiguredFlag { get; set; }
+
+    /// <summary>True when the gateway marks this model as the default choice.</summary>
+    public bool IsDefault { get; set; }
+
+    /// <summary>
+    /// True when the model can be selected/used right now. Defaults to
+    /// <c>true</c> so models lists from gateways that don't report availability
+    /// are treated as usable. The gateway may report <c>available:false</c> or
+    /// <c>unavailable:true</c> to mark a model as not selectable.
+    /// </summary>
+    public bool IsAvailable { get; set; } = true;
+
+    /// <summary>
+    /// True when the model's provider needs authentication/credentials before
+    /// it can be used (e.g. an API key has not been configured yet).
+    /// </summary>
+    public bool RequiresAuth { get; set; }
 
     public string DisplayName => Name ?? Id;
 }

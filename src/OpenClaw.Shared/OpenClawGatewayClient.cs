@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace OpenClaw.Shared;
 
-public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
+public partial class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
 {
     private const string OperatorClientId = "cli";
     private const string OperatorClientDisplayName = "OpenClaw Windows Tray";
@@ -760,9 +760,70 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
         await SendTrackedRequestAsync("cron.status");
     }
 
-    public Task<bool> RunCronJobAsync(string jobId, bool force = true)
+    public async Task<bool> RunCronJobAsync(string jobId, bool force = true)
     {
-        return TrySendTrackedRequestAsync("cron.run", new { id = jobId, force });
+        var result = await RunCronJobDetailedAsync(jobId, force);
+        return result.Accepted && result.Enqueued;
+    }
+
+    public async Task<CronRunRequestResult> RunCronJobDetailedAsync(string jobId, bool force = true, int timeoutMs = 12000)
+    {
+        if (string.IsNullOrWhiteSpace(jobId))
+            return CronRunRequestResult.NotAccepted("Job id is required.");
+
+        var payloads = new List<object>();
+        if (!force)
+            payloads.Add(new { jobId, mode = "due" });
+        payloads.Add(new { jobId });
+        payloads.Add(new { id = jobId, force });
+
+        string? lastError = null;
+        foreach (var requestPayload in payloads)
+        {
+            try
+            {
+                var payload = await SendWizardRequestAsync("cron.run", requestPayload, timeoutMs);
+                return ParseCronRunRequestResult(payload);
+            }
+            catch (Exception ex)
+            {
+                lastError = ex.Message;
+                if (!IsCronRunPayloadShapeError(ex.Message))
+                    break;
+            }
+        }
+
+        _logger.Warn($"cron.run request failed: {lastError}");
+        return CronRunRequestResult.NotAccepted(lastError);
+    }
+
+    private static bool IsCronRunPayloadShapeError(string? message) =>
+        !string.IsNullOrWhiteSpace(message) &&
+        message.Contains("invalid cron.run params", StringComparison.OrdinalIgnoreCase);
+
+    internal static CronRunRequestResult ParseCronRunRequestResult(JsonElement payload)
+    {
+        var accepted = !payload.TryGetProperty("ok", out var okEl) || okEl.ValueKind != JsonValueKind.False;
+        var hasEnqueued = payload.TryGetProperty("enqueued", out var enqEl);
+        var enqueued = hasEnqueued && enqEl.ValueKind == JsonValueKind.True;
+        var enqueuedFalse = hasEnqueued && enqEl.ValueKind == JsonValueKind.False;
+        var hasRan = payload.TryGetProperty("ran", out var ranEl);
+        var ran = hasRan
+            ? ranEl.ValueKind == JsonValueKind.True
+            : (bool?)null;
+        var runId = payload.TryGetProperty("runId", out var runIdEl) && runIdEl.ValueKind == JsonValueKind.String
+            ? runIdEl.GetString()
+            : null;
+        var reason = payload.TryGetProperty("reason", out var reasonEl) && reasonEl.ValueKind == JsonValueKind.String
+            ? reasonEl.GetString()
+            : null;
+
+        return new CronRunRequestResult(
+            accepted,
+            accepted && !enqueuedFalse && ran != false &&
+            (enqueued || !string.IsNullOrWhiteSpace(runId) || ran == true || (!hasEnqueued && !hasRan)),
+            runId,
+            reason);
     }
 
     public Task<bool> RemoveCronJobAsync(string jobId)
@@ -2522,6 +2583,7 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
                 }
                 break;
             case "chat":
+            case "session.message":
                 HandleChatEvent(root, rawMessageLength);
                 break;
             case "session":
@@ -2989,6 +3051,12 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
         // Try new format: payload.message.role + payload.message.content[].text
         if (payload.TryGetProperty("message", out var message))
         {
+            if (message.ValueKind != JsonValueKind.Object)
+            {
+                _logger.Warn("[GatewayClient] Chat event message payload was not an object; dropping frame.");
+                return;
+            }
+
             var role = message.TryGetProperty("role", out var roleProp) ? roleProp.GetString() ?? "" : "";
             var state = payload.TryGetProperty("state", out var stateProp) ? stateProp.GetString() : null;
             if (tsMs == 0)
@@ -2998,20 +3066,17 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
             if (inTok is null && outTok is null && respTok is null && ctxPct is null)
                 (inTok, outTok, respTok, ctxPct) = ExtractChatUsage(message);
 
-            if (message.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
+            var text = ExtractMessageText(message);
+            if (string.IsNullOrEmpty(text)) return;
+
+            EmitChatMessageReceived(sessionKey, role, text, state, tsMs, inTok, outTok, respTok, ctxPct);
+
+            if (role == "assistant" && string.Equals(state, "final", StringComparison.OrdinalIgnoreCase))
             {
-                var text = ExtractMessageText(message);
-                if (string.IsNullOrEmpty(text)) return;
-
-                EmitChatMessageReceived(sessionKey, role, text, state, tsMs, inTok, outTok, respTok, ctxPct);
-
-                if (role == "assistant" && string.Equals(state, "final", StringComparison.OrdinalIgnoreCase))
-                {
-                    // HIGH 4: log shape only — content previously
-                    // surfaced in the operator log.
-                    _logger.Info($"Assistant response: role={role} state={state} len={text.Length}");
-                    EmitChatNotification(text);
-                }
+                // HIGH 4: log shape only — content previously
+                // surfaced in the operator log.
+                _logger.Info($"Assistant response: role={role} state={state} len={text.Length}");
+                EmitChatNotification(text, sessionKey);
             }
         }
         
@@ -3030,7 +3095,7 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
                 {
                     // HIGH 4: log shape only.
                     _logger.Info($"Assistant response (legacy): role={role} state={state} len={text.Length}");
-                    EmitChatNotification(text);
+                    EmitChatNotification(text, sessionKey);
                 }
             }
         }
@@ -3170,13 +3235,14 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
         }
     }
 
-    private void EmitChatNotification(string text)
+    private void EmitChatNotification(string text, string? sessionKey = null)
     {
         var displayText = text.Length > 200 ? text[..200] + "…" : text;
         var notification = new OpenClawNotification
         {
             Message = displayText,
-            IsChat = true
+            IsChat = true,
+            SessionKey = sessionKey
         };
         var (title, type) = _categorizer.Classify(notification, _userRules);
         notification.Title = title;
@@ -4062,8 +4128,16 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
             {
                 foreach (var item in modelsArray.EnumerateArray())
                 {
+                    if (item.ValueKind != JsonValueKind.Object) continue;
+
+                    // Read readiness flags defensively; older gateways may omit
+                    // them, and the UI only uses them for labels/selectability.
                     var hasConfiguredFlag = item.TryGetProperty("configured", out var cfg)
                                             && (cfg.ValueKind == JsonValueKind.True || cfg.ValueKind == JsonValueKind.False);
+                    bool available = true;
+                    if (TryReadBool(item, out var av, "available")) available = av;
+                    else if (TryReadBool(item, out var un, "unavailable")) available = !un;
+
                     var model = new ModelInfo
                     {
                         Id = item.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "",
@@ -4071,7 +4145,10 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
                         Provider = item.TryGetProperty("provider", out var prov) ? prov.GetString() : null,
                         ContextWindow = item.TryGetProperty("contextWindow", out var cw) && cw.ValueKind == JsonValueKind.Number ? cw.GetInt32() : null,
                         IsConfigured = hasConfiguredFlag && cfg.ValueKind == JsonValueKind.True,
-                        HasConfiguredFlag = hasConfiguredFlag
+                        HasConfiguredFlag = hasConfiguredFlag,
+                        IsDefault = ReadBool(item, "default", "isDefault"),
+                        IsAvailable = available,
+                        RequiresAuth = ReadBool(item, "requiresAuth", "authRequired", "needsAuth", "authNeeded")
                     };
                     if (!string.IsNullOrEmpty(model.Id))
                         info.Models.Add(model);
@@ -4083,6 +4160,25 @@ public class OpenClawGatewayClient : WebSocketClientBase, IOperatorGatewayClient
         {
             _logger.Warn($"Failed to parse models.list: {ex.Message}");
         }
+    }
+
+    // Reads the first present boolean property among <paramref name="keys"/>.
+    // Returns false when none are present (or are non-boolean).
+    private static bool ReadBool(JsonElement obj, params string[] keys) =>
+        TryReadBool(obj, out var value, keys) && value;
+
+    private static bool TryReadBool(JsonElement obj, out bool value, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (obj.TryGetProperty(key, out var prop))
+            {
+                if (prop.ValueKind == JsonValueKind.True) { value = true; return true; }
+                if (prop.ValueKind == JsonValueKind.False) { value = false; return true; }
+            }
+        }
+        value = false;
+        return false;
     }
 
     private void ParseNodePairList(JsonElement payload)

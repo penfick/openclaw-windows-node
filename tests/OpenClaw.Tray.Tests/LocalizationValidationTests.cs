@@ -27,7 +27,6 @@ public class LocalizationValidationTests
 
     private static readonly HashSet<string> InvariantOrDeferredResourceKeys = new(StringComparer.Ordinal)
     {
-        "AboutPage_TextBlock_19.Text",
         "CanvasWindow_TextBlock_31.Text",
         "CanvasWindow_winexWindowEx_2.Title",
         "ChatWindow_winexWindowEx_2.Title",
@@ -49,11 +48,22 @@ public class LocalizationValidationTests
         "VoiceOverlayWindow_winexWindowEx_2.Title",
         // Brand name — identical across all locales.
         "ConnectionPage_TopologyTailscale",
+        // Product/feature name — "OpenClaw Onboard" is kept identical across
+        // all locales (the card's description and button are translated).
+        "SettingsPage_OnboardWizard_Header.Text",
+        // Technical product term — "Gateway" is kept in English across
+        // supported locales per onboarding terminology.
+        "DiagnosticsPage_Section_Gateway.Text",
         "PermissionsPage_TtsElevenLabsModel.PlaceholderText",
         "PermissionsPage_TtsProviderElevenLabs.Content",
         // Sample IDs / brand identifiers — same across locales.
         "VoiceSettingsPage_ElevenLabsVoiceIdBox.PlaceholderText",
         "VoiceSettingsPage_ElevenLabsModelBox.PlaceholderText",
+        // Capability command identifier — should match the wire/API name.
+        "NotificationsPage_MetadataSystemRun",
+        // Punctuation-only layout format; localized parts are supplied by
+        // separate placeholders and should keep the same visual separator.
+        "ConfigPage_AccessSummaryFormat",
         // NodesPage detail labels — "Version", "Hardware", and "PATH" are
         // technical loanwords that read the same in every supported locale
         // in this app's audience. Translating them adds no clarity and
@@ -88,6 +98,16 @@ public class LocalizationValidationTests
         "PermissionsPage_SttHint_FailedFormat",
         "PermissionsPage_SttHint_NotDownloaded",
         "PermissionsPage_NodeStatus_Disabled",
+        // About / Gateway info strings added as part of the Windows-native
+        // settings reorg are seeded in English across locales until the next
+        // translation pass lands. They are still present in every locale file
+        // so key parity stays strict; this set only documents deferred copy.
+        "SettingsPage_About.Text",
+        "SettingsPage_GatewayInfoExpander.Header",
+        "SettingsPage_GatewayInfoLabel_Version.Text",
+        "SettingsPage_GatewayInfoLabel_Protocol.Text",
+        "SettingsPage_GatewayInfoLabel_AuthMode.Text",
+        "SettingsPage_GatewayInfoLabel_Uptime.Text",
         "PermissionsPage_NodeStatus_DisabledDetails",
         "PermissionsPage_NodeStatus_Active",
         "PermissionsPage_NodeStatus_ActiveDetailsFormat",
@@ -108,6 +128,10 @@ public class LocalizationValidationTests
         "PermissionsPage_TtsStatus_DefaultProviderFormat",
         "PermissionsPage_TtsStatus_ElevenLabsSaved",
         "PermissionsPage_McpStatus_TokenReadFailedFormat",
+        // Session key display formatter: "{agent} / {slot}" intentionally
+        // uses an invariant separator while the surrounding notification copy
+        // and common labels ("Main chat") are localized.
+        "AppNotification_ExecApprovalPending_AgentSlotLabelFormat",
         // Chat runtime warning seeded English-only until translations land.
         "Chat_Composer_Placeholder_IncompatibleGateway",
         // InstancesPage / ConnectionPage new strings — seeded English across
@@ -163,7 +187,14 @@ public class LocalizationValidationTests
         "ConnectionPage_NodePendingDeclaredCapabilities",
         "ConnectionPage_NodePendingDeclaredCommands",
         "ConnectionPage_NodePendingDeclaredPermissions",
-        "AboutPage_MoreDiagnosticsLink.Content",
+        // Node-card capability pills and technical-details disclosure — seeded
+        // English-only across all 5 locales using the deferred-translation pattern.
+        "ConnectionPage_NodeTechnicalDetails.Text",
+        "ConnectionPage_NodePillState_Active",
+        "ConnectionPage_NodePillState_Pending",
+        "ConnectionPage_NodePillState_Off",
+        "ConnectionPage_NodeCap_Device",
+        "ConnectionPage_NodeCap_System",
         "ConnectionStatusWindow.Title",
         // Hard-coded XAML strings resolved by issue #491 — seeded English-only across
         // all 5 locales using the deferred-translation pattern. Translations are a
@@ -259,8 +290,6 @@ public class LocalizationValidationTests
         "Command_GoToSettings_Subtitle",
         "Command_GoToDiagnostics_Title",
         "Command_GoToDiagnostics_Subtitle",
-        "Command_GoToInfo_Title",
-        "Command_GoToInfo_Subtitle",
         "Command_OpenChatWindow_Title",
         "Command_OpenChatWindow_Subtitle",
         "Command_OpenDashboard_Title",
@@ -287,7 +316,33 @@ public class LocalizationValidationTests
         "CommandCenter_NoLocalGatewayListener",
         "CommandCenter_BrowserProxySshForwardNotListening",
         "CommandCenter_BrowserProxyHostNotDetected",
+        // WorkspacePage session file rail strings — seeded English across all
+        // locales until translations land. Same deferred-translation precedent
+        // as the InstancesPage / ConnectionPage runtime keys above.
+        "WorkspacePage_SearchBox.PlaceholderText",
+        "WorkspacePage_ParentFolderButton.Content",
+        "WorkspacePage_OpenConnectionSettings.Content",
+        "WorkspacePage_NoSearchResults.Text",
+        "WorkspacePage_NoFolderResults",
+        "WorkspacePage_LoadErrorMessage",
+        "WorkspacePage_UnsupportedMessage",
+        "WorkspacePage_Badge_Missing",
+        "WorkspacePage_Badge_Edited",
+        "WorkspacePage_Badge_Read",
+        "WorkspacePage_FolderNote",
+        "WorkspacePage_FileUnavailable",
+        "WorkspacePage_BrowserOnlyFileNote",
+        "WorkspacePage_OpenFolder",
+        "WorkspacePage_CopyPath",
+        "WorkspacePage_CopyPathFailed",
+        "WorkspacePage_FileType_File",
+        "WorkspacePage_FileType_Folder",
+        "WorkspacePage_RootFolder",
+        "WorkspacePage_SearchResultsPath",
+        "WorkspacePage_BrowserTruncated",
     };
+
+    private static readonly HashSet<string> EnUsOnlyFallbackResourceKeys = new(StringComparer.Ordinal);
 
     private static readonly string[] RequiredRuntimeOnboardingKeys =
     [
@@ -544,6 +599,15 @@ public class LocalizationValidationTests
         || key.StartsWith("ChannelsPage_", StringComparison.Ordinal)
         || key.StartsWith("DiagnosticsPage_", StringComparison.Ordinal)
         || key.StartsWith("SettingsRow_", StringComparison.Ordinal)
+        // Title-bar status pill + notifications bell flyout strings. Seeded
+        // English-only across all five .resw files using the deferred-translation
+        // pattern; translations land in a follow-up.
+        || key.StartsWith("HubWindow_StatusFlyout_", StringComparison.Ordinal)
+        || key.StartsWith("HubWindow_StatusPill_", StringComparison.Ordinal)
+        || key.StartsWith("HubWindow_Pill_", StringComparison.Ordinal)
+        || key.StartsWith("HubWindow_Role_", StringComparison.Ordinal)
+        || key.StartsWith("HubWindow_Bell_", StringComparison.Ordinal)
+        || key.StartsWith("NotificationsFlyout_", StringComparison.Ordinal)
         // V2 onboarding redesign strings (V2_*) are intentionally English-only at first
         // ship. They live in V2Strings.DefaultEnUs and the cutover seeded them into all
         // five .resw files with English values. Translations land in a follow-up.
@@ -556,7 +620,9 @@ public class LocalizationValidationTests
         var referencePath = Path.Combine(stringsDir, "en-us", "Resources.resw");
         Assert.True(File.Exists(referencePath), $"Reference file not found: {referencePath}");
 
-        var referenceKeys = LoadResw(referencePath).Keys.ToHashSet(StringComparer.Ordinal);
+        var referenceKeys = LoadResw(referencePath).Keys
+            .Except(EnUsOnlyFallbackResourceKeys)
+            .ToHashSet(StringComparer.Ordinal);
 
         var localeDirs = GetNonEnglishLocaleDirectories(stringsDir);
 
@@ -571,7 +637,11 @@ public class LocalizationValidationTests
             var localeKeys = LoadResw(reswPath).Keys.ToHashSet(StringComparer.Ordinal);
 
             var missing = referenceKeys.Except(localeKeys).OrderBy(k => k).ToList();
-            var extra = localeKeys.Except(referenceKeys).OrderBy(k => k).ToList();
+            var extra = localeKeys
+                .Except(referenceKeys)
+                .Except(EnUsOnlyFallbackResourceKeys)
+                .OrderBy(k => k)
+                .ToList();
 
             Assert.True(missing.Count == 0,
                 $"Locale '{locale}' is missing {missing.Count} key(s): {string.Join(", ", missing.Take(10))}");
@@ -791,7 +861,8 @@ public class LocalizationValidationTests
     {
         var stringsDir = GetStringsDirectory();
         var referencePath = Path.Combine(stringsDir, "en-us", "Resources.resw");
-        var referenceCount = LoadResw(referencePath).Count;
+        var referenceResw = LoadResw(referencePath);
+        var referenceCount = referenceResw.Count - EnUsOnlyFallbackResourceKeys.Count(referenceResw.ContainsKey);
 
         var localeDirs = Directory.GetDirectories(stringsDir);
         foreach (var localeDir in localeDirs)
@@ -800,7 +871,8 @@ public class LocalizationValidationTests
             var reswPath = Path.Combine(localeDir, "Resources.resw");
             if (!File.Exists(reswPath)) continue;
 
-            var count = LoadResw(reswPath).Count;
+            var localeResw = LoadResw(reswPath);
+            var count = localeResw.Count - EnUsOnlyFallbackResourceKeys.Count(localeResw.ContainsKey);
             Assert.Equal(referenceCount, count);
         }
     }

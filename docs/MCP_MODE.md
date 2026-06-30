@@ -271,6 +271,22 @@ curl -s -X POST http://127.0.0.1:8765/ `
 For a simpler local CLI smoke test, run `winnode --list-tools`; it loads the
 same token file automatically.
 
+For agent-driven validation, use the repo-local skill
+`.agents/skills/openclaw-proof-validation/SKILL.md`. MCP/node changes need live
+tool discovery plus invocation proof using `winnode` or raw MCP JSON-RPC.
+
+## Adding or changing node commands
+
+Every new Windows node command must remain first-class over local MCP. Register
+it in the capability path used by `NodeService`, update
+`McpToolBridge.CommandDescriptions`, update
+`src/OpenClaw.WinNode.Cli/skill.md`, and add focused tests. `SkillMdDriftTests`
+guards against drift between capabilities, MCP descriptions, and `winnode` docs.
+
+PR proof for a new command should paste `winnode --list-tools` plus the command
+invocation, or raw MCP `tools/list` plus `tools/call`; include gateway invoke
+output when gateway-mediated behavior changed and a gateway is available.
+
 For Claude Code, drop this into `.mcp.json` at the repo root or `~/.claude.json`:
 
 ```json

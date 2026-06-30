@@ -1,13 +1,20 @@
 using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using OpenClaw.Connection;
 using OpenClaw.Shared;
 using OpenClawTray.Helpers;
 using OpenClawTray.Services;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OpenClawTray.Pages;
 
@@ -20,6 +27,13 @@ public sealed partial class SettingsPage : Page
     private bool _localGatewayInstalled;
     private bool _uninstallInitiatedThisSession;
     private CancellationTokenSource? _uninstallCts;
+    private AppState? _appState;
+    private readonly DispatcherTimer _gatewayUptimeRefreshTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private long? _sampledGatewayUptimeMs;
+    private DateTime _sampledGatewayUptimeUtc;
+
+    private const string DocumentationUrl = "https://docs.openclaw.ai/platforms/windows";
+    private const string GitHubUrl = "https://github.com/openclaw/openclaw-windows-node";
 
     private enum UninstallUiState { Idle, InProgress, Success, Failure }
 
@@ -30,12 +44,16 @@ public sealed partial class SettingsPage : Page
     public SettingsPage()
     {
         InitializeComponent();
+        _gatewayUptimeRefreshTimer.Tick += OnGatewayUptimeRefreshTimerTick;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     public void Initialize()
     {
+        PopulateAppInfo();
+        InitializeGatewayInfo();
+
         var settings = CurrentApp.Settings;
         if (!_initialized && settings != null)
         {
@@ -64,6 +82,10 @@ public sealed partial class SettingsPage : Page
     {
         if (CurrentApp.Settings != null)
             CurrentApp.Settings.Saved -= OnExternalSettingsChanged;
+        if (_appState != null)
+            _appState.PropertyChanged -= OnAppStateChanged;
+        _appState = null;
+        _gatewayUptimeRefreshTimer.Stop();
     }
 
     // ── Auto-save wiring ──
@@ -79,6 +101,12 @@ public sealed partial class SettingsPage : Page
             if (NotificationSoundComboBox.SelectedItem is ComboBoxItem item)
                 Persist(s => s.NotificationSound = item.Tag?.ToString() ?? "Default");
         };
+        AppThemeComboBox.SelectionChanged += (_, _) =>
+        {
+            if (AppThemeComboBox.SelectedItem is ComboBoxItem item)
+                Persist(s => s.AppTheme = item.Tag?.ToString() ?? SettingsManager.AppThemeSystem);
+        };
+        ShowDiagnosticsToggle.Toggled += (_, _) => Persist(s => s.ShowDiagnosticsOverride = ShowDiagnosticsToggle.IsOn);
 
         WireCheckBox(NotifyHealthCb, v => CurrentApp.Settings!.NotifyHealth = v);
         WireCheckBox(NotifyUrgentCb, v => CurrentApp.Settings!.NotifyUrgent = v);
@@ -117,7 +145,13 @@ public sealed partial class SettingsPage : Page
         }
     }
 
-    private void PersistAutoStart()
+    private void PersistAutoStart() =>
+        AsyncEventHandlerGuard.Run(
+            PersistAutoStartAsync,
+            new OpenClawTray.AppLogger(),
+            nameof(PersistAutoStart));
+
+    private async Task PersistAutoStartAsync()
     {
         if (_loading || CurrentApp.Settings == null) return;
         _saving = true;
@@ -125,7 +159,7 @@ public sealed partial class SettingsPage : Page
         {
             CurrentApp.Settings.AutoStart = AutoStartToggle.IsOn;
             CurrentApp.Settings.Save();
-            AutoStartManager.SetAutoStart(CurrentApp.Settings.AutoStart);
+            await AutoStartManager.SetAutoStartAsync(CurrentApp.Settings.AutoStart);
             ((IAppCommands)CurrentApp).NotifySettingsSaved();
             ShowSavedIndicator();
         }
@@ -173,17 +207,9 @@ public sealed partial class SettingsPage : Page
         UseLegacyWebChatToggle.IsOn = settings.UseLegacyWebChat;
         NotificationsToggle.IsOn = settings.ShowNotifications;
 
-        for (int i = 0; i < NotificationSoundComboBox.Items.Count; i++)
-        {
-            if (NotificationSoundComboBox.Items[i] is ComboBoxItem item &&
-                item.Tag?.ToString() == settings.NotificationSound)
-            {
-                NotificationSoundComboBox.SelectedIndex = i;
-                break;
-            }
-        }
-        if (NotificationSoundComboBox.SelectedIndex < 0)
-            NotificationSoundComboBox.SelectedIndex = 0;
+        SelectComboBoxItemByTag(NotificationSoundComboBox, settings.NotificationSound);
+        SelectComboBoxItemByTag(AppThemeComboBox, settings.AppTheme);
+        ShowDiagnosticsToggle.IsOn = settings.ShowDiagnosticsEffective;
 
         NotifyHealthCb.IsChecked = settings.NotifyHealth;
         NotifyUrgentCb.IsChecked = settings.NotifyUrgent;
@@ -199,13 +225,147 @@ public sealed partial class SettingsPage : Page
         LoadGatewaySection(settings);
     }
 
+    private void PopulateAppInfo()
+    {
+        AppInfoVersionText.Text = AppVersionInfo.DisplayVersion;
+        AppInfoRuntimeText.Text = BuildRuntimeStackDisplayText();
+        AppInfoArchText.Text = RuntimeInformation.ProcessArchitecture.ToString();
+        AppInfoWindowsText.Text = Environment.OSVersion.Version.ToString();
+        AppInfoInstallText.Text = PackageHelper.IsPackaged ? "Packaged (MSIX)" : "Unpackaged (developer)";
+        AppInfoChannelText.Text = ResolveUpdateChannelDisplayText();
+
+        var buildDate = TryResolveBuildDateDisplayText();
+        if (string.IsNullOrWhiteSpace(buildDate))
+        {
+            AppInfoBuildLabel.Visibility = Visibility.Collapsed;
+            AppInfoBuildText.Visibility = Visibility.Collapsed;
+            AppInfoBuildText.Text = string.Empty;
+        }
+        else
+        {
+            AppInfoBuildLabel.Visibility = Visibility.Visible;
+            AppInfoBuildText.Visibility = Visibility.Visible;
+            AppInfoBuildText.Text = buildDate;
+        }
+    }
+
+    private void InitializeGatewayInfo()
+    {
+        var appState = CurrentApp.AppState;
+        if (!ReferenceEquals(_appState, appState))
+        {
+            if (_appState != null)
+                _appState.PropertyChanged -= OnAppStateChanged;
+            _appState = appState;
+            if (_appState != null)
+                _appState.PropertyChanged += OnAppStateChanged;
+        }
+
+        RefreshGatewayInfo();
+    }
+
+    private void OnAppStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AppState.Status) or nameof(AppState.GatewaySelf))
+            RefreshGatewayInfo();
+    }
+
+    private void RefreshGatewayInfo()
+    {
+        var self = CurrentApp.AppState?.GatewaySelf;
+        if (CurrentApp.AppState?.Status == ConnectionStatus.Connected && self != null)
+        {
+            GatewayVersionText.Text = self.VersionText;
+            GatewayProtocolText.Text = self.Protocol.HasValue ? $"v{self.Protocol}" : "unknown";
+            GatewayAuthText.Text = string.IsNullOrWhiteSpace(self.AuthMode) ? "unknown" : self.AuthMode;
+            CaptureGatewayUptimeSample(self);
+            RefreshGatewayUptimeText();
+        }
+        else
+        {
+            _sampledGatewayUptimeMs = null;
+            _gatewayUptimeRefreshTimer.Stop();
+            GatewayVersionText.Text = "—";
+            GatewayProtocolText.Text = "—";
+            GatewayAuthText.Text = "—";
+            GatewayUptimeText.Text = "—";
+        }
+    }
+
+    private void CaptureGatewayUptimeSample(GatewaySelfInfo self)
+    {
+        if (!self.UptimeMs.HasValue)
+        {
+            _sampledGatewayUptimeMs = null;
+            _gatewayUptimeRefreshTimer.Stop();
+            return;
+        }
+
+        if (_sampledGatewayUptimeMs != self.UptimeMs.Value)
+        {
+            _sampledGatewayUptimeMs = self.UptimeMs.Value;
+            _sampledGatewayUptimeUtc = DateTime.UtcNow;
+        }
+
+        if (!_gatewayUptimeRefreshTimer.IsEnabled)
+            _gatewayUptimeRefreshTimer.Start();
+    }
+
+    private void OnGatewayUptimeRefreshTimerTick(object? sender, object e)
+    {
+        RefreshGatewayUptimeText();
+    }
+
+    private void RefreshGatewayUptimeText()
+    {
+        if (CurrentApp.AppState?.Status != ConnectionStatus.Connected ||
+            !_sampledGatewayUptimeMs.HasValue)
+        {
+            _gatewayUptimeRefreshTimer.Stop();
+            GatewayUptimeText.Text = "—";
+            return;
+        }
+
+        var elapsedMs = Math.Max(0, (DateTime.UtcNow - _sampledGatewayUptimeUtc).TotalMilliseconds);
+        GatewayUptimeText.Text = FormatDuration(TimeSpan.FromMilliseconds(_sampledGatewayUptimeMs.Value + elapsedMs));
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalDays >= 1)
+            return $"{(int)duration.TotalDays}d {duration.Hours}h";
+        if (duration.TotalHours >= 1)
+            return $"{(int)duration.TotalHours}h {duration.Minutes}m";
+        if (duration.TotalMinutes >= 1)
+            return $"{(int)duration.TotalMinutes}m {duration.Seconds}s";
+        return $"{Math.Max(0, (int)duration.TotalSeconds)}s";
+    }
+
+    private static void SelectComboBoxItemByTag(ComboBox comboBox, string? tag)
+    {
+        for (int i = 0; i < comboBox.Items.Count; i++)
+        {
+            if (comboBox.Items[i] is ComboBoxItem item &&
+                string.Equals(item.Tag?.ToString(), tag, StringComparison.OrdinalIgnoreCase))
+            {
+                comboBox.SelectedIndex = i;
+                return;
+            }
+        }
+
+        comboBox.SelectedIndex = 0;
+    }
+
     private void LoadGatewaySection(SettingsManager settings)
     {
         var setupStatePath = Path.Combine(SetupExistingGatewayClassifier.ResolveLocalDataPath(), "setup-state.json");
+        var activeGatewayAccess = GatewayHostAccessClassifier.Classify(CurrentApp.Registry?.GetActive());
 
         _localGatewayInstalled = File.Exists(setupStatePath)
             || (settings.GatewayUrl?.StartsWith("ws://localhost", StringComparison.OrdinalIgnoreCase) == true);
 
+        OpenClawOnboardCard.Visibility = activeGatewayAccess.CanControlWslGateway
+            ? Visibility.Visible : Visibility.Collapsed;
         LocalGatewayExpander.Visibility = ComputeLocalGatewaySectionVisibility();
 
         // MSIX warning: Path A (conservative) — show when packaged AND gateway installed.
@@ -230,6 +390,11 @@ public sealed partial class SettingsPage : Page
         ((IAppCommands)CurrentApp).ShowOnboarding();
     }
 
+    private void OnOpenGatewayWizard(object sender, RoutedEventArgs e)
+    {
+        ((IAppCommands)CurrentApp).ShowGatewayWizard();
+    }
+
     private void OnTestNotification(object sender, RoutedEventArgs e)
     {
         try
@@ -243,6 +408,159 @@ public sealed partial class SettingsPage : Page
         {
             Logger.Warn($"SettingsPage: Test notification failed: {ex.Message}");
         }
+    }
+
+    private void OnCheckUpdates(object sender, RoutedEventArgs e)
+    {
+        ((IAppCommands)CurrentApp).CheckForUpdates();
+    }
+
+    private void OnDocumentationLink(object sender, RoutedEventArgs e)
+    {
+        OpenShellTarget(DocumentationUrl, "documentation");
+    }
+
+    private void OnGitHubLink(object sender, RoutedEventArgs e)
+    {
+        OpenShellTarget(GitHubUrl, "GitHub");
+    }
+
+    private void OnDashboardLink(object sender, RoutedEventArgs e)
+    {
+        ((IAppCommands)CurrentApp).OpenDashboard(null);
+    }
+
+    private static void OpenShellTarget(string target, string label)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            Logger.Warn($"Failed to open {label}: target is empty");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            Logger.Warn($"Failed to open {label}: {ex.Message}");
+        }
+    }
+
+    private static string BuildRuntimeStackDisplayText()
+    {
+        var dotNet = RuntimeInformation.FrameworkDescription;
+        var winUi = ResolveWinUiDisplayName();
+        var windowsAppSdk = ResolveWindowsAppSdkDisplayName();
+
+        return $"{dotNet} / {winUi} / {windowsAppSdk}";
+    }
+
+    private static string ResolveUpdateChannelDisplayText()
+    {
+        var channel = Environment.GetEnvironmentVariable("OPENCLAW_UPDATE_CHANNEL");
+        return string.IsNullOrWhiteSpace(channel) ? "stable" : channel.Trim();
+    }
+
+    private static string? TryResolveBuildDateDisplayText()
+    {
+        try
+        {
+            var location = Assembly.GetEntryAssembly()?.Location;
+            if (string.IsNullOrWhiteSpace(location) || !File.Exists(location))
+                return null;
+
+            return File.GetLastWriteTime(location).ToString("MMM d, yyyy", CultureInfo.CurrentCulture);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            Logger.Debug($"SettingsPage: Failed to resolve app build date: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static string ResolveWinUiDisplayName()
+    {
+        var version = typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version;
+        return version is { Major: > 0 }
+            ? $"WinUI {version.Major}"
+            : "WinUI";
+    }
+
+    private static string ResolveWindowsAppSdkDisplayName()
+    {
+        if (TryResolveWindowsAppSdkPackageVersionFromDeps() is { Length: > 0 } packageVersion)
+        {
+            return $"Windows App SDK {packageVersion}";
+        }
+
+        return ResolveWindowsAppSdkDisplayNameFromFileVersion();
+    }
+
+    private static string ResolveWindowsAppSdkDisplayNameFromFileVersion()
+    {
+        var xamlNativePath = Path.Combine(AppContext.BaseDirectory, "Microsoft.ui.xaml.dll");
+        if (File.Exists(xamlNativePath))
+        {
+            try
+            {
+                var productVersion = FileVersionInfo.GetVersionInfo(xamlNativePath).ProductVersion;
+                if (!string.IsNullOrWhiteSpace(productVersion))
+                {
+                    return $"Windows App SDK {StripBuildMetadata(productVersion)}";
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                Logger.Warn($"Failed to read Windows App SDK version from {xamlNativePath}: {ex.Message}");
+            }
+        }
+
+        return "Windows App SDK";
+    }
+
+    private static string? TryResolveWindowsAppSdkPackageVersionFromDeps()
+    {
+        var assemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+        if (string.IsNullOrWhiteSpace(assemblyName))
+            return null;
+
+        var depsPath = Path.Combine(AppContext.BaseDirectory, $"{assemblyName}.deps.json");
+        if (!File.Exists(depsPath))
+            return null;
+
+        try
+        {
+            using var stream = File.OpenRead(depsPath);
+            using var document = JsonDocument.Parse(stream);
+            if (!document.RootElement.TryGetProperty("libraries", out var libraries) ||
+                libraries.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            foreach (var library in libraries.EnumerateObject())
+            {
+                const string packagePrefix = "Microsoft.WindowsAppSDK/";
+                if (library.Name.StartsWith(packagePrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return StripBuildMetadata(library.Name[packagePrefix.Length..]);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
+        {
+            Logger.Warn($"Failed to read Windows App SDK package version from {depsPath}: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private static string StripBuildMetadata(string version)
+    {
+        var plus = version.IndexOf('+', StringComparison.Ordinal);
+        return plus >= 0 ? version[..plus] : version;
     }
 
     private void OnRemoveGateway(object sender, RoutedEventArgs e) =>
@@ -327,17 +645,19 @@ public sealed partial class SettingsPage : Page
 
             if (proc.ExitCode == 0)
             {
+                CurrentApp.Registry?.Load();
+                OpenClawOnboardCard.Visibility = Visibility.Collapsed;
                 ApplyUninstallUiState(UninstallUiState.Success);
                 UninstallResultBar.Severity = InfoBarSeverity.Success;
-                UninstallResultBar.Title = "Local gateway removed";
-                UninstallResultBar.Message = "Setup is reset; you can re-run setup from the tray menu.";
+                UninstallResultBar.Title = LocalizationHelper.GetString("SettingsPage_LocalGatewayRemovedTitle");
+                UninstallResultBar.Message = LocalizationHelper.GetString("SettingsPage_LocalGatewayRemovedMessage");
                 UninstallResultBar.ActionButton = null;
                 UninstallResultBar.IsOpen = true;
             }
             else
             {
                 ApplyUninstallUiState(UninstallUiState.Failure);
-                var errorMsg = "Removal completed with errors. Check logs for details.";
+                var errorMsg = LocalizationHelper.GetString("SettingsPage_LocalGatewayRemovalErrorsMessage");
                 if (File.Exists(jsonOutput))
                 {
                     try
@@ -376,8 +696,8 @@ public sealed partial class SettingsPage : Page
 
             ApplyUninstallUiState(UninstallUiState.Failure);
             UninstallResultBar.Severity = InfoBarSeverity.Warning;
-            UninstallResultBar.Title = "Removal cancelled";
-            UninstallResultBar.Message = "Gateway may be in a partially-removed state. Review logs or retry.";
+            UninstallResultBar.Title = LocalizationHelper.GetString("SettingsPage_LocalGatewayRemovalCancelledTitle");
+            UninstallResultBar.Message = LocalizationHelper.GetString("SettingsPage_LocalGatewayRemovalCancelledMessage");
             UninstallResultBar.ActionButton = null;
             UninstallResultBar.IsOpen = true;
         }
@@ -418,7 +738,7 @@ public sealed partial class SettingsPage : Page
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "OpenClawTray", "Logs");
 
-        var viewLogsButton = new Button { Content = "View Logs" };
+        var viewLogsButton = new Button { Content = LocalizationHelper.GetString("SettingsPage_ViewLogs") };
         viewLogsButton.Click += (_, _) =>
         {
             try { System.Diagnostics.Process.Start("explorer.exe", logsPath); }
@@ -426,7 +746,7 @@ public sealed partial class SettingsPage : Page
         };
 
         UninstallResultBar.Severity = InfoBarSeverity.Error;
-        UninstallResultBar.Title = "Removal failed";
+        UninstallResultBar.Title = LocalizationHelper.GetString("SettingsPage_LocalGatewayRemovalFailedTitle");
         UninstallResultBar.Message = message;
         UninstallResultBar.ActionButton = viewLogsButton;
         UninstallResultBar.IsOpen = true;
@@ -438,7 +758,7 @@ public sealed partial class SettingsPage : Page
         {
             case UninstallUiState.Idle:
             case UninstallUiState.Failure:
-                RemoveGatewayButton.Content = "Remove Local Gateway";
+                RemoveGatewayButton.Content = LocalizationHelper.GetString("SettingsPage_RemoveLocalGatewayButton");
                 RemoveGatewayButton.IsEnabled = true;
                 RemoveGatewayButton.Visibility = Visibility.Visible;
                 GatewayBodyText.Text = GatewayIdleBodyText;
@@ -456,13 +776,13 @@ public sealed partial class SettingsPage : Page
                 });
                 sp.Children.Add(new TextBlock
                 {
-                    Text = "Removing distro\u2026",
+                    Text = LocalizationHelper.GetString("SettingsPage_RemovingDistro"),
                     VerticalAlignment = VerticalAlignment.Center
                 });
                 RemoveGatewayButton.Content = sp;
                 RemoveGatewayButton.IsEnabled = false;
                 RemoveGatewayButton.Visibility = Visibility.Visible;
-                GatewayBodyText.Text = "Removing the local gateway. This may take 10\u201330 seconds\u2026";
+                GatewayBodyText.Text = LocalizationHelper.GetString("SettingsPage_RemovingLocalGatewayMessage");
                 break;
             }
 

@@ -275,11 +275,15 @@ public class SystemCapability : NodeCapabilityBase
         
         var command = argv[0];
         var rawCommand = GetStringArg(request.Args, "rawCommand");
+        var requestedShell = GetStringArg(request.Args, "shell");
+        var effectiveShell = _commandRunner?.ResolveEffectiveShell(requestedShell)
+            ?? ResolveDefaultEffectiveShell(requestedShell);
         var cwd = GetStringArg(request.Args, "cwd");
         var agentId = GetStringArg(request.Args, "agentId");
-        var sessionKey = GetStringArg(request.Args, "sessionKey");
+        var sessionKey = request.SessionKey ?? GetStringArg(request.Args, "sessionKey");
         
-        Logger.Info($"system.run.prepare: {rawCommand} (cwd={cwd ?? "default"})");
+        Logger.Info(
+            $"system.run.prepare: {rawCommand} (shell={effectiveShell}, requestedShell={requestedShell ?? "auto"}, cwd={cwd ?? "default"})");
         
         return Success(new
         {
@@ -289,10 +293,26 @@ public class SystemCapability : NodeCapabilityBase
                 argv,
                 cwd,
                 rawCommand,
+                requestedShell = string.IsNullOrWhiteSpace(requestedShell) ? null : requestedShell.Trim(),
+                effectiveShell,
                 agentId,
                 sessionKey
             }
         });
+    }
+
+    private static string ResolveDefaultEffectiveShell(string? requestedShell)
+    {
+        if (string.IsNullOrWhiteSpace(requestedShell))
+            return "powershell";
+
+        return requestedShell.Trim().ToLowerInvariant() switch
+        {
+            "cmd" => "cmd",
+            "pwsh" => "pwsh",
+            "powershell" => "powershell",
+            _ => "powershell",
+        };
     }
     
     private async Task<NodeInvokeResponse> HandleRunAsync(NodeInvokeRequest request)
@@ -357,6 +377,7 @@ public class SystemCapability : NodeCapabilityBase
         
         var shell = GetStringArg(request.Args, "shell");
         var cwd = GetStringArg(request.Args, "cwd");
+        var sessionKey = request.SessionKey ?? GetStringArg(request.Args, "sessionKey");
         var timeoutMs = GetIntArg(request.Args, "timeoutMs",
             GetIntArg(request.Args, "timeout", DefaultRunTimeoutMs));
         // Clamp caller-supplied timeouts. timeoutMs <= 0 historically meant
@@ -399,50 +420,35 @@ public class SystemCapability : NodeCapabilityBase
         var fullCommand = args != null
             ? FormatExecCommand([command!, ..args])
             : command;
+        var requestedShell = string.IsNullOrWhiteSpace(shell) ? null : shell.Trim();
+        var effectiveShell = _commandRunner.ResolveEffectiveShell(requestedShell);
+        var approvedHostFallbackShell = _commandRunner is IHostFallbackAwareCommandRunner fallbackAwareRunner
+            ? fallbackAwareRunner.ResolveHostFallbackShellForApproval(requestedShell, effectiveShell)
+            : null;
         
-        Logger.Info($"system.run: {fullCommand} (shell={shell ?? "auto"}, timeout={timeoutMs}ms)");
+        Logger.Info($"system.run: {fullCommand} (shell={effectiveShell}, requestedShell={shell ?? "auto"}, timeout={timeoutMs}ms)");
         
         // Check exec approval policy
         if (_approvalPolicy != null)
         {
-            var approval = _approvalPolicy.Evaluate(fullCommand, shell);
-            var approvalCheck = await EnsureApprovedAsync(fullCommand, shell, approval);
-            if (!approvalCheck.Allowed)
+            var approvalError = await EnsureCommandAndNestedTargetsApprovedAsync(
+                fullCommand,
+                effectiveShell,
+                sessionKey,
+                correlationId);
+            if (approvalError != null)
+                return approvalError;
+
+            if (!string.IsNullOrWhiteSpace(approvedHostFallbackShell)
+                && !string.Equals(approvedHostFallbackShell, effectiveShell, StringComparison.OrdinalIgnoreCase))
             {
-                Logger.Warn($"system.run DENIED: {fullCommand} ({approval.Reason})");
-                return Error($"Command denied by exec policy: {approval.Reason}");
-            }
-
-            var outerApprovalCoversNestedTargets =
-                approvalCheck.PromptDecisionKind != null ||
-                IsExactAllowRuleForCommand(approval, fullCommand);
-
-            var parseResult = ExecShellWrapperParser.Expand(fullCommand, shell);
-            if (!string.IsNullOrWhiteSpace(parseResult.Error))
-            {
-                Logger.Warn($"system.run DENIED: {fullCommand} ({parseResult.Error})");
-                return Error($"Command denied by exec policy: {parseResult.Error}");
-            }
-
-            foreach (var target in parseResult.Targets)
-            {
-                var innerApproval = _approvalPolicy.Evaluate(target.Command, target.Shell);
-                if (outerApprovalCoversNestedTargets && !IsExplicitDeny(innerApproval))
-                {
-                    if (!innerApproval.Allowed)
-                    {
-                        Logger.Info(
-                            $"system.run nested approval covered by approved wrapper: {target.Command} ({innerApproval.Reason})");
-                    }
-                    continue;
-                }
-
-                var innerApprovalCheck = await EnsureApprovedAsync(target.Command, target.Shell, innerApproval);
-                if (!innerApprovalCheck.Allowed)
-                {
-                    Logger.Warn($"system.run DENIED: {target.Command} ({innerApproval.Reason})");
-                    return Error($"Command denied by exec policy: {innerApproval.Reason}");
-                }
+                approvalError = await EnsureCommandAndNestedTargetsApprovedAsync(
+                    fullCommand,
+                    approvedHostFallbackShell,
+                    sessionKey,
+                    correlationId);
+                if (approvalError != null)
+                    return approvalError;
             }
         }
         
@@ -452,10 +458,12 @@ public class SystemCapability : NodeCapabilityBase
             {
                 Command = command,
                 Args = args,
-                Shell = shell,
+                Shell = requestedShell,
                 Cwd = cwd,
                 TimeoutMs = timeoutMs,
-                Env = env
+                Env = env,
+                ApprovedEffectiveShell = effectiveShell,
+                ApprovedHostFallbackShell = approvedHostFallbackShell
             });
             
             return Success(new
@@ -478,6 +486,8 @@ public class SystemCapability : NodeCapabilityBase
         string command,
         string? shell,
         ExecApprovalResult approval,
+        string? sessionKey,
+        string correlationId,
         CancellationToken cancellationToken = default)
     {
         if (approval.Allowed)
@@ -494,7 +504,9 @@ public class SystemCapability : NodeCapabilityBase
             Command = command,
             Shell = shell,
             MatchedPattern = approval.MatchedPattern,
-            Reason = approval.Reason ?? "Command requires approval"
+            Reason = approval.Reason ?? "Command requires approval",
+            SessionKey = sessionKey,
+            CorrelationId = correlationId
         }, cancellationToken);
 
         if (decision.Kind == ExecApprovalPromptDecisionKind.Deny)
@@ -524,6 +536,63 @@ public class SystemCapability : NodeCapabilityBase
 
         Logger.Info($"system.run APPROVED by prompt: {command} ({decision.Kind})");
         return new ExecApprovalCheckResult(true, decision.Kind);
+    }
+
+    private async Task<NodeInvokeResponse?> EnsureCommandAndNestedTargetsApprovedAsync(
+        string fullCommand,
+        string? shell,
+        string? sessionKey,
+        string correlationId)
+    {
+        if (_approvalPolicy == null)
+            return null;
+
+        var approval = _approvalPolicy.Evaluate(fullCommand, shell);
+        var approvalCheck = await EnsureApprovedAsync(fullCommand, shell, approval, sessionKey, correlationId);
+        if (!approvalCheck.Allowed)
+        {
+            Logger.Warn($"system.run DENIED: {fullCommand} ({approval.Reason})");
+            return Error($"Command denied by exec policy: {approval.Reason}");
+        }
+
+        var outerApprovalCoversNestedTargets =
+            approvalCheck.PromptDecisionKind != null ||
+            IsExactAllowRuleForCommand(approval, fullCommand);
+
+        var parseResult = ExecShellWrapperParser.Expand(fullCommand, shell);
+        if (!string.IsNullOrWhiteSpace(parseResult.Error))
+        {
+            Logger.Warn($"system.run DENIED: {fullCommand} ({parseResult.Error})");
+            return Error($"Command denied by exec policy: {parseResult.Error}");
+        }
+
+        foreach (var target in parseResult.Targets)
+        {
+            var innerApproval = _approvalPolicy.Evaluate(target.Command, target.Shell);
+            if (outerApprovalCoversNestedTargets && !IsExplicitDeny(innerApproval))
+            {
+                if (!innerApproval.Allowed)
+                {
+                    Logger.Info(
+                        $"system.run nested approval covered by approved wrapper: {target.Command} ({innerApproval.Reason})");
+                }
+                continue;
+            }
+
+            var innerApprovalCheck = await EnsureApprovedAsync(
+                target.Command,
+                target.Shell,
+                innerApproval,
+                sessionKey,
+                correlationId);
+            if (!innerApprovalCheck.Allowed)
+            {
+                Logger.Warn($"system.run DENIED: {target.Command} ({innerApproval.Reason})");
+                return Error($"Command denied by exec policy: {innerApproval.Reason}");
+            }
+        }
+
+        return null;
     }
 
     private static bool CanPersistExactAllowRule(string command) =>

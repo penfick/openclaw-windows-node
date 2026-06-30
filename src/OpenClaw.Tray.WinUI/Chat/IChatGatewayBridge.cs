@@ -36,7 +36,21 @@ public interface IChatGatewayBridge : IDisposable
 
     Task SendChatMessageAsync(string message, string? sessionKey, string? sessionId, IReadOnlyList<ChatAttachment>? attachments = null);
     Task<ChatSendResult> SendChatMessageForRunAsync(string message, string? sessionKey, string? sessionId, IReadOnlyList<ChatAttachment>? attachments = null);
+    /// <summary>
+    /// Fetches the gateway command catalog (<c>commands.list</c>) via the typed
+    /// protocol API. Returns a <see cref="CommandCatalog"/> whose
+    /// <see cref="CommandCatalog.IsSupported"/> is <c>false</c> when the gateway
+    /// does not implement the method. Request/response — no event subscription.
+    /// </summary>
+    Task<CommandCatalog> ListCommandsAsync(CommandCatalogQuery? query = null);
     Task PatchSessionModelAsync(string sessionKey, string model);
+    /// <summary>
+    /// Clears the session's model override (tri-state <c>sessions.patch</c> with
+    /// an explicit JSON null), reverting the session to the gateway/agent
+    /// default. Distinct from <see cref="PatchSessionModelAsync"/>, which sets a
+    /// concrete model.
+    /// </summary>
+    Task ClearSessionModelAsync(string sessionKey);
     Task PatchSessionThinkingLevelAsync(string sessionKey, string thinkingLevel);
     Task<ChatHistoryInfo> RequestChatHistoryAsync(string? sessionKey);
     Task SendChatAbortAsync(string runId, string? sessionKey = null);
@@ -160,10 +174,16 @@ public sealed class GatewayClientChatBridge : IChatGatewayBridge
         _client.SendChatMessageForRunAsync(message, sessionKey, sessionId, attachments);
 
     public Task PatchSessionModelAsync(string sessionKey, string model) =>
-        _client.PatchSessionAsync(sessionKey, model: model);
+        _client.PatchSessionAsync(sessionKey, new SessionPatch { Model = model });
+
+    public Task ClearSessionModelAsync(string sessionKey) =>
+        _client.PatchSessionAsync(sessionKey, new SessionPatch { Model = SessionPatch.Clear });
 
     public Task PatchSessionThinkingLevelAsync(string sessionKey, string thinkingLevel) =>
-        _client.PatchSessionAsync(sessionKey, thinkingLevel: thinkingLevel);
+        _client.PatchSessionAsync(sessionKey, new SessionPatch { ThinkingLevel = thinkingLevel });
+
+    public Task<CommandCatalog> ListCommandsAsync(CommandCatalogQuery? query = null) =>
+        _client.ListCommandsAsync(query);
 
     public Task<ChatHistoryInfo> RequestChatHistoryAsync(string? sessionKey) =>
         _client.RequestChatHistoryAsync(sessionKey);

@@ -64,8 +64,45 @@ internal static class GatewayControllerFactory
 
         var distro = record.SetupManagedDistroName?.Trim();
         if (!string.IsNullOrWhiteSpace(distro))
-            return new WslGatewayController(distro, wslRunner, logger);
+            return new WslGatewayControllerAdapter(distro, wslRunner, logger);
 
         return null;
+    }
+}
+
+/// <summary>
+/// Adapts <see cref="WslGatewayController"/> (OpenClaw.Connection — distro passed per call,
+/// does not implement <see cref="IGatewayController"/>) to our distro-bound
+/// <see cref="IGatewayController"/> abstraction. Created by <see cref="GatewayControllerFactory"/>
+/// for WSL-managed gateways. Keeps the native/WSL-polymorphic factory intact while sharing
+/// upstream's WSL controller implementation.
+/// </summary>
+internal sealed class WslGatewayControllerAdapter : IGatewayController
+{
+    private readonly string _distroName;
+    private readonly WslGatewayController _controller;
+
+    public WslGatewayControllerAdapter(string distroName, IWslCommandRunner wslRunner, IOpenClawLogger logger)
+    {
+        _distroName = distroName;
+        _controller = new WslGatewayController(wslRunner, logger);
+    }
+
+    public async Task<GatewayControlResult> RunAsync(GatewayControlAction action, CancellationToken cancellationToken = default)
+    {
+        var wslAction = action switch
+        {
+            GatewayControlAction.Start => WslGatewayControlAction.Start,
+            GatewayControlAction.Stop => WslGatewayControlAction.Stop,
+            GatewayControlAction.Restart => WslGatewayControlAction.Restart,
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported gateway action."),
+        };
+        var result = await _controller.RunAsync(_distroName, wslAction, cancellationToken).ConfigureAwait(false);
+        return new GatewayControlResult(
+            action,
+            result.ExitCode,
+            result.StandardOutput,
+            result.StandardError,
+            $"WSL distro '{_distroName}'");
     }
 }
