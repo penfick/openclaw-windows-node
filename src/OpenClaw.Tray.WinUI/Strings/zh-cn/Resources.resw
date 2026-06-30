@@ -1602,6 +1602,12 @@
   <data name="ChatPage_WaitingStatusText.Text" xml:space="preserve">
     <value>网关已连接；聊天界面仍在上线中。</value>
   </data>
+  <data name="ChatPage_GatewayConnectingTitle.Text" xml:space="preserve">
+    <value>正在连接 OpenClaw 网关…</value>
+  </data>
+  <data name="ChatPage_GatewayConnectingStatus.Text" xml:space="preserve">
+    <value>请稍等，正在与网关建立连接。</value>
+  </data>
   <data name="ConfigPage_TextBlock_17.Text" xml:space="preserve">
     <value>配置</value>
   </data>

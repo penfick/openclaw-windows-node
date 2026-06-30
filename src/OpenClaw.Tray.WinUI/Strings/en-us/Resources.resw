@@ -1650,6 +1650,12 @@ On your gateway host (Mac/Linux), run:
   <data name="ChatPage_WaitingStatusText.Text" xml:space="preserve">
     <value>The gateway is connected; the chat surface is still coming online.</value>
   </data>
+  <data name="ChatPage_GatewayConnectingTitle.Text" xml:space="preserve">
+    <value>Connecting to the OpenClaw gateway…</value>
+  </data>
+  <data name="ChatPage_GatewayConnectingStatus.Text" xml:space="preserve">
+    <value>Please wait while we establish the connection.</value>
+  </data>
   <data name="ConfigPage_TextBlock_17.Text" xml:space="preserve">
     <value>Config</value>
   </data>

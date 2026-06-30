@@ -104,5 +104,28 @@
                 <Button x:Uid="WebChatOpenBrowserButton" Content="Open in Browser Instead" Click="OnPopout" HorizontalAlignment="Left"/>
             </StackPanel>
         </ScrollViewer>
+
+        <!-- Startup connecting overlay: covers the chat area while the gateway is still
+             connecting / pairing (before the first successful connection). Lifts once
+             connected and never re-shows — later disconnects are handled by the chat
+             surface itself. Driven by AppState.Status, NOT provider-null, because the
+             functional chat host mounts as soon as an operator client exists (even while
+             pairing is still pending), which would otherwise hide a provider-based placeholder. -->
+        <Border x:Name="ConnectingOverlay" Grid.Row="1"
+                Visibility="Collapsed"
+                Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                <ProgressRing IsActive="True" Width="40" Height="40" HorizontalAlignment="Center"/>
+                <TextBlock x:Uid="ChatPage_GatewayConnectingTitle"
+                           Text="正在连接 OpenClaw 网关…"
+                           Style="{StaticResource SubtitleTextBlockStyle}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock x:Uid="ChatPage_GatewayConnectingStatus"
+                           Text="请稍等，正在与网关建立连接。"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="360"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Page>

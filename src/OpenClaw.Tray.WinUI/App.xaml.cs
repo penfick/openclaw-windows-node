@@ -697,13 +697,35 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         var startupDeepLink = _pendingProtocolUri
             ?? (_startupArgs.Length > 1 && _startupArgs[1].StartsWith("openclaw://", StringComparison.OrdinalIgnoreCase)
                 ? _startupArgs[1] : null);
+        var launchSurfaceHandled = false;
         if (!setupShownDuringStartup && startupDeepLink != null)
         {
             await HandleDeepLinkAsync(startupDeepLink);
+            launchSurfaceHandled = true;
         }
         else if (!setupShownDuringStartup && string.Equals(_postSetupLaunch, "chat", StringComparison.OrdinalIgnoreCase))
         {
             await HandleDeepLinkAsync("openclaw://chat");
+            launchSurfaceHandled = true;
+        }
+
+        // Default launch surface: open the Hub on the chat page so the app is
+        // immediately usable without right-clicking the tray → "Companion
+        // Settings...". Skipped when first-run onboarding just ran, or when a
+        // deep link / post-setup launch already surfaced a specific page.
+        if (!setupShownDuringStartup && !launchSurfaceHandled)
+        {
+            FlushOaAuthState();
+            ShowHub("chat");
+            // Keep chat as the landing page while the gateway connects/pairs — the
+            // flag suppresses the disconnect-driven chat→Connection bounce for this
+            // window's lifetime (see HubWindow.SuppressChatDisconnectBounce).
+            if (_hubWindow != null)
+                _hubWindow.SuppressChatDisconnectBounce = true;
+            // Safety net: if the gateway is still not connected after a generous
+            // startup window, fall back to the Connection page once so the user can
+            // pair / troubleshoot instead of waiting on a non-functional chat.
+            ScheduleStartupChatFallbackToConnection();
         }
 
         Logger.Info("Application started (WinUI 3)");
@@ -2717,6 +2739,59 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     #endregion
 
     #region Window Management
+
+    /// <summary>
+    /// Sync <see cref="AppState.AuthState"/> from the OAuth service's current state.
+    /// <see cref="OAuthAuthService.RestoreSessionAsync"/> sets <c>CurrentState</c>
+    /// synchronously but forwards to <c>AppState.AuthState</c> via a dispatcher
+    /// enqueue that may not have drained yet when <see cref="ShowHub"/> runs right
+    /// after launch. Without this flush, the HubWindow auth gate (NavigateInternal
+    /// redirects unauthenticated/null sessions to "account") would bounce an
+    /// already-restored session on the very first navigation, so the startup Hub
+    /// would land on the account page instead of chat.
+    /// </summary>
+    private void FlushOaAuthState()
+    {
+        if (_appState == null || _oAuthAuthService == null) return;
+        if (_appState.AuthState?.Authenticated == true) return;
+        var current = _oAuthAuthService.CurrentState;
+        if (current != null)
+            _appState.AuthState = current;
+    }
+
+    /// <summary>
+    /// How long the startup chat landing page waits for the gateway to connect before
+    /// falling back to the Connection page. Generous on purpose: a cold-started native
+    /// gateway plus pairing can take a while, and a false fallback (bouncing to
+    /// Connection right before the gateway comes up) is worse than a slightly long wait.
+    /// </summary>
+    private static readonly TimeSpan StartupChatFallbackDelay = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// One-shot safety net for the startup chat landing page. If the gateway still
+    /// isn't Connected after <see cref="StartupChatFallbackDelay"/>, navigate the Hub
+    /// from chat to the Connection page so the user can pair / troubleshoot instead of
+    /// staring at a non-functional chat surface. No-op if the gateway came up, the user
+    /// already navigated away from chat, or the window closed.
+    /// </summary>
+    private void ScheduleStartupChatFallbackToConnection()
+    {
+        var dq = _dispatcherQueue;
+        if (dq is null) return;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(StartupChatFallbackDelay);
+            dq.TryEnqueue(() =>
+            {
+                if (_appState?.Status == ConnectionStatus.Connected) return;
+                if (_hubWindow is not { IsClosed: false } hub) return;
+                if (hub.CurrentPage is not Pages.ChatPage) return; // user left chat — respect their choice
+                hub.SuppressChatDisconnectBounce = false; // startup intent fulfilled (fell back to Connection)
+                hub.NavigateTo("connection");
+                Logger.Info($"[App] Startup chat fallback: gateway still not connected after {StartupChatFallbackDelay.TotalSeconds:0}s, navigating to Connection.");
+            });
+        });
+    }
 
     internal void ShowHub(string? navigateTo = null, bool activate = true, string? originTag = null)
     {

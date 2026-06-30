@@ -60,6 +60,21 @@ public sealed partial class HubWindow : WindowEx
     public bool PendingAutoStartVoice { get; set; }
     /// <summary>Session key the chat surface should select on its next mount. Consumed (cleared) by ChatPage.</summary>
     public string? PendingChatSessionKey { get; set; }
+
+    /// <summary>
+    /// When true, the disconnect-driven redirect that bounces gateway pages (chat,
+    /// sessions, …) back to the Connection page skips the chat tag, so a startup
+    /// Hub opened on chat stays on chat while the gateway connects/pairs instead
+    /// of flashing to Connection after the 2s disconnect debounce. Set by App
+    /// startup right after <see cref="App.ShowHub"/>("chat") and kept for the
+    /// lifetime of this window — NOT cleared on transient Connected states,
+    /// because startup connection flux (Connected → PairingRequired → …) would
+    /// otherwise re-arm the bounce mid-pairing and re-flash to Connection. The
+    /// flag naturally resets when the window is closed; a Hub reopened from the
+    /// tray gets a fresh window with normal bounce behavior.
+    /// </summary>
+    internal bool SuppressChatDisconnectBounce { get; set; }
+
     public string? NodeFullDeviceId { get; set; }
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _gatewayNavHideTimer;
 
@@ -620,7 +635,13 @@ public sealed partial class HubWindow : WindowEx
                     return;
 
                 var gatewayTags = new HashSet<string> { "chat", "sessions", "skills", "channels", "instances", "agentevents", "bindings", "config", "usage", "cron", "workspace" };
-                if (currentTag != null && (gatewayTags.Contains(currentTag) || currentTag.StartsWith("agent:")))
+                // Suppress the chat→Connection bounce when the Hub was opened on
+                // chat at startup (see SuppressChatDisconnectBounce): keep the page
+                // on chat while the gateway connects. The rail still hides gateway
+                // items until connected; only the redirect is skipped.
+                var suppressBounce = SuppressChatDisconnectBounce
+                    && string.Equals(currentTag, "chat", StringComparison.OrdinalIgnoreCase);
+                if (!suppressBounce && currentTag != null && (gatewayTags.Contains(currentTag) || currentTag.StartsWith("agent:")))
                 {
                     foreach (NavigationViewItem item in NavView!.MenuItems.OfType<NavigationViewItem>())
                     {

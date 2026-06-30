@@ -10,6 +10,7 @@ using OpenClawTray.Services;
 using OpenClawTray.Windows;
 using OpenClaw.Connection;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -35,6 +36,8 @@ public sealed partial class ChatPage : Page
     private global::Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2NavigationCompletedEventArgs>? _navCompletedHandler;
     private global::Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2NavigationStartingEventArgs>? _navStartingHandler;
     private IGatewayConnectionManager? _connectionManager;
+    private AppState? _appStateSubscribed;
+    private bool _chatEstablished;
     private IChatPagePanelHost? _panelHost;
     private IChatPagePanelHost PanelHost => _panelHost ??= new ChatPagePanelHost(this);
     private static readonly HttpClient s_httpClient = new()
@@ -77,6 +80,12 @@ public sealed partial class ChatPage : Page
         // an unloaded ChatPage doesn't keep responding to overrides changes
         // (the page keeps the static handler alive otherwise).
         OpenClawTray.Chat.DebugChatSurfaceOverrides.Changed -= OnDebugOverrideChanged;
+
+        if (_appStateSubscribed is not null)
+        {
+            _appStateSubscribed.PropertyChanged -= OnAppStateStatusChanged;
+            _appStateSubscribed = null;
+        }
     }
 
     /// <summary>Trigger voice recording programmatically (e.g. from V hotkey).</summary>
@@ -140,7 +149,48 @@ public sealed partial class ChatPage : Page
         OpenClawTray.Chat.DebugChatSurfaceOverrides.Changed -= OnDebugOverrideChanged;
         OpenClawTray.Chat.DebugChatSurfaceOverrides.Changed += OnDebugOverrideChanged;
 
+        // Show a "connecting" overlay over the chat surface while the gateway is still
+        // coming up / pairing (before the first successful connection).
+        SubscribeAppState();
+
         ApplyChatSurface();
+    }
+
+    private void SubscribeAppState()
+    {
+        var appState = CurrentApp.AppState;
+        if (appState is null) return;
+        if (ReferenceEquals(appState, _appStateSubscribed)) return;
+        if (_appStateSubscribed is not null)
+            _appStateSubscribed.PropertyChanged -= OnAppStateStatusChanged;
+        _appStateSubscribed = appState;
+        appState.PropertyChanged += OnAppStateStatusChanged;
+        UpdateConnectingOverlay(appState.Status);
+    }
+
+    private void OnAppStateStatusChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!string.Equals(e.PropertyName, nameof(AppState.Status), StringComparison.Ordinal))
+            return;
+        UpdateConnectingOverlay((sender as AppState)?.Status ?? ConnectionStatus.Disconnected);
+    }
+
+    /// <summary>
+    /// Toggle the startup "connecting" overlay. Shown only while the gateway has not
+    /// yet reached Connected for the first time on this page instance; once the chat
+    /// has established, later disconnects are handled by the chat surface itself and
+    /// the overlay stays out of the way.
+    /// </summary>
+    private void UpdateConnectingOverlay(ConnectionStatus status)
+    {
+        if (status == ConnectionStatus.Connected)
+        {
+            _chatEstablished = true;
+            ConnectingOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+        if (!_chatEstablished)
+            ConnectingOverlay.Visibility = Visibility.Visible;
     }
 
     private void OnSettingsSaved(object? sender, EventArgs e) => ApplyChatSurface();
