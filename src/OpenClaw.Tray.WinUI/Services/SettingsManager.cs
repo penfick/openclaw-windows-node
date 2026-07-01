@@ -183,8 +183,8 @@ public class SettingsManager
     public string DifyBaseUrl { get => _data.DifyBaseUrl ?? ""; set => _data = _data with { DifyBaseUrl = value }; }
     /// <summary>Dify app API key (plaintext in memory; dpapi-protected on disk).</summary>
     public string DifyApiKey { get => _data.DifyApiKey ?? ""; set => _data = _data with { DifyApiKey = value }; }
-    /// <summary>Company Skills Hub base URL. Default http://192.168.100.203:3001/ (test env).</summary>
-    public string CompanySkillsHubUrl { get => string.IsNullOrWhiteSpace(_data.CompanySkillsHubUrl) ? "http://192.168.100.203:3001/" : _data.CompanySkillsHubUrl; set => _data = _data with { CompanySkillsHubUrl = value }; }
+    /// <summary>Company Skills Hub base URL. Default comes from <see cref="SettingsData.DefaultCompanySkillsHubUrl"/> (flip that constant to switch env).</summary>
+    public string CompanySkillsHubUrl { get => string.IsNullOrWhiteSpace(_data.CompanySkillsHubUrl) ? SettingsData.DefaultCompanySkillsHubUrl : _data.CompanySkillsHubUrl; set => _data = _data with { CompanySkillsHubUrl = value }; }
 
     public SettingsManager() : this(GetDefaultSettingsDirectory())
     {
@@ -308,7 +308,7 @@ public class SettingsManager
         OaUserInfo = null,
         DifyBaseUrl = "",
         DifyApiKey = "",
-        CompanySkillsHubUrl = "http://localhost:3000"
+        CompanySkillsHubUrl = SettingsData.DefaultCompanySkillsHubUrl
     };
 
     private static SettingsData NormalizeLoadedData(SettingsData loaded, string? rawJson = null)

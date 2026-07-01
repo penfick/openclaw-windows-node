@@ -201,7 +201,16 @@ public record class SettingsData
     /// <summary>Dify app API key. Persisted as a dpapi:-prefixed blob by SettingsManager.</summary>
     public string? DifyApiKey { get; set; }
     /// <summary>Company Skills Hub base URL.</summary>
-    public string CompanySkillsHubUrl { get; set; } = "http://localhost:3000";
+    public string CompanySkillsHubUrl { get; set; } = DefaultCompanySkillsHubUrl;
+
+    /// <summary>
+    /// Single source of truth for the Company Skills Hub base URL default. Change this
+    /// one constant to flip between environments (test / production). Referenced by the
+    /// <see cref="CompanySkillsHubUrl"/> property default here, by SettingsManager's
+    /// CreateDefaultData seed, and by the SettingsManager getter fallback — so all three
+    /// stay in sync. Persisted user values (non-empty) still override this.
+    /// </summary>
+    public const string DefaultCompanySkillsHubUrl = "http://192.168.100.203:3001/";
 
     // ── (Voice / STT settings consolidated into the block above.) ──
 
