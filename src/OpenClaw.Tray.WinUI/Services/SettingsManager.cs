@@ -183,8 +183,8 @@ public class SettingsManager
     public string DifyBaseUrl { get => _data.DifyBaseUrl ?? ""; set => _data = _data with { DifyBaseUrl = value }; }
     /// <summary>Dify app API key (plaintext in memory; dpapi-protected on disk).</summary>
     public string DifyApiKey { get => _data.DifyApiKey ?? ""; set => _data = _data with { DifyApiKey = value }; }
-    /// <summary>Company Skills Hub base URL. Default http://localhost:3000.</summary>
-    public string CompanySkillsHubUrl { get => string.IsNullOrWhiteSpace(_data.CompanySkillsHubUrl) ? "http://localhost:3000" : _data.CompanySkillsHubUrl; set => _data = _data with { CompanySkillsHubUrl = value }; }
+    /// <summary>Company Skills Hub base URL. Default http://192.168.100.203:3001/ (test env).</summary>
+    public string CompanySkillsHubUrl { get => string.IsNullOrWhiteSpace(_data.CompanySkillsHubUrl) ? "http://192.168.100.203:3001/" : _data.CompanySkillsHubUrl; set => _data = _data with { CompanySkillsHubUrl = value }; }
 
     public SettingsManager() : this(GetDefaultSettingsDirectory())
     {
