@@ -5990,10 +5990,10 @@ Make sure the gateway is running.</value>
     <value>Waiting for the gateway to confirm the channel is running…</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsTitle.Text" xml:space="preserve">
-    <value>WSL gateway</value>
+    <value>Gateway</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsDescription.Text" xml:space="preserve">
-    <value>Open a shell or manage the local gateway service in WSL.</value>
+    <value>Open a shell or manage the local gateway service.</value>
   </data>
   <data name="ConnectionPage_GatewayHostTerminalLabel.Text" xml:space="preserve">
     <value>Terminal</value>

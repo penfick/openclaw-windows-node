@@ -5985,10 +5985,10 @@
     <value>正在等待閘道確認頻道已執行…</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsTitle.Text" xml:space="preserve">
-    <value>WSL 閘道</value>
+    <value>閘道</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsDescription.Text" xml:space="preserve">
-    <value>開啟 shell，或在 WSL 中管理本機閘道服務。</value>
+    <value>開啟 shell，或管理本機閘道服務。</value>
   </data>
   <data name="ConnectionPage_GatewayHostTerminalLabel.Text" xml:space="preserve">
     <value>終端機</value>

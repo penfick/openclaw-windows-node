@@ -5985,10 +5985,10 @@
     <value>正在等待网关确认频道已运行…</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsTitle.Text" xml:space="preserve">
-    <value>WSL 网关</value>
+    <value>网关</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsDescription.Text" xml:space="preserve">
-    <value>打开 shell，或在 WSL 中管理本地网关服务。</value>
+    <value>打开 shell，或管理本地网关服务。</value>
   </data>
   <data name="ConnectionPage_GatewayHostTerminalLabel.Text" xml:space="preserve">
     <value>终端</value>

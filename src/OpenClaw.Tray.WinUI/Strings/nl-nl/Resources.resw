@@ -5980,10 +5980,10 @@ Controleer of de gateway actief is.</value>
     <value>Wachten tot de gateway bevestigt dat het kanaal actief is…</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsTitle.Text" xml:space="preserve">
-    <value>WSL-gateway</value>
+    <value>Gateway</value>
   </data>
   <data name="ConnectionPage_GatewayHostControlsDescription.Text" xml:space="preserve">
-    <value>Open een shell of beheer de lokale gatewayservice in WSL.</value>
+    <value>Open een shell of beheer de lokale gatewayservice.</value>
   </data>
   <data name="ConnectionPage_GatewayHostTerminalLabel.Text" xml:space="preserve">
     <value>Terminalvenster</value>
